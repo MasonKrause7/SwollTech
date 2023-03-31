@@ -2,6 +2,10 @@
 
 {% block content %}
     <h1>{% block title %} Welcome to SwollTech {% endblock %}</h1>
-
+    {% for user in users %}
+        <a href="#"><h2>{{user['fname']}}</h2></a>
+        <span class="badge badge-primary">{{ user['email'] }}</span>
+        <hr>
+    {% endfor %}
 
 {% endblock %}

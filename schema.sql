@@ -6,3 +6,4 @@ CREATE TABLE Users (
     lname VARCHAR(50) NOT NULL,
     email VARCHAR(50) NOT NULL
 );
+
