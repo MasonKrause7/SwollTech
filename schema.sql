@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS Users;
+DROP TABLE IF EXISTS Session;
 
 CREATE TABLE Users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -6,4 +7,19 @@ CREATE TABLE Users (
     lname VARCHAR(50) NOT NULL,
     email VARCHAR(50) NOT NULL
 );
+CREATE TABLE Session (
+    session_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER FOREIGN KEY,
+    workout_id INTEGER FOREIGN KEY,
+    date_of_session DATE NOT NULL
+);
+CREATE TABLE Workout (
+    workout_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER FOREIGN KEY,
+    workout_name VARCHAR(50) NOT NULL
+);
+CREATE TABLE Workout_Exercise (
+    wo_ex_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+)
 
