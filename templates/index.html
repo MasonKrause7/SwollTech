@@ -2,10 +2,19 @@
 
 {% block content %}
     <h1>{% block title %} Welcome to SwollTech {% endblock %}</h1>
-    {% for user in users %}
+
+    <h2>Start building custom workouts, keeping stats for each set, and tracking your progress over time</h2>
+    <span><a href="/register.html">Register</a> for a free account and start using SwollTech to get data driven results.</span>
+    <span>Already have an account? <a href="/signin.html">Sign in</a> instead.</span>
+
+
+
+
+<!-- For loop going through each user -->
+    <!-- {% for user in users %}
         <a href="#"><h2>{{user['fname']}}</h2></a>
         <span class="badge badge-primary">{{ user['email'] }}</span>
         <hr>
-    {% endfor %}
+    {% endfor %} -->
 
 {% endblock %}
