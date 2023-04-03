@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+<script src="static/js/script.js" type="text/javascript"></script>
+<h1>{% block title %}Create your workout {% endblock %}</h1>
+
+<form>
+
+    <label class="label" for="workout_name">Name of your workout ("Chest&Tris", "Ultimate Leg Day", etc)</label>
+    <input type="text" class="input-primary" name="workout_name" id="workout_name">
+    <button type="submit" class="btn-primary btn-lg" onsubmit="submitNameOfWorkout()">Submit</button>
+</form>
+{% endblock %}

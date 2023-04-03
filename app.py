@@ -27,3 +27,12 @@ def register():
 def signin():
 
     return render_template('signin.html')
+@app.route('/createworkout.html')
+def createworkout():
+
+    return render_template('createworkout.html')
+@app.route('/createworkout/<workoutname>')
+def submitworkoutname():
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute('INSERT INTO Workout (workout_name) VALUES ()')
