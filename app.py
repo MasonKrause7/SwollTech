@@ -6,7 +6,9 @@ DATABASE = 'database.db'
 app = Flask(__name__)
 def get_db():
     db = sqlite3.connect(DATABASE)
+    db.row_factory = sqlite3.Row
     return db;
+
 
 
 
@@ -35,14 +37,13 @@ def post_signup():
     if(password != confPassword):
         return 'Password and confirmation do not match, please go back and try again'
 
-    db = get_db()
-    db.row_factory = sqlite3.Row
-    cursor = db.cursor()
     successfulInsert = False
+    db = get_db()
+    cursor = db.cursor()
     query = f"SELECT * FROM Users WHERE email='{email}'"
-    results = db.execute(query)
+    results = cursor.execute(query)
     users = results.fetchall()
-    if len(users) > 0:
+    if len(users) > 0: #if user already exists, render login
         user = users[0]
         return render_template('login.html', user=user)
     else:
@@ -51,7 +52,7 @@ def post_signup():
             cursor.execute(query)
             db.commit()
             print("record added successfully")
-            successfulInsert = True;
+            successfulInsert = True
         except:
             db.rollback()
             print('error inserting record')
@@ -75,13 +76,24 @@ def post_signup():
 @app.route('/login.html', methods=['GET', 'POST'])
 def login(user=None):
     if request.method == 'GET':
-        return render_template('login.html')
+        return render_template('login.html', user=user)
     else:
         username = request.form.get('username')
         password = request.form.get('loginpassword')
-        connection = get_db_connection()
         userExists = False
-        query = f"SELECT * FROM Users WHERE email= {username}"
+        connection = get_db()
+        cursor = connection.cursor()
+        query = f"SELECT * FROM Users WHERE email= '{username}'"
+        results = cursor.execute(query)
+        if results is None:
+            return "No user exists with that email, please go back and try again"
+        else:
+            users = results.fetchall()
+            user = users[0]
+            passwordInDb = user['password']
+            if passwordInDb == password:
+                #perform login
+                print('passwords match')
 
 
 @app.get('/createworkout.html')
