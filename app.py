@@ -37,6 +37,8 @@ def post_signup():
 
     db = get_db()
     db.row_factory = sqlite3.Row
+    cursor = db.cursor()
+    successfulInsert = False
     query = f"SELECT * FROM Users WHERE email='{email}'"
     results = db.execute(query)
     users = results.fetchall()
@@ -45,26 +47,33 @@ def post_signup():
         return render_template('login.html', user=user)
     else:
         try:
-            query = f"INSERT INTO Users (fname, lname, email, dob, password) VALUES ({fname}, {lname}, {email}, {dob}, {password})"
-            cursor = db.cursor()
+            query = f"INSERT INTO Users (fname, lname, email, dob, password) VALUES ('{fname}', '{lname}', '{email}', '{dob}', '{password}')"
             cursor.execute(query)
             db.commit()
             print("record added successfully")
-            query = f"SELECT * FROM Users WHERE email='{email}'"
-            user = db.execute(query)
-            return render_template('login.html', user=user)
+            successfulInsert = True;
         except:
             db.rollback()
             print('error inserting record')
         finally:
-            db.close()
-            return render_template('login.html', user=None)
+            user = None
+            if successfulInsert:
+                query = f"SELECT * FROM Users WHERE email = '{email}'"
+                results = cursor.execute(query)
+                result = results.fetchall()
+                user = result[0]
+                db.close()
+
+            else:
+                db.close()
+            return render_template(url_for('login'), user=user)
+
 
 
 
 
 @app.route('/login.html', methods=['GET', 'POST'])
-def signin():
+def login(user=None):
     if request.method == 'GET':
         return render_template('login.html')
     else:

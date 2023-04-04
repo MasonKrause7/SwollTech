@@ -3,13 +3,12 @@
 
 {% block content %}
 
-<h1>{% block title %}Log in to SwollTech{% endblock %}</h1>
+<h1>{% block title %}Welcome {{user['fname']}}, Log in to SwollTech{% endblock %}</h1>
 
-<h2>Welcome, {{user['fname']}}</h2>
-<h3>Please log in to continue</h3>
+
 <hr>
 
-<form method="POST">
+<form method="POST" action="{{ url_for('login') }}">
     <input type="email" name="username" id="username" placeholder="Username">
     <input type="password" name="loginpassword" id="loginpassword" placeholder="Password">
 
