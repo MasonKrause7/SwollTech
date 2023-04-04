@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 import sqlite3
-import usermodel
+
 
 DATABASE = 'database.db'
 app = Flask(__name__)
@@ -45,16 +45,20 @@ def post_signup():
     users = results.fetchall()
     if len(users) > 0: #if user already exists, render login
         user = users[0]
-        return render_template('login.html', user=user)
+        message = "That email is already associated with an account, please log in"
+        return render_template('login.html', user=user, message=message)
     else:
+        message = ""
         try:
             query = f"INSERT INTO Users (fname, lname, email, dob, password) VALUES ('{fname}', '{lname}', '{email}', '{dob}', '{password}')"
             cursor.execute(query)
             db.commit()
             print("record added successfully")
+            message = "Sign up successful. Please log in to your new account"
             successfulInsert = True
         except:
             db.rollback()
+            message("There was an error during the sign up process. Please try again.")
             print('error inserting record')
         finally:
             user = None
@@ -67,16 +71,17 @@ def post_signup():
 
             else:
                 db.close()
-            return render_template(url_for('login'), user=user)
+
+            return render_template(url_for('login'), user=user, message=message)
 
 
 
 
 
 @app.route('/login.html', methods=['GET', 'POST'])
-def login(user=None):
+def login(user=None, message=""):
     if request.method == 'GET':
-        return render_template('login.html', user=user)
+        return render_template('login.html', user=user, message=message)
     else:
         username = request.form.get('username')
         password = request.form.get('loginpassword')
@@ -86,7 +91,8 @@ def login(user=None):
         query = f"SELECT * FROM Users WHERE email= '{username}'"
         results = cursor.execute(query)
         if results is None:
-            return "No user exists with that email, please go back and try again"
+            message = "No user exists with that email, please try again"
+            return render_template(url_for('login'), message=message)
         else:
             users = results.fetchall()
             user = users[0]
@@ -94,6 +100,9 @@ def login(user=None):
             if passwordInDb == password:
                 #perform login
                 print('passwords match')
+            else:
+                message = "Sorry, that password is incorrect."
+                render_template('login.html', user=user, message=message)
 
 
 @app.get('/createworkout.html')
