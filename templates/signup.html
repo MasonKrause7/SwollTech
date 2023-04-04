@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<script src="/static/js/script.js"></script>
+  <h1>{% block title %} SwollTech Sign Up {% endblock %}</h1>
+  <form method="POST">
+    <input type="text" name="fname" id="fname" placeholder="First Name">
+    <input type="text" name="lname" id="lname" placeholder="Last Name">
+    <input type="email" name="email" id="email" placeholder="Email">
+    <input type="date" name="dob" id="dob" placeholder="Date Of Birth">
+    <input type="password" name="pass" id="pass" placeholder="Password">
+    <input type="password" name="confpass" id="confpass" placeholder="Confirm Password">
+    <p class="danger" id="passNotMatchingMsg"></p>
+    <input type="submit" onclick="validateSignup()" content="Sign Up">
+  </form>
+
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1>{% block title %} Welcome Home {% endblock %}</h1>
+<h2>Lets take a look at your past sessions... </h2>
+
+
+
+{% endblock %}
+
+<!-- For loop going through each user -->
+    <!-- {% for session in sessions %}
+        <a href="#"><h2>{{session['date']}}</h2></a>
+        <span class="badge badge-primary">{{ session['workout_id'] }}</span> NEED TO JOIN WORKOUT TO GET WORKOUT NAME
+        <hr>
+    {% endfor %} -->

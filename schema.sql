@@ -9,7 +9,9 @@ CREATE TABLE Users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     fname VARCHAR(50) NOT NULL,
     lname VARCHAR(50) NOT NULL,
-    email VARCHAR(50) NOT NULL
+    email VARCHAR(50) NOT NULL,
+    dob DATE,
+    password VARCHAR(200) NOT NULL
 );
 CREATE TABLE Session (
     session_id INTEGER PRIMARY KEY AUTOINCREMENT,
