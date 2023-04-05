@@ -140,14 +140,18 @@ def createworkout():
 def name_workout():
     if user_authenticated():
         wo_name = request.form['workout_name']
-        wo = Workout.Workout(wo_name)
+        ex_list = []
+        build_workout(wo)
         #wo is named, start adding exercises
         return render_template(url_for('home'))
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
-
-
+def build_workout(workout_name: str, ex_list: [Exercise]) -> Workout.Workout:
+    wo = Workout.Workout(workout_name)
+    for ex in ex_list:
+        workout.addExercise(ex)
+    return wo
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
         return False
