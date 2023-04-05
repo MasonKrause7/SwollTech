@@ -1,50 +1,49 @@
 from flask import Flask, render_template, request, session, redirect, url_for, flash
 import sqlite3
 
-
-DATABASE = 'database.db'
 app = Flask('SwollTech')
+DATABASE = 'database.db'
+app.secret_key = 'testingkey,changelater'
 def get_db():
     db = sqlite3.connect(DATABASE)
     db.row_factory = sqlite3.Row
     return db
 
 
-
-
-
-app.secret_key = 'testingkey,changelater'
-
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
 @app.route('/about.html')
 def about():
     return render_template('about.html')
 
+
 @app.get('/signup.html')
 def get_signup():
     return render_template('signup.html')
+
+
 @app.post('/signup.html')
 def post_signup():
-    #NEED TO VALIDATE REGISTRATION DATA
+    # NEED TO VALIDATE REGISTRATION DATA
     password = request.form['pass']
     confPassword = request.form['confpass']
-    if(password != confPassword):
+    if (password != confPassword):
         message = "Password and confirmation do not match, please try again"
         return render_template(url_for('login'), message=message)
     fname = request.form['fname']
     lname = request.form['lname']
     email = request.form['email']
     dob = request.form['dob']
-
     successfulInsert = False
     db = get_db()
     cursor = db.cursor()
     query = f"SELECT * FROM Users WHERE email='{email}'"
     results = cursor.execute(query)
     users = results.fetchall()
-    if len(users) > 0: #if user already exists, render login
+    if len(users) > 0:  # if user already exists, render login
         user = users[0]
         message = "That email is already associated with an account, please log in"
         return render_template('login.html', user=user, message=message)
@@ -75,6 +74,7 @@ def post_signup():
 
             return render_template(url_for('login'), user=user, message=message)
 
+
 @app.route('/login.html', methods=['GET', 'POST'])
 def login(user=None, message=""):
     if request.method == 'GET':
@@ -95,23 +95,29 @@ def login(user=None, message=""):
             user = users[0]
             passwordInDb = user['password']
             if passwordInDb == password:
-                session['user_id']=user['user_id']
-                session['email']=user['email']
-                session['fname']=user['fname']
-                session['lname']=user['lname']
+                session['user_id'] = user['user_id']
+                session['email'] = user['email']
+                session['fname'] = user['fname']
+                session['lname'] = user['lname']
                 return render_template(url_for('home'))
             else:
                 message = "Sorry, that password is incorrect."
                 return render_template(url_for('login'), user=user, message=message)
+@app.route('/logout')
+def logout():
+    if session['user_id'] is None:
+        message = 'You were not logged in'
+        return render_template(url_for('login'), message=message)
 
 @app.route('/home.html')
 def home():
     if session['user_id'] is None:
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
-    #query relevant homepage data
+    # query relevant homepage data
 
     return render_template('home.html')
+
 
 @app.get('/createworkout.html')
 def createworkout():
@@ -119,11 +125,10 @@ def createworkout():
         return render_template('createworkout.html')
     else:
         return redirect(url_for('login.html'))
+
+
 @app.post('/createworkout/<workout_name>')
 def submitworkoutname(workout_name1):
     connection = get_db()
     cursor = connection.cursor()
     cursor.execute('INSERT INTO Workout (workout_name) VALUES (workout_name1)')
-
-
-
