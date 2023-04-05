@@ -1,13 +1,13 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, flash
 import sqlite3
 
 
 DATABASE = 'database.db'
-app = Flask(__name__)
+app = Flask('SwollTech')
 def get_db():
     db = sqlite3.connect(DATABASE)
     db.row_factory = sqlite3.Row
-    return db;
+    return db
 
 
 
@@ -28,14 +28,15 @@ def get_signup():
 @app.post('/signup.html')
 def post_signup():
     #NEED TO VALIDATE REGISTRATION DATA
+    password = request.form['pass']
+    confPassword = request.form['confpass']
+    if(password != confPassword):
+        message = "Password and confirmation do not match, please try again"
+        return render_template(url_for('login'), message=message)
     fname = request.form['fname']
     lname = request.form['lname']
     email = request.form['email']
     dob = request.form['dob']
-    password = request.form['pass']
-    confPassword = request.form['confpass']
-    if(password != confPassword):
-        return 'Password and confirmation do not match, please go back and try again'
 
     successfulInsert = False
     db = get_db()
@@ -58,7 +59,7 @@ def post_signup():
             successfulInsert = True
         except:
             db.rollback()
-            message("There was an error during the sign up process. Please try again.")
+            message = "There was an error during the sign up process. Please try again."
             print('error inserting record')
         finally:
             user = None
