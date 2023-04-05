@@ -97,15 +97,21 @@ def login(user=None, message=""):
             if passwordInDb == password:
                 session['user_id']=user['user_id']
                 session['email']=user['email']
-                render_template(url_for('home'))
+                session['fname']=user['fname']
+                session['lname']=user['lname']
+                return render_template(url_for('home'))
             else:
                 message = "Sorry, that password is incorrect."
-                render_template(url_for('login'), user=user, message=message)
+                return render_template(url_for('login'), user=user, message=message)
 
 @app.route('/home.html')
 def home():
     if session['user_id'] is None:
-        render_template(url_for('login'))
+        message = 'You must be logged in to access your home page'
+        return render_template(url_for('login'), message=message)
+    #query relevant homepage data
+
+    return render_template('home.html')
 
 @app.get('/createworkout.html')
 def createworkout():
@@ -115,7 +121,7 @@ def createworkout():
         return redirect(url_for('login.html'))
 @app.post('/createworkout/<workout_name>')
 def submitworkoutname(workout_name1):
-    connection = get_db_connection()
+    connection = get_db()
     cursor = connection.cursor()
     cursor.execute('INSERT INTO Workout (workout_name) VALUES (workout_name1)')
 

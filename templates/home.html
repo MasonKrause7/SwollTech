@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<h1>{% block title %} Welcome Home {% endblock %}</h1>
+<h1>{% block title %} Welcome Home {{ session['fname'] }}{% endblock %}</h1>
 <h2>Lets take a look at your past sessions... </h2>
 
 
