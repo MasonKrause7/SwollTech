@@ -1,17 +1,28 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="text-center">
-    <h1>{% block title %} Welcome Home {{ session['fname'] }}{% endblock %}</h1>
-    <h2>Lets take a look at your past sessions... </h2>
-    {% if seshList %}
-        <h3 class="mt-5">You've completed {{numResults}} workouts! Keep it up</h3>
-        <ul>
-        {% for sesh in seshList %}
-            <li class="text-center mt-3 fs-2 fw-bold">{{sesh['date_of_sesh']}} - {{sesh['workout_name']}}</li>
-        {% endfor %}
-        </ul>
-    {% endif %}
 
+<div class="border mt-2">
+    <h1 class="text-center mt-2">{% block title %} Welcome Home {{ session['fname'] }}{% endblock %}</h1>
+    <h2 class="text-center">Lets take a look at your past sessions... </h2>
+    {% if seshList %}
+        {% if numResults == 1 %}
+        <div class="border mt-5 ml-5 mr-5 mb-5">
+            <h3 class=" text-center">You've completed {{numResults}} workout! Keep it up</h3>
+            {% endif %}
+            {% if numResults > 1 %}
+            <h3 class="mt-5 text-center">You've completed {{numResults}} workouts! Keep it up</h3>
+            {% endif %}
+            <ul>
+            {% for sesh in seshList %}
+                <li class="text-center mt-3 fs-2 fw-bold">{{sesh['date_of_sesh']}} - {{sesh['workout_name']}}</li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 </div>
+<div class="border mt-2">
+    <a href="{{url_for('createworkout')}}"><button>Create Workout</button></a>
+</div>
+
 {% endblock %}
 

@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, session, redirect, url_for, flash
 import sqlite3
+from models import Workout
 
 app = Flask('SwollTech')
 DATABASE = 'database.db'
-app.secret_key = 'testingkey,changelater'
+app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
 
 
 def get_db():
@@ -128,17 +129,23 @@ def home():
 
 @app.get('/createworkout.html')
 def createworkout():
-    if 'username' in session:
+    if user_authenticated():
         return render_template('createworkout.html')
     else:
-        return redirect(url_for('login.html'))
+        message = "You must be logged in to create workouts"
+        return render_template(url_for('login.html'), message=message)
 
 
-@app.post('/createworkout/<workout_name>')
-def submitworkoutname(workout_name1):
-    connection = get_db()
-    cursor = connection.cursor()
-    cursor.execute('INSERT INTO Workout (workout_name) VALUES (workout_name1)')
+@app.post('/createworkout/submitname')
+def name_workout():
+    if user_authenticated():
+        wo_name = request.form['workout_name']
+        wo = Workout.Workout(wo_name)
+        #wo is named, start adding
+        return render_template(url_for('home'))
+    else:
+        message = "You must be logged in to create workouts"
+        return render_template(url_for('login.html'), message=message)
 
 
 def user_authenticated() -> bool:

@@ -5,7 +5,8 @@
 <script src="static/js/script.js" type="text/javascript"></script>
 <h1>{% block title %}Create your workout {% endblock %}</h1>
 
-<form method="POST">
-    <input type="text" placeholder="Workout Name" id="workout_name_input" name="workout_name_input"/>
+<form method="POST" action="{{url_for('name_workout')}}">
+    <input type="text" placeholder="Workout Name" id="workout_name" name="workout_name"/>
+    <input type="submit" placeholder="Submit Name" />
 </form>
 {% endblock %}
