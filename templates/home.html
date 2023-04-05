@@ -21,8 +21,12 @@
     {% endif %}
 </div>
 <div class="border mt-2">
-    <a href="{{url_for('createworkout')}}"><button>Create Workout</button></a>
+    <a href="{{url_for('create_workout')}}"><button>Create Workout</button></a>
 </div>
+{% if message == 'Workout created successfully'%}
+<p class="alert-success">{{message}}</p>
+<a class="btn btn-primary" href="{{url_for('start_sesh')}}" role="button">Start workout sesh with your new workout?</a>
+{% endif %}
 
 {% endblock %}
 

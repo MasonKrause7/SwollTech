@@ -38,6 +38,7 @@ CREATE TABLE Workout_Exercise (
 );
 CREATE TABLE Exercise (
     exercise_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    exercise_name VARCHAR(100),
     exercise_type_id INTEGER,
     FOREIGN KEY(exercise_type_id) REFERENCES Exercise_Type (exercise_type_id)
 );

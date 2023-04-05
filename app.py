@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, session, redirect, url_for, flash
 import sqlite3
-from models import Workout
+from models import Workout, Exercise
 
 app = Flask('SwollTech')
 DATABASE = 'database.db'
@@ -114,7 +114,7 @@ def logout():
 
 
 @app.route('/home.html')
-def home():
+def home(message=None):
     if not user_authenticated():
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
@@ -124,11 +124,11 @@ def home():
     query = f"SELECT * FROM Sesh s INNER JOIN workout w ON s.workout_id = w.workout_id WHERE s.user_id = {session['user_id']};"
     results = cursor.execute(query).fetchall()
     numResults = len(results)
-    return render_template('home.html', seshList=results, numResults=numResults)
+    return render_template('home.html', seshList=results, numResults=numResults, message=message)
 
 
 @app.get('/createworkout.html')
-def createworkout():
+def create_workout():
     if user_authenticated():
         return render_template('createworkout.html')
     else:
@@ -136,23 +136,31 @@ def createworkout():
         return render_template(url_for('login.html'), message=message)
 
 
-@app.post('/createworkout/submitname')
-def name_workout():
+@app.post('/createworkout.html')
+def post_create_workout():
     if user_authenticated():
         wo_name = request.form['workout_name']
-        ex_list = []
-        build_workout(wo)
+        session['workout_name']=wo_name
         #wo is named, start adding exercises
-        return render_template(url_for('home'))
+
+        message = 'Workout created successfully'
+        return render_template(url_for('home'), message=message)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
-def build_workout(workout_name: str, ex_list: [Exercise]) -> Workout.Workout:
+def build_workout(workout_name: str, ex_list: [Exercise.Exercise]) -> Workout.Workout:
     wo = Workout.Workout(workout_name)
     for ex in ex_list:
-        workout.addExercise(ex)
+        wo.addExercise(ex)
     return wo
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
         return False
     return True
+def fetch_users_exercises():
+    conn = get_db()
+    cursor = conn.cursor()
+    query = f"SELECT e.exercise_name, et.exercise_type_name, w.workout_name FROM Users u INNER JOIN Workout w ON u.user_id = w.user_id INNER JOIN Workout_Exercise we ON w.workout_id = we.workout_id INNER JOIN Exercise e ON we.exercise_id = e.exercise_id INNER JOIN Exercise_Type et ON e.exercise_type_id = et.exercise_type_id WHERE w.user_id= {session['user_id']};"
+    results = cursor.execute(query).fetchall()
+    for result in results:
+        print(result.exercise_name)
