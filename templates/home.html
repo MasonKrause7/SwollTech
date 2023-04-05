@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
 {% block content %}
+<div class="text-center">
+    <h1>{% block title %} Welcome Home {{ session['fname'] }}{% endblock %}</h1>
+    <h2>Lets take a look at your past sessions... </h2>
+    {% if seshList %}
+        <h3 class="mt-5">You've completed {{numResults}} workouts! Keep it up</h3>
+        <ul>
+        {% for sesh in seshList %}
+            <li class="text-center mt-3 fs-2 fw-bold">{{sesh['date_of_sesh']}} - {{sesh['workout_name']}}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
 
-<h1>{% block title %} Welcome Home {{ session['fname'] }}{% endblock %}</h1>
-<h2>Lets take a look at your past sessions... </h2>
-
-
-
+</div>
 {% endblock %}
 
-<!-- For loop going through each user -->
-    <!-- {% for session in sessions %}
-        <a href="#"><h2>{{session['date']}}</h2></a>
-        <span class="badge badge-primary">{{ session['workout_id'] }}</span> NEED TO JOIN WORKOUT TO GET WORKOUT NAME
-        <hr>
-    {% endfor %} -->

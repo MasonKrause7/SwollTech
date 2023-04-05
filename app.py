@@ -84,7 +84,7 @@ def login(user=None, message=""):
         query = f"SELECT * FROM Users WHERE email= '{username}'"
         results = cursor.execute(query)
         result = results.fetchall()
-        if len(result) is 0:
+        if len(result) == 0:
             message = "No user exists with that email, please try again"
             return render_template(url_for('login'), message=message)
         else:
@@ -104,7 +104,7 @@ def login(user=None, message=""):
 
 @app.route('/logout')
 def logout():
-    if len(session.keys()) is False:
+    if len(session.keys()) == 0:
         message = 'You were not logged in'
         return render_template(url_for('login'), message=message)
     session.clear()
@@ -118,8 +118,12 @@ def home():
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
     # query relevant homepage data
-
-    return render_template('home.html')
+    conn = get_db()
+    cursor = conn.cursor()
+    query = f"SELECT * FROM Sesh s INNER JOIN workout w ON s.workout_id = w.workout_id WHERE s.user_id = {session['user_id']};"
+    results = cursor.execute(query).fetchall()
+    numResults = len(results)
+    return render_template('home.html', seshList=results, numResults=numResults)
 
 
 @app.get('/createworkout.html')

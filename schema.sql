@@ -16,7 +16,7 @@ CREATE TABLE Users (
     password VARCHAR(200) NOT NULL
 );
 CREATE TABLE Sesh (
-    sesh INTEGER PRIMARY KEY AUTOINCREMENT,
+    sesh_id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     workout_id INTEGER,
     date_of_sesh DATE NOT NULL,
