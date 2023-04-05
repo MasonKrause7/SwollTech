@@ -1,4 +1,4 @@
-from flask import Flask, render_template, flash, request, session, redirect, url_for, flash
+from flask import Flask, render_template, request, session, redirect, url_for, flash
 import sqlite3
 
 app = Flask('SwollTech')
@@ -25,23 +25,22 @@ def about():
 
 
 @app.get('/signup.html')
-def get_signup(message=None):
+def get_signup(message=None, fname=None, lname=None, dob=None, password=None):
     return render_template('signup.html', message=message)
 
 
 @app.post('/signup.html')
 def post_signup():
     # NEED TO VALIDATE REGISTRATION DATA
-    password = request.form['pass']
-    confPassword = request.form['confpass']
-    if (password != confPassword):
-        message = "Password and confirmation do not match, please try again"
-        flash(message, 'warnings')
-        return render_template(url_for('get_signup'), message=message)
     fname = request.form['fname']
     lname = request.form['lname']
     email = request.form['email']
     dob = request.form['dob']
+    password = request.form['pass']
+    confPassword = request.form['confpass']
+    if (password != confPassword):
+        message = "Password and confirmation do not match, please try again"
+        return render_template(url_for('get_signup'), message=message, fname=fname, lname=lname, email=email, dob=dob, password=password)
     successfulInsert = False
     db = get_db()
     cursor = db.cursor()
@@ -84,12 +83,12 @@ def login(user=None, message=""):
         cursor = connection.cursor()
         query = f"SELECT * FROM Users WHERE email= '{username}'"
         results = cursor.execute(query)
-        if results is None:
+        result = results.fetchall()
+        if len(result) is 0:
             message = "No user exists with that email, please try again"
             return render_template(url_for('login'), message=message)
         else:
-            users = results.fetchall()
-            user = users[0]
+            user = result[0]
             passwordInDb = user['password']
             if passwordInDb == password:
                 session['logged_in'] = True

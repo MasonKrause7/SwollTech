@@ -4,18 +4,20 @@
 <script src="/static/js/script.js"></script>
   <h1>{% block title %} SwollTech Sign Up {% endblock %}</h1>
   <form method="POST" action = "{{ url_for('post_signup') }}">
-    <input type="text" name="fname" id="fname" placeholder="First Name">
-    <input type="text" name="lname" id="lname" placeholder="Last Name">
+    <input type="text" name="fname" id="fname" placeholder="First Name" value="{{fname}}">
+    <input type="text" name="lname" id="lname" placeholder="Last Name" value="{{lname}}">
     <hr>
-    <input type="email" name="email" id="email" placeholder="Email">
+    <input type="email" name="email" id="email" placeholder="Email" value="{{email}}">
     <hr>
     <label for="dob">Date of Birth</label>
-    <input type="date" name="dob" id="dob" placeholder="Date Of Birth">
+    <input type="date" name="dob" id="dob" placeholder="Date Of Birth" value="{{dob}}">
     <hr>
-    <input type="password" name="pass" id="pass" placeholder="Password">
+    <input type="password" name="pass" id="pass" placeholder="Password" value="{{password}}">
     <input type="password" name="confpass" id="confpass" placeholder="Confirm Password">
     <hr>
+    {% if message %}
     <p id="msg">{{message}}</p>
+    {% endif %}
     <input type="submit" content="Sign Up">
   </form>
 
