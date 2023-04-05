@@ -141,7 +141,7 @@ def name_workout():
     if user_authenticated():
         wo_name = request.form['workout_name']
         wo = Workout.Workout(wo_name)
-        #wo is named, start adding
+        #wo is named, start adding exercises
         return render_template(url_for('home'))
     else:
         message = "You must be logged in to create workouts"
