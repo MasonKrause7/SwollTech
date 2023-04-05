@@ -75,10 +75,6 @@ def post_signup():
 
             return render_template(url_for('login'), user=user, message=message)
 
-
-
-
-
 @app.route('/login.html', methods=['GET', 'POST'])
 def login(user=None, message=""):
     if request.method == 'GET':
@@ -99,12 +95,17 @@ def login(user=None, message=""):
             user = users[0]
             passwordInDb = user['password']
             if passwordInDb == password:
-                #perform login
-                print('passwords match')
+                session['user_id']=user['user_id']
+                session['email']=user['email']
+                render_template(url_for('home'))
             else:
                 message = "Sorry, that password is incorrect."
-                render_template('login.html', user=user, message=message)
+                render_template(url_for('login'), user=user, message=message)
 
+@app.route('/home.html')
+def home():
+    if session['user_id'] is None:
+        render_template(url_for('login'))
 
 @app.get('/createworkout.html')
 def createworkout():

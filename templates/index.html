@@ -6,8 +6,8 @@
     <h1>{% block title %} Welcome to SwollTech {% endblock %}</h1>
 
     <h2>Start building custom workouts, keeping stats for each set, and tracking your progress over time</h2>
-    <span><a href="signup.html">Register</a> for a free account and start using SwollTech to get data driven results.</span>
-    <span>Already have an account? <a href="login.html">Sign in</a> instead.</span>
+    <span><a href="{{ url_for('get_signup')}}">Register</a> for a free account and start using SwollTech to get data driven results.</span>
+    <span>Already have an account? <a href="{{ url_for('login')}}">Sign in</a> instead.</span>
     <hr>
 
 
