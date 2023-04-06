@@ -108,7 +108,9 @@ def logout():
     if len(session.keys()) == 0:
         message = 'You were not logged in'
         return render_template(url_for('login'), message=message)
+    tentative_exercises_cache.pop(session['user_id'])
     session.clear()
+
     message = 'Successfully signed out'
     return render_template(url_for('login'), message=message)
 
@@ -128,11 +130,14 @@ def home(message=None):
 
 
 @app.get('/createworkout.html')
-def create_workout(exerciseName=None, exerciseList=None):
+def create_workout(exerciseName=None):
     if user_authenticated():
+        if tentative_exercises_cache.get(session['user_id']) is None:
+            tentative_exercises_cache.update({session['user_id']: []})
+
+        exerciseList = tentative_exercises_cache.get(session["user_id"])
         if exerciseList:
-            if exerciseName:
-                exerciseList.append(exerciseName)
+            exerciseName = exerciseList[len(exerciseList-1)]
         return render_template('createworkout.html', exerciseName=exerciseName, exerciseList=exerciseList)
     else:
         message = "You must be logged in to create workouts"
@@ -166,21 +171,30 @@ def add_existing_exercise():
 
 @app.route('/addexistingexercise.html/')
 def post_existing_exercise():
-    exercise_name = request.args.get('ex_name')
-    exercise_list = tentative_exercises_cache.get(session["user_id"])
-    exercise_list.append(exercise_name)
-    tentative_exercises_cache.update(session['user_id'], exercise_list)
-    return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list)
+    if user_authenticated():
+        exercise_name = request.args.get('ex_name')
+        if tentative_exercises_cache.get(session["user_id"]) is None:
+            tentative_exercises_cache.update({session['user_id']: []})
+        exercise_list = tentative_exercises_cache.get(session["user_id"])
+        if len(exercise_list) > 0 and exercise_name == exercise_list[len(exercise_list)-1]:
+            message = 'Adding the same exercise back to back is not allowed. Once you start the workout, you can have multiple sets of the exercise instead.'
+            render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message, messageCategory='danger')
+        exercise_list.append(exercise_name)
+        tentative_exercises_cache.update({session['user_id']: exercise_list})
+        return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message='Exercise added', messageCategory='success')
 
 
-@app.post('/removeexercise/')
+@app.route('/removeexercise/')
 def remove_exercise():
     ex_name = request.args.get('ex_name')
-    exercise_list = tentative_exercises_cache.get(session['user_id'])
-    exercise_list.remove(ex_name)
-    tentative_exercises_cache.update(session['user_id'], exercise_list)
-    message = "Exercise removed"
-    return render_template('createworkout', tentative_exercise_list=tentative_exercises_cache, message=message)
+    if user_authenticated():
+        if tentative_exercises_cache.get(session['user_id']) is None:
+            tentative_exercises_cache.update({session['user_id']: []})
+        exercise_list = tentative_exercises_cache.get(session['user_id'])
+        exercise_list.remove(ex_name)
+        tentative_exercises_cache.update({session['user_id']: exercise_list})
+        message = "Exercise removed"
+        return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message, messageCategory='success')
 
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
