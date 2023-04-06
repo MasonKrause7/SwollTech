@@ -46,8 +46,6 @@ CREATE TABLE Exercise_Type (
     exercise_type_id INTEGER PRIMARY KEY AUTOINCREMENT,
     exercise_type_name VARCHAR(50)
 );
-INSERT INTO Exercise_Type(exercise_type_name) VALUES ('Strength');
-INSERT INTO Exercise_Type(exercise_type_name) VALUES ('Cardio');
 
 CREATE TABLE Cardio_Set (
     c_set_number INTEGER,
@@ -67,13 +65,6 @@ CREATE TABLE Strength_Set (
     weight_metric VARCHAR(25),
     FOREIGN KEY (wo_ex_id) REFERENCES Workout_Exercise (wo_ex_id)
 );
-INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Bench Press', 1);
-INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Back Squat', 1);
-INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Run', 2);
-INSERT INTO Workout(user_id, workout_name) VALUES(1, 'Leg Day');
 
-INSERT INTO Workout_Exercise(workout_id, exercise_id) VALUES(1, 2);
-INSERT INTO Workout_Exercise(workout_id, exercise_id) VALUES(1, 3);
-INSERT INTO Workout_Exercise(workout_id, exercise_id) VALUES(1, 1);
-INSERT INTO Sesh(user_id, workout_id, date_of_sesh) VALUES(1, 1, DATE('now'));
+
 

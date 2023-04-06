@@ -8,8 +8,11 @@
 <form method="POST" action="{{url_for('post_create_workout')}}">
     <input type="text" placeholder="Workout Name" id="workout_name" name="workout_name"/>
 
+    <h4>Add Exercises</h4>
+    <span>Would you like to:</span>
     <ul>
-
+        <li><a role="button" href="{{url_for('add_existing_exercise')}}">Add an existing exercise</a></li>
+        <li>Create a new exercise</li>
     </ul>
 </form>
 

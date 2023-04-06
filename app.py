@@ -141,13 +141,28 @@ def post_create_workout():
     if user_authenticated():
         wo_name = request.form['workout_name']
         session['workout_name']=wo_name
-        #wo is named, start adding exercises
+
 
         message = 'Workout created successfully'
         return render_template(url_for('home'), message=message)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
+
+@app.get('/addexistingexercise.html')
+def add_existing_exercise():
+    if user_authenticated() and request.method == 'GET':
+        list = fetch_users_exercises()
+
+        return render_template(url_for('post_existing_exercise'))
+    else:
+        message = "You must be logged in to create workouts"
+        return render_template(url_for('login.html'), message=message)
+@app.post('/addexistingexercise.html/<exercise_name>')
+def post_existing_exercise():
+    exercise_name = request.args.get('ex')
+    print(exercise_name)#testing
+
 def build_workout(workout_name: str, ex_list: [Exercise.Exercise]) -> Workout.Workout:
     wo = Workout.Workout(workout_name)
     for ex in ex_list:
@@ -158,9 +173,8 @@ def user_authenticated() -> bool:
         return False
     return True
 def fetch_users_exercises():
-    conn = get_db()
-    cursor = conn.cursor()
-    query = f"SELECT e.exercise_name, et.exercise_type_name, w.workout_name FROM Users u INNER JOIN Workout w ON u.user_id = w.user_id INNER JOIN Workout_Exercise we ON w.workout_id = we.workout_id INNER JOIN Exercise e ON we.exercise_id = e.exercise_id INNER JOIN Exercise_Type et ON e.exercise_type_id = et.exercise_type_id WHERE w.user_id= {session['user_id']};"
-    results = cursor.execute(query).fetchall()
-    for result in results:
-        print(result.exercise_name)
+        conn = get_db()
+        cursor = conn.cursor()
+        query = f"SELECT e.exercise_name, et.exercise_type_name, w.workout_name FROM Users u INNER JOIN Workout w ON u.user_id = w.user_id INNER JOIN Workout_Exercise we ON w.workout_id = we.workout_id INNER JOIN Exercise e ON we.exercise_id = e.exercise_id INNER JOIN Exercise_Type et ON e.exercise_type_id = et.exercise_type_id WHERE w.user_id= {session['user_id']} ORDER BY et.exercise_type_name;"
+        results = cursor.execute(query).fetchall()
+        return results;

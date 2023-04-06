@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block  content%}
+
+<h1>{% block title %} Add exercise to workout{% endblock %}</h1>
+{% if exercise%}
+<ul>
+{% for exercise in exerciseList %}
+
+    <li><a role="button" href="addexistingexercise.html/?ex={{exercise.name}}" class="btn btn-primary btn-small">Add</a> - {{exercise.exercise_type_name}} - {{exercise.exercise_name}} from {{exercise.workout_name}}</li>
+{% endfor %}
+</ul>
+{% endif%}
+
+{% endblock %}
