@@ -5,7 +5,7 @@ from models import Workout, Exercise
 app = Flask('SwollTech')
 DATABASE = 'database.db'
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
-tentative_exercise_list = []
+tentative_exercises_cache = {}
 
 def get_db():
     db = sqlite3.connect(DATABASE)
@@ -167,16 +167,20 @@ def add_existing_exercise():
 @app.route('/addexistingexercise.html/')
 def post_existing_exercise():
     exercise_name = request.args.get('ex_name')
-    tentative_exercise_list.append(exercise_name)
-    return render_template(url_for('create_workout'), tentative_exercise_list=tentative_exercise_list)
+    exercise_list = tentative_exercises_cache.get(session["user_id"])
+    exercise_list.append(exercise_name)
+    tentative_exercises_cache.update(session['user_id'], exercise_list)
+    return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list)
 
 
 @app.post('/removeexercise/')
 def remove_exercise():
     ex_name = request.args.get('ex_name')
-    tentative_exercise_list.remove(ex_name)
+    exercise_list = tentative_exercises_cache.get(session['user_id'])
+    exercise_list.remove(ex_name)
+    tentative_exercises_cache.update(session['user_id'], exercise_list)
     message = "Exercise removed"
-    return render_template('createworkout', tentative_exercise_list=tentative_exercise_list, message=message)
+    return render_template('createworkout', tentative_exercise_list=tentative_exercises_cache, message=message)
 
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
