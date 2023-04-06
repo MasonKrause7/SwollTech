@@ -14,6 +14,14 @@
         <li><a role="button" href="{{url_for('add_existing_exercise')}}">Add an existing exercise</a></li>
         <li>Create a new exercise</li>
     </ul>
+    {% if exerciseList %}
+    <h3>Current exercise list:</h3>
+    <ul>
+        {% for exName in exerciseList %}
+        <li>{{exName}}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 </form>
 
 

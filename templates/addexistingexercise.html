@@ -1,14 +1,20 @@
 {% extends 'base.html' %}
 
 {% block  content%}
-
+<script src="/static/js/script.js"></script>
 <h1>{% block title %} Add exercise to workout{% endblock %}</h1>
-{% if exercise%}
-<ul>
-{% for exercise in exerciseList %}
+{% if list%}
 
-    <li><a role="button" href="addexistingexercise.html/?ex={{exercise.name}}" class="btn btn-primary btn-small">Add</a> - {{exercise.exercise_type_name}} - {{exercise.exercise_name}} from {{exercise.workout_name}}</li>
-{% endfor %}
+<ul>
+{% for exercise in list %}
+
+    <li class="mt-2 mb-1">
+        <form>
+            <input type="button" name="{{exercise.exercise_name}}" onclick="addExercise(name)" class="btn btn-primary btn-small" value="Add"> - {{exercise.exercise_name}} - {{exercise.exercise_type_name}} exercise from {{exercise.workout_name}}
+        </form>
+    </li>
+
+    {% endfor %}
 </ul>
 {% endif%}
 

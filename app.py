@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for, flash
+from flask import Flask, escape, render_template, request, session, redirect, url_for, flash
 import sqlite3
 from models import Workout, Exercise
 
@@ -128,9 +128,12 @@ def home(message=None):
 
 
 @app.get('/createworkout.html')
-def create_workout():
+def create_workout(exerciseName=None, exerciseList=None):
     if user_authenticated():
-        return render_template('createworkout.html')
+        if exerciseList:
+            if exerciseName:
+                exerciseList.append(exerciseName)
+        return render_template('createworkout.html', exerciseName=exerciseName, exerciseList=exerciseList)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
@@ -141,6 +144,7 @@ def post_create_workout():
     if user_authenticated():
         wo_name = request.form['workout_name']
         session['workout_name']=wo_name
+        #start building list  of exercises to go with this new wo
 
 
         message = 'Workout created successfully'
@@ -151,17 +155,18 @@ def post_create_workout():
 
 @app.get('/addexistingexercise.html')
 def add_existing_exercise():
-    if user_authenticated() and request.method == 'GET':
+    if user_authenticated():
         list = fetch_users_exercises()
 
-        return render_template(url_for('post_existing_exercise'))
+        return render_template(url_for('add_existing_exercise'), list=list)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
-@app.post('/addexistingexercise.html/<exercise_name>')
+@app.route('/addexistingexercise.html/')
 def post_existing_exercise():
     exercise_name = request.args.get('ex')
-    print(exercise_name)#testing
+    print(exercise_name)
+    return render_template(url_for('create_workout'), exercise_name=exercise_name)
 
 def build_workout(workout_name: str, ex_list: [Exercise.Exercise]) -> Workout.Workout:
     wo = Workout.Workout(workout_name)
