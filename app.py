@@ -5,7 +5,7 @@ from models import Workout, Exercise
 app = Flask('SwollTech')
 DATABASE = 'database.db'
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
-
+tentative_exercise_list = []
 
 def get_db():
     db = sqlite3.connect(DATABASE)
@@ -138,7 +138,6 @@ def create_workout(exerciseName=None, exerciseList=None):
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
-
 @app.post('/createworkout.html')
 def post_create_workout():
     if user_authenticated():
@@ -153,6 +152,7 @@ def post_create_workout():
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
+
 @app.get('/addexistingexercise.html')
 def add_existing_exercise():
     if user_authenticated():
@@ -162,21 +162,28 @@ def add_existing_exercise():
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
+
+
 @app.route('/addexistingexercise.html/')
 def post_existing_exercise():
-    exercise_name = request.args.get('ex')
-    print(exercise_name)
-    return render_template(url_for('create_workout'), exercise_name=exercise_name)
+    exercise_name = request.args.get('ex_name')
+    tentative_exercise_list.append(exercise_name)
+    return render_template(url_for('create_workout'), tentative_exercise_list=tentative_exercise_list)
 
-def build_workout(workout_name: str, ex_list: [Exercise.Exercise]) -> Workout.Workout:
-    wo = Workout.Workout(workout_name)
-    for ex in ex_list:
-        wo.addExercise(ex)
-    return wo
+
+@app.post('/removeexercise/')
+def remove_exercise():
+    ex_name = request.args.get('ex_name')
+    tentative_exercise_list.remove(ex_name)
+    message = "Exercise removed"
+    return render_template('createworkout', tentative_exercise_list=tentative_exercise_list, message=message)
+
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
         return False
     return True
+
+
 def fetch_users_exercises():
         conn = get_db()
         cursor = conn.cursor()

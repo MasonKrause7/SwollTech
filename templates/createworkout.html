@@ -14,13 +14,18 @@
         <li><a role="button" href="{{url_for('add_existing_exercise')}}">Add an existing exercise</a></li>
         <li>Create a new exercise</li>
     </ul>
-    {% if exerciseList %}
-    <h3>Current exercise list:</h3>
+    {% if tentative_exercise_list %}
+    <h3>Tentative exercise list for {{session['workout_name']}}:</h3>
     <ul>
-        {% for exName in exerciseList %}
-        <li>{{exName}}</li>
+        {% for exName in tentative_exercise_list %}
+        <li><button class="btn-danger" name="{{exName}}" onclick="removeExercise(name)">Remove</button> - {{exName}}</li>
         {% endfor %}
     </ul>
+    {% endif %}
+    {% if message == 'Exercise removed' %}
+    <p class="alert alert-danger">{{message}}</p>
+    {% elif message == 'Exercise added' %}
+    <p class="alert alert-success">{{message}}</p>
     {% endif %}
 </form>
 
