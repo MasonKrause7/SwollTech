@@ -1,4 +1,5 @@
 from flask import Flask, escape, render_template, request, session, redirect, url_for, flash
+from passlib.hash import pbkdf2_sha256
 import pyodbc
 from models import Workout, Exercise
 
@@ -65,8 +66,8 @@ def post_signup():
     else: #valid new user, try adding to db
         message = ""
         try:
-            #NEED TO ENCRYPT PASSWORD HERE
-            query = f"INSERT INTO Users (fname, lname, email, dob, password) VALUES ('{fname}', '{lname}', '{email}', '{dob}', '{password}')"
+            hashword = pbkdf2_sha256.hash(password)
+            query = f"INSERT INTO Users (fname, lname, email, dob, password) VALUES ('{fname}', '{lname}', '{email}', '{dob}', '{hashword}')"
             cursor.execute(query)
             cnxn.commit()
             print("record added successfully")
@@ -101,8 +102,7 @@ def login(user=None, message=""):
             return render_template(url_for('login'), message=message)
         else:
             user = result[0]
-            passwordInDb = user[5]
-            if passwordInDb == password:
+            if pbkdf2_sha256.verify(password ,user[5]):
                 session['logged_in'] = True
                 session['user_id'] = user[0]
                 session['email'] = user[3]
