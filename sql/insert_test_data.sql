@@ -1,9 +1,6 @@
 INSERT INTO Exercise_Type(exercise_type_name) VALUES ('Strength');
 INSERT INTO Exercise_Type(exercise_type_name) VALUES ('Cardio');
 
-INSERT INTO Users(fname, lname, email, dob, password) VALUES ('Mason', 'Krause', 'masongkrause@yahoo.com', '1995/03/20', 'p');
-INSERT INTO Users (fname, lname, email, dob, password) VALUES('Crissy', 'Roseanna', 'crissyrkrause@gmail.com', '1985/06/18', 'password123');
-
 INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Bench Press', 1);
 INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Back Squat', 1);
 INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Run', 2);

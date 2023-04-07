@@ -7,10 +7,10 @@ app = Flask('SwollTech')
 
 server='localhost'
 database='swolltech'
-username='sa'
-password='SoccerPlayer7!'
+username='DESKTOP-02M87G6\mason'
 
-cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username};PWD={password};ENCRYPT=Optional; Trusted_connection=No"
+
+cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username};TRUSTED_CONNECTION=Yes; ENCRYPT=Optional; Trusted_connection=No"
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
 
 tentative_exercises_cache = {}
@@ -25,7 +25,15 @@ def init_db():
     cnxn = pyodbc.connect(cnxnstr)
     cursor = cnxn.cursor()
     cursor.execute('EXEC init_db')
-
+    cnxn.commit()
+    print('Tables created...')
+    hash = pbkdf2_sha256.hash('pass')
+    query = f"INSERT INTO Users(fname, lname, email, dob, password) VALUES ('Mason', 'Krause', 'masongkrause@yahoo.com', '03-20-1995', {hash})"
+    cursor.execute(query)
+    cnxn.commit()
+    print('User added...')
+    with open('sql/insert_test_data.sql') as f:
+        cursor.execute(f.read())
     cnxn.commit()
     cnxn.close()
 
