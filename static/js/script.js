@@ -8,3 +8,4 @@ function addExercise(name){
 function removeExercise(name){
     window.location.href= '/removeexercise/?ex_name='+name;
 }
+

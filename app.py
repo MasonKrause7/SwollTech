@@ -21,13 +21,27 @@ def get_db():
     print('connected')
     return connection
 
+def init_db():
+    cnxn = pyodbc.connect(cnxnstr)
+    with open('sql/schema.sql') as f:
+        cnxn.execute(f.read())
+        cnxn.commit()
+    with open('sql/insert_test_data.sql') as f:
+        cnxn.execute(f.read())
+        cnxn.commit()
+    cnxn.close()
 
 @app.route('/')
 def index():
     if user_authenticated():
         return render_template('home.html')
     return render_template('index.html')
-
+@app.route('/api/init_db')
+def api_init_db():
+    init_db()
+    if user_authenticated():
+        return render_template('home.html')
+    return render_template('index.html')
 
 @app.route('/about.html')
 def about():
@@ -194,6 +208,11 @@ def post_existing_exercise():
         tentative_exercises_cache.update({session['user_id']: exercise_list})
         return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message='Exercise added', messageCategory='success')
 
+
+@app.get('/createexercise.html')
+def create_exercise():
+
+    return render_template('createexercise.html')
 
 @app.route('/removeexercise/')
 def remove_exercise():

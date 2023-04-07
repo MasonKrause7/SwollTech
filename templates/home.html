@@ -26,6 +26,8 @@
 {% if message == 'Workout created successfully'%}
 <p class="alert-success">{{message}}</p>
 <a class="btn btn-primary" href="{{url_for('home')}}" role="button">Start workout sesh with your new workout?</a>
+{% elif message == 'DB initialized'%}
+<p class="alert-success">{{message}}</p>
 {% endif %}
 
 {% endblock %}
