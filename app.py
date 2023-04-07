@@ -4,21 +4,21 @@ from models import Workout, Exercise
 
 app = Flask('SwollTech')
 
-server='MGK777'
+server='localhost'
 database='swolltech'
-username='MGK777\mason'
+username='sa'
 password='SoccerPlayer7!'
-print('connecting to db...')
-constr = f"DRIVER={'{ODBC Driver 17 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username};PWD={password}"
-connection = pyodbc.connect(constr)
-print('connected')
 
+cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username};PWD={password};ENCRYPT=Optional; Trusted_connection=No"
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
 
 tentative_exercises_cache = {}
 
 def get_db():
-    return connection;
+    print('connecting to db...')
+    connection = pyodbc.connect(cnxnstr)
+    print('connected')
+    return connection
 
 
 @app.route('/')
@@ -34,13 +34,14 @@ def about():
 
 
 @app.get('/signup.html')
-def get_signup(message=None, fname=None, lname=None, dob=None, password=None):
-    return render_template('signup.html', message=message)
+def get_signup():
+    return render_template('signup.html')
 
 
 @app.post('/signup.html')
 def post_signup():
     # NEED TO VALIDATE REGISTRATION DATA
+    #collecting form data
     fname = request.form['fname']
     lname = request.form['lname']
     email = request.form['email']
@@ -50,9 +51,10 @@ def post_signup():
     if (password != confPassword):
         message = "Password and confirmation do not match, please try again"
         return render_template(url_for('get_signup'), message=message, fname=fname, lname=lname, email=email, dob=dob, password=password)
+    #check if user exists in db
     successfulInsert = False
-    db = get_db()
-    cursor = db.cursor()
+    cnxn = get_db()
+    cursor = cnxn.cursor()
     query = f"SELECT * FROM Users WHERE email='{email}'"
     results = cursor.execute(query)
     users = results.fetchall()
@@ -60,24 +62,24 @@ def post_signup():
         user = users[0]
         message = "That email is already associated with an account, please log in"
         return render_template('login.html', message=message)
-    else:
+    else: #valid new user, try adding to db
         message = ""
         try:
             #NEED TO ENCRYPT PASSWORD HERE
             query = f"INSERT INTO Users (fname, lname, email, dob, password) VALUES ('{fname}', '{lname}', '{email}', '{dob}', '{password}')"
             cursor.execute(query)
-            db.commit()
+            cnxn.commit()
             print("record added successfully")
             message = "Sign up successful. Please log in to your new account"
-            successfulInsert = True
+            cnxn.close()
+            return render_template(url_for('login'), message=message)
+
         except:
-            db.rollback()
+            cnxn.rollback()
             message = "There was an error during the sign up process. Please try again."
             print('error inserting record')
-        finally:
-            db.close()
-
-        return render_template(url_for('login'), message=message)
+            cnxn.close()
+            return render_template(url_for('get_signup'), message=message)
 
 
 @app.route('/login.html', methods=['GET', 'POST'])
@@ -88,23 +90,24 @@ def login(user=None, message=""):
         username = request.form.get('username')
         password = request.form.get('loginpassword')
         userExists = False
-        connection = get_db()
-        cursor = connection.cursor()
+        cnxn = get_db()
+        cursor = cnxn.cursor()
         query = f"SELECT * FROM Users WHERE email= '{username}'"
         results = cursor.execute(query)
         result = results.fetchall()
+        cnxn.close()
         if len(result) == 0:
             message = "No user exists with that email, please try again"
             return render_template(url_for('login'), message=message)
         else:
             user = result[0]
-            passwordInDb = user['password']
+            passwordInDb = user[5]
             if passwordInDb == password:
                 session['logged_in'] = True
-                session['user_id'] = user['user_id']
-                session['email'] = user['email']
-                session['fname'] = user['fname']
-                session['lname'] = user['lname']
+                session['user_id'] = user[0]
+                session['email'] = user[3]
+                session['fname'] = user[1]
+                session['lname'] = user[2]
                 return redirect(url_for('home'))
             else:
                 message = "Sorry, that password is incorrect."
@@ -116,7 +119,6 @@ def logout():
     if len(session.keys()) == 0:
         message = 'You were not logged in'
         return render_template(url_for('login'), message=message)
-    tentative_exercises_cache.pop(session['user_id'])
     session.clear()
 
     message = 'Successfully signed out'
@@ -129,10 +131,11 @@ def home(message=None):
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
     # query relevant homepage data
-    conn = get_db()
-    cursor = conn.cursor()
+    cnxn = get_db()
+    cursor = cnxn.cursor()
     query = f"SELECT * FROM Sesh s INNER JOIN workout w ON s.workout_id = w.workout_id WHERE s.user_id = {session['user_id']};"
     results = cursor.execute(query).fetchall()
+    cnxn.close()
     numResults = len(results)
     return render_template('home.html', seshList=results, numResults=numResults, message=message)
 
