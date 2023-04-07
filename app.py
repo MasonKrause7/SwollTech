@@ -1,33 +1,25 @@
 from flask import Flask, escape, render_template, request, session, redirect, url_for, flash
+import pyodbc
 from models import Workout, Exercise
-from flaskext.mysql import MySQL
 
 app = Flask('SwollTech')
-mysql = MySQL()
-app.config['MYSQL_DATABASE_USER']= 'root'
-app.config['MYSQL_DATABASE_PASSWORD']='Bond7007!'
-app.config['MYSQL_DATABASE_DB'] = "swolltech"
-app.config['MYSQL_DATABASE_HOST']='localhost'
-mysql.init_app(app)
+
+server='MGK777'
+database='swolltech'
+username='MGK777\mason'
+password='SoccerPlayer7!'
+print('connecting to db...')
+constr = f"DRIVER={'{ODBC Driver 17 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username};PWD={password}"
+connection = pyodbc.connect(constr)
+print('connected')
+
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
+
 tentative_exercises_cache = {}
 
 def get_db():
-    db = mysql.connect()
-    return db
-#init_db
-connection = get_db()
-with open('sql/schema.sql') as f:
-    cursor = connection.cursor()
+    return connection;
 
-    cursor.execute(f.read())
-    connection.commit()
-with open('sql/insert_test_data.sql') as i:
-    cursor = connection.cursor()
-    cursor.execute(i.read())
-
-connection.commit()
-connection.close()
 
 @app.route('/')
 def index():
