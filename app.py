@@ -23,12 +23,10 @@ def get_db():
 
 def init_db():
     cnxn = pyodbc.connect(cnxnstr)
-    with open('sql/schema.sql') as f:
-        cnxn.execute(f.read())
-        cnxn.commit()
-    with open('sql/insert_test_data.sql') as f:
-        cnxn.execute(f.read())
-        cnxn.commit()
+    cursor = cnxn.cursor()
+    cursor.execute('EXEC init_db')
+
+    cnxn.commit()
     cnxn.close()
 
 @app.route('/')
@@ -41,7 +39,7 @@ def api_init_db():
     init_db()
     if user_authenticated():
         return render_template('home.html')
-    return render_template('index.html')
+    return render_template('index.html', message='DB initialized')
 
 @app.route('/about.html')
 def about():

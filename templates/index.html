@@ -9,15 +9,9 @@
     <span><a href="{{ url_for('get_signup')}}">Register</a> for a free account and start using SwollTech to get data driven results.</span>
     <span>Already have an account? <a href="{{ url_for('login')}}">Sign in</a> instead.</span>
     <hr>
+    {% if message == 'DB initialized'%}
+    <p class="alert-success">{{message}}</p>
+    {% endif %}
 
-
-
-
-<!-- For loop going through each user -->
-    <!-- {% for user in users %}
-        <a href="#"><h2>{{user['fname']}}</h2></a>
-        <span class="badge badge-primary">{{ user['email'] }}</span>
-        <hr>
-    {% endfor %} -->
 
 {% endblock %}
