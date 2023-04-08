@@ -32,8 +32,10 @@
     </ul>
     {% endif %}
 
-    <span class="mt-5"><button class="btn btn-primary mb-4">Create Workout</button>
-        <a type="button" href="{{url_for('home')}}" class="btn btn-danger mb-4">Quit without Saving</a></span>
+    <span class="mt-5">
+        <a type="button" class="btn btn-primary mb-4" onclick="createWorkout()" value="Create Workout"></a>
+        <a type="button" href="url_for('home')" class="btn btn-danger mb-4" value="Quit without Saving"></a>
+    </span>
     {% if messageCategory == 'danger' %}
     <p class="alert alert-danger">{{message}}</p>
     {% elif messageCategory == 'success' %}

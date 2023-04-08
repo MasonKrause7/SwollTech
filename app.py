@@ -5,12 +5,13 @@ from models import Workout, Exercise
 
 app = Flask('SwollTech')
 
-server='(LocalDB)\MSSQLLocalDB'
+laptopserver='(LocalDB)\MSSQLLocalDB'
+desktopserver='localhost'
 database='swolltech'
-username='DESKTOP-02M87G6\mason'
+laptopusername='DESKTOP-02M87G6\mason'
+desktopusername='MGK777\mason'
 
-
-cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username}; ENCRYPT=Optional; Trusted_connection=Yes"
+cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={desktopserver};DATABASE={database};UID={desktopusername}; ENCRYPT=Optional; Trusted_connection=Yes"
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
 
 tentative_exercises_cache = {}
@@ -160,46 +161,36 @@ def home(message=None):
 
 
 @app.get('/createworkout.html')
-def create_workout(exerciseName=None):
+def create_workout():
     if user_authenticated():
-        if session['user_id'] in users_existing_exercises_cache.keys():
-            g= users_existing_exercises_cache.get(session['user_id'])
-        else:
-            g = fetch_users_exercises()
-            users_existing_exercises_cache.update({session['user_id']: g})
-
-
-        if tentative_exercises_cache.get(session['user_id']) is None:
-            tentative_exercises_cache.update({session['user_id']: []})
-        exerciseList = tentative_exercises_cache.get(session["user_id"])
-        if exerciseList:
-            exerciseName = exerciseList[len(exerciseList)-1]
-        return render_template('createworkout.html', exerciseName=exerciseName, exerciseList=exerciseList, existingExercises=g)
+        g = fetch_users_exercises()
+        if 'tentative_exercises' not in session.keys():
+            session['tentative_exercises']=[]
+        exerciseList = session['tentative_exercises']
+        return render_template('createworkout.html', exerciseList=exerciseList, existingExercises=g)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
-@app.post('/createworkout.html')
+@app.post('/createworkout.html/')
 def post_create_workout():
     if user_authenticated():
-        wo_name = request.form['workout_name']
-        session['workout_name']=wo_name
-        #start building list  of exercises to go with this new wo
-
+        wo_name = request.args.get('wo_name')
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+        query = f"EXEC build_workout_return_woID {wo_name}, {session['user_id']}"
+        workout_id = cursor.execute(query)
+        #workout created, use workout_id to associate exercises to workout
+        #build individual exercises
+        existingExercises = fetch_users_exercises()
+        existingExerciseNames = []
+        for ex in existingExercises:
+            existingExerciseNames.append(ex.exercise_name)
+        for exName in session['tentative_exercises']:
+            if exName
 
         message = 'Workout created successfully'
         return render_template(url_for('home'), message=message)
-    else:
-        message = "You must be logged in to create workouts"
-        return render_template(url_for('login.html'), message=message)
-
-
-@app.get('/addexistingexercise.html')
-def add_existing_exercise():
-    if user_authenticated():
-        list = fetch_users_exercises()
-
-        return render_template(url_for('add_existing_exercise'), list=list)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
@@ -209,16 +200,12 @@ def add_existing_exercise():
 def post_existing_exercise():
     if user_authenticated():
         exercise_name = request.args.get('ex_name')
-        if tentative_exercises_cache.get(session["user_id"]) is None:
-            tentative_exercises_cache.update({session['user_id']: []})
-        exercise_list = tentative_exercises_cache.get(session["user_id"])
-        g=users_existing_exercises_cache.get(session['user_id'])
-        if exercise_list and exercise_name == exercise_list[len(exercise_list)-1]:
-            print('made it here')
-            message = 'Adding the same exercise back to back is not allowed. Once you start the workout, you can have multiple sets of the exercise instead.'
-            return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message, messageCategory='danger', existingExercises=g)
+        if 'tentative_exercises' not in session.keys():
+            session['tentative_exercises'] = [exercise_name]
+        exercise_list = session['tentative_exercises']
         exercise_list.append(exercise_name)
-        tentative_exercises_cache.update({session['user_id']: exercise_list})
+        session['tentative_exercises'] = exercise_list
+        existingExercises = fetch_users_exercises()
         return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message='Exercise added', messageCategory='success', existingExercises=g)
 
 
@@ -231,15 +218,21 @@ def create_exercise():
 def remove_exercise():
     ex_name = request.args.get('ex_name')
     if user_authenticated():
-        if tentative_exercises_cache.get(session['user_id']) is None:
-            tentative_exercises_cache.update({session['user_id']: []})
-        exercise_list = tentative_exercises_cache.get(session['user_id'])
+        g = fetch_users_exercises()
+        if 'tentative_exercises' not in session.keys:
+            session['tentative_exercises'] = []
+        exercise_list = session['tentative_exercises']
         if  ex_name in exercise_list:
             exercise_list.remove(ex_name)
-        tentative_exercises_cache.update({session['user_id']: exercise_list})
-        g = users_existing_exercises_cache.get(session['user_id'])
-        message = "Exercise removed"
-        return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message, messageCategory='success', existingExercises=g)
+            session['tentative_exercises'] = exercise_list
+            message = "Exercise removed"
+            return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message,
+                                   messageCategory='success', existingExercises=g)
+        else:
+            message = 'No exercise by that name in tentative exercise list'
+            return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message,existingExercises=g)
+
+
 
 def user_authenticated() -> bool:
     if session.get('user_id') is None:

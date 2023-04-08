@@ -9,3 +9,8 @@ function removeExercise(name){
     window.location.href= '/removeexercise/?ex_name='+name;
 }
 
+function createWorkout(){
+    workoutName = document.getElementById('workout_name');
+    window.location.href= '/createworkout.html/?wo_name='+workoutName;
+}
+
