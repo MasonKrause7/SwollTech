@@ -2,5 +2,14 @@
 
 {%block content%}
 <h1 class="mb-3">{% block title %}Create exercise{% endblock %}</h1>
-
+<form method="POST" action="{{url_for('post_create_exercise')}}">
+    <input id="new_exercise_name" name="new_exercise_name" type="text" placeholder="Exercise name">
+    <label for="exercise_type_input">Select Exercise Type:</label>
+    <span id="exercise_type_input">
+        <label for="strength_radio">Strength</label>
+        <input type="radio" id="strength_radio">
+        <input type="radio" id="cardio_radio">
+    </span>
+    <input type="submit">
+</form>
 {% endblock%}

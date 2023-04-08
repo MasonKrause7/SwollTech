@@ -5,11 +5,8 @@
 <script src="/static/js/script.js" type="text/javascript"></script>
 <h1>{% block title %}Create your workout {% endblock %}</h1>
 
-<form method="POST" id="create_workout_name" action="{{url_for('post_create_workout')}}">
-    <input type="text" placeholder="Workout Name" id="workout_name" name="workout_name"/>
-</form>
     <h4 class="mt-3">Add Exercises</h4>
-    <span>Add existing exercises:</span>
+    <h5>Add existing exercises:</h5>
         {% if existingExercises%}
         <ul>
         {% for exercise in existingExercises %}
@@ -21,6 +18,7 @@
     {% endfor %}
 </ul>
 {% endif%}
+    <h5><a href="{{url_for('create_exercise')}}">Create new exercise</a></h5>
     {% if tentative_exercise_list %}
     <h3>Tentative exercise list for {{session['workout_name']}} workout:</h3>
     <ul>
@@ -32,9 +30,10 @@
     </ul>
     {% endif %}
 
+    <input type="text" id="workout_name_input" placeholder="Workout Name">
     <span class="mt-5">
-        <a type="button" class="btn btn-primary mb-4" onclick="createWorkout()" value="Create Workout"></a>
-        <a type="button" href="url_for('home')" class="btn btn-danger mb-4" value="Quit without Saving"></a>
+        <button class="btn btn-primary mb-4" onclick="createWorkout()" >Create Workout</button>
+        <button onclick="quitCreatingWorkout()" class="btn btn-danger mb-4" >Quit without Saving</button>
     </span>
     {% if messageCategory == 'danger' %}
     <p class="alert alert-danger">{{message}}</p>

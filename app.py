@@ -11,7 +11,7 @@ database='swolltech'
 laptopusername='DESKTOP-02M87G6\mason'
 desktopusername='MGK777\mason'
 
-cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={desktopserver};DATABASE={database};UID={desktopusername}; ENCRYPT=Optional; Trusted_connection=Yes"
+cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={laptopserver};DATABASE={database};UID={laptopusername}; ENCRYPT=Optional; Trusted_connection=Yes"
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
 
 tentative_exercises_cache = {}
@@ -145,12 +145,14 @@ def logout():
     return render_template('index.html', message=message)
 
 
-@app.route('/home.html')
+@app.route('/home.html/')
 def home(message=None):
     if not user_authenticated():
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
     # query relevant homepage data
+    if request.args.get('quit'):
+        session.pop('tentative_exercises')
     cnxn = get_db()
     cursor = cnxn.cursor()
     query = f"SELECT * FROM Sesh s INNER JOIN workout w ON s.workout_id = w.workout_id WHERE s.user_id = {session['user_id']};"
@@ -180,14 +182,21 @@ def post_create_workout():
         cursor = cnxn.cursor()
         query = f"EXEC build_workout_return_woID {wo_name}, {session['user_id']}"
         workout_id = cursor.execute(query)
+
         #workout created, use workout_id to associate exercises to workout
         #build individual exercises
-        existingExercises = fetch_users_exercises()
-        existingExerciseNames = []
-        for ex in existingExercises:
-            existingExerciseNames.append(ex.exercise_name)
+        existingExerciseNames = fetch_all_exercise_names()
         for exName in session['tentative_exercises']:
-            if exName
+            if exName in existingExerciseNames:
+                #exercise with exName already exist, just associate it with the workout
+                ex_id = get_exercise_id(exName)
+                query = f"INSERT INTO Workout_Exercise(workout_id, exercise_id) VALUES({workout_id}, {ex_id});"
+                cursor.execute(query)
+
+            else:
+                #exercise with exName is new and needs to be added to exercises
+                query = f"INSERT INTO Exercises(exercise_name, exercise_type_id) VALUES({exName}, )"
+
 
         message = 'Workout created successfully'
         return render_template(url_for('home'), message=message)
@@ -206,30 +215,40 @@ def post_existing_exercise():
         exercise_list.append(exercise_name)
         session['tentative_exercises'] = exercise_list
         existingExercises = fetch_users_exercises()
-        return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message='Exercise added', messageCategory='success', existingExercises=g)
+        redirect('/createworkout.html')
+        return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message='Exercise added', messageCategory='success', existingExercises=existingExercises)
 
 
 @app.get('/createexercise.html')
 def create_exercise():
-
     return render_template('createexercise.html')
+@app.post('/createexercise.html')
+def post_create_exercise():
+    exName = request.form['new_exercise_name']
+    exerciseType1 = request.form['strength_radio']
+    exerciseType2 = request.form['cardio_radio']
+    print(exName)
+    print(exerciseType1)
+    print(exerciseType2)
 
 @app.route('/removeexercise/')
 def remove_exercise():
     ex_name = request.args.get('ex_name')
     if user_authenticated():
         g = fetch_users_exercises()
-        if 'tentative_exercises' not in session.keys:
+        if 'tentative_exercises' not in session.keys():
             session['tentative_exercises'] = []
         exercise_list = session['tentative_exercises']
-        if  ex_name in exercise_list:
+        if ex_name in exercise_list:
             exercise_list.remove(ex_name)
             session['tentative_exercises'] = exercise_list
             message = "Exercise removed"
+            redirect('/createworkout.html')
             return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message,
                                    messageCategory='success', existingExercises=g)
         else:
             message = 'No exercise by that name in tentative exercise list'
+            redirect('/createworkout.html')
             return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message,existingExercises=g)
 
 
@@ -241,8 +260,31 @@ def user_authenticated() -> bool:
 
 
 def fetch_users_exercises():
-        conn = get_db()
-        cursor = conn.cursor()
+        cnxn = get_db()
+        cursor = cnxn.cursor()
         query = "EXEC fetch_user_exercises "+str(session['user_id'])
         results = cursor.execute(query).fetchall()
+        cnxn.close()
         return results;
+def fetch_all_exercise_names() -> []:
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query='EXEC fetch_all_exercise_names;'
+    results = cursor.execute(query)
+    cnxn.close()
+    ex_names = []
+    for result in results:
+        ex_names.append(result.exercise_name)
+    return ex_names
+def get_exercise_id(exName) -> id:
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC get_exercise_id {exName};"
+    id = cursor.execute(query)
+    return id
+#def build_exercise(exercise_name, exercise_type_id):
+
+#def associate_exercise_to_workout(exercise_id, workout_id):
+
+
+

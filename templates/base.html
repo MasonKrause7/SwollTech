@@ -23,9 +23,11 @@
             <li class="nav-item active">
                 <a class="nav-link" href="{{url_for('about')}}">About</a>
             </li>
+                {% if 'user_id' in session.keys()%}
             <li>
                 <a class="nav-link" href="{{url_for('logout')}}">Log Out</a>
             </li>
+                {% endif %}
             </ul>
         </div>
     </nav>

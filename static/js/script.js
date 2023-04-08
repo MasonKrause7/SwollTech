@@ -9,8 +9,16 @@ function removeExercise(name){
     window.location.href= '/removeexercise/?ex_name='+name;
 }
 
+function quitCreatingWorkout(){
+    window.location.href='/home.html/?quit=True';
+}
 function createWorkout(){
-    workoutName = document.getElementById('workout_name');
-    window.location.href= '/createworkout.html/?wo_name='+workoutName;
+    woName = document.getElementById('workout_name_input').value()
+    if(woName.length < 1){
+        window.location.href='/createworkout.html'
+    }
+    else{
+        window.location.href='/createworkout.html/?wo_name='+woName;
+    }
 }
 
