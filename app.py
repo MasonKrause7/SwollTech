@@ -5,12 +5,12 @@ from models import Workout, Exercise
 
 app = Flask('SwollTech')
 
-server='localhost'
+server='(LocalDB)\MSSQLLocalDB'
 database='swolltech'
 username='DESKTOP-02M87G6\mason'
 
 
-cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username};TRUSTED_CONNECTION=Yes; ENCRYPT=Optional; Trusted_connection=No"
+cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={server};DATABASE={database};UID={username}; ENCRYPT=Optional; Trusted_connection=Yes"
 app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
 
 tentative_exercises_cache = {}
@@ -28,7 +28,7 @@ def init_db():
     cnxn.commit()
     print('Tables created...')
     hash = pbkdf2_sha256.hash('pass')
-    query = f"INSERT INTO Users(fname, lname, email, dob, password) VALUES ('Mason', 'Krause', 'masongkrause@yahoo.com', '03-20-1995', {hash})"
+    query = f"INSERT INTO Users(fname, lname, email, dob, password) VALUES ('Mason', 'Krause', 'masongkrause@yahoo.com', '03-20-1995', '{hash}')"
     cursor.execute(query)
     cnxn.commit()
     print('User added...')

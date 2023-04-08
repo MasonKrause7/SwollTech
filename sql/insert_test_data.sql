@@ -23,5 +23,5 @@ INSERT INTO Strength_Set(wo_ex_id, number_of_reps, weight_amount, weight_metric)
 INSERT INTO Strength_Set(wo_ex_id, number_of_reps, weight_amount, weight_metric) VALUES (3, 12, 115, 'lbs');
 INSERT INTO Strength_Set(wo_ex_id, number_of_reps, weight_amount, weight_metric) VALUES (3, 10, 135, 'lbs');
 
-INSERT INTO Sesh(user_id, workout_id, date_of_sesh) VALUES(1, 1, DATE('now'));
+INSERT INTO Sesh(user_id, workout_id, date_of_sesh) VALUES(1, 1, GETDATE());
 
