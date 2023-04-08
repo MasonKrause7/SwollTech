@@ -2,7 +2,7 @@
 
 {% block  content%}
 <script src="/static/js/script.js"></script>
-<h1>{% block title %} Add exercise to workout{% endblock %}</h1>
+<h1 class="mb-3">{% block title %} Add exercise to workout{% endblock %}</h1>
 {% if list%}
 
 <ul>
@@ -10,7 +10,7 @@
 
     <li class="mt-2 mb-1">
         <form>
-            <input type="button" name="{{exercise.exercise_name}}" onclick="addExercise(name)" class="btn btn-primary btn-small" value="Add"> - {{exercise.exercise_name}} - {{exercise.exercise_type_name}} exercise from {{exercise.workout_name}}
+            <input type="button" name="{{exercise.exercise_name}}" onclick="addExercise(name)" class="btn btn-primary btn-sm" value="Add"> - {{exercise.exercise_name}} - {{exercise.exercise_type_name}} exercise from {{exercise.workout_name}}
         </form>
     </li>
 

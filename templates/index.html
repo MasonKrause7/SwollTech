@@ -9,7 +9,7 @@
     <span><a href="{{ url_for('get_signup')}}">Register</a> for a free account and start using SwollTech to get data driven results.</span>
     <span>Already have an account? <a href="{{ url_for('login')}}">Sign in</a> instead.</span>
     <hr>
-    {% if message == 'DB initialized'%}
+    {% if message %}
     <p class="alert-success">{{message}}</p>
     {% endif %}
 
