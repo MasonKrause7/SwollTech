@@ -19,6 +19,16 @@
             </ul>
         </div>
     {% endif %}
+    {% if workouts %}
+        <h2>Your workouts:</h2>
+        <ul>
+            {% for workout in workouts%}
+            <li>{{workout.workout_name}}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+
 </div>
 <div class="border mt-2">
     <a href="{{url_for('create_workout')}}"><button>Create Workout</button></a>

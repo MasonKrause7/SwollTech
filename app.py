@@ -150,16 +150,16 @@ def home(message=None):
     if not user_authenticated():
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
-    # query relevant homepage data
-    if request.args.get('quit'):
-        session.pop('tentative_exercises')
+
+    #fetch users workouts
     cnxn = get_db()
     cursor = cnxn.cursor()
+    query = f"EXEC fetch_user_workouts {session['user_id']}"
+    workouts = cursor.execute(query).fetchall()
     query = f"SELECT * FROM Sesh s INNER JOIN workout w ON s.workout_id = w.workout_id WHERE s.user_id = {session['user_id']};"
-    results = cursor.execute(query).fetchall()
-    cnxn.close()
-    numResults = len(results)
-    return render_template('home.html', seshList=results, numResults=numResults, message=message)
+    pastSeshs = cursor.execute(query).fetchall()
+    numResults = len(pastSeshs)
+    return render_template('home.html', seshList=pastSeshs, numResults=numResults, message=message, workouts=workouts)
 
 
 @app.get('/createworkout.html/')
@@ -245,24 +245,31 @@ def post_create_workout():
 
         cnxn = get_db()
         cursor = cnxn.cursor()
-        query = f"EXEC build_workout_return_woID {session['new_workout_name']}, {session['user_id']}"
-        workout_id = cursor.execute(query)
+        query = f"EXEC build_workout_return_woID {session['new_workout_name']} {session['user_id']}"
+        workout_id = cursor.execute(query).fetchall()
+
 
         #workout created, use workout_id to associate exercises to workout
         #build individual exercises
         existingExerciseNames = fetch_all_exercise_names()
-        for exName in session['tentative_exercises']:
+        for exName in session['new_exercises'].keys():
             if exName in existingExerciseNames:
                 #exercise with exName already exist, just associate it with the workout
                 ex_id = get_exercise_id(exName)
-                query = f"INSERT INTO Workout_Exercise(workout_id, exercise_id) VALUES({workout_id}, {ex_id});"
+                query = f"EXEC associate_exercise_with_workout {workout_id} {ex_id}"
                 cursor.execute(query)
-
+                cnxn.commit()
             else:
                 #exercise with exName is new and needs to be added to exercises
-                query = f"INSERT INTO Exercises(exercise_name, exercise_type_id) VALUES({exName}, )"
-
-
+                query = f"EXEC build_exercise_return_exID {exName} {session['new_exercises'].get(exName)})"
+                ex_id = cursor.execute(query)
+                query = f"EXEC associate_exercise_with_workout {workout_id} {ex_id}"
+                cnxn.commit()
+        for exName in session['existing_exercises']:
+            ex_id = get_exercise_id(exName)
+            query = f"EXEC associate_exercise_with_workout {workout_id} {ex_id}"
+            cursor.execute(query)
+            cnxn.commit()
         message = 'Workout created successfully'
         return render_template(url_for('home'), message=message)
     else:
