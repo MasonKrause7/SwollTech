@@ -4,43 +4,46 @@
 {% block content %}
 <script src="/static/js/script.js" type="text/javascript"></script>
 <h1>{% block title %}Create your workout {% endblock %}</h1>
-
-    <h4 class="mt-3">Add Exercises</h4>
-    <h5>Add existing exercises:</h5>
-        {% if existingExercises%}
-        <ul>
-        {% for exercise in existingExercises %}
-            <li class="mt-2 mb-1">
-                <form>
-                    <span><input type="button" name="{{exercise.exercise_name}}" onclick="addExercise(name)" class="btn btn-primary btn-sm" value="Add"> - {{exercise.exercise_name}} - {{exercise.exercise_type_name}} exercise from {{exercise.workout_name}}</span>
-                </form>
-            </li>
-    {% endfor %}
+<ul>
+    <li><a id="name_workout_button" type="button" href="{{url_for('name_workout')}}">Name your workout</a></li>
+    <li><a id="add_existing_exercises_button" type="button" href="{{url_for('add_existing_exercise')}}">Add existing exercise</a></li>
+    <li><a id="create_new_exercise_button" type="button" href="{{url_for('create_exercise')}}">Add new exercise</a></li>
 </ul>
-{% endif%}
-    <h5><a href="{{url_for('create_exercise')}}">Create new exercise</a></h5>
-    {% if tentative_exercise_list %}
-    <h3>Tentative exercise list for {{session['workout_name']}} workout:</h3>
-    <ul>
-        {% for exName in tentative_exercise_list %}
-        <form>
-            <li class="mb-2"><input type="button" class="btn-danger" name="{{exName}}" onclick="removeExercise(name)" value="Remove"> - {{exName}}</li>
-        </form>
-        {% endfor %}
-    </ul>
+{% if session['new_workout_name']%}
+<h2>Tentative workout: {{session['new_workout_name']}}</h2>
+{% endif %}
+{% if session['existing_exercises'] or session['new_exercises']%}
+<ul>
+    {% if session['existing_exercises']%}
+    {% for exercise in session['existing_exercises']%}
+        <li class="mt-3">
+            <form>
+                <input type="button" class="btn btn-danger btn-sm" name="{{exercise}}" onclick="removeExercise(name)" value="Remove"> - {{exercise}}
+            </form>
+        </li>
+    {% endfor %}
     {% endif %}
+    {% if session['new_exercises']%}
+    {% for exercise in session['new_exercises'].keys()%}
 
-    <input type="text" id="workout_name_input" placeholder="Workout Name">
-    <span class="mt-5">
-        <button class="btn btn-primary mb-4" onclick="createWorkout()" >Create Workout</button>
-        <button onclick="quitCreatingWorkout()" class="btn btn-danger mb-4" >Quit without Saving</button>
-    </span>
+        <li class="mt-3">
+            <form>
+                <input type="button" class="btn btn-danger btn-sm" name="{{exercise}}" onclick="removeExercise(name)" value="Remove"> - {{exercise}}
+            </form>
+        </li>
+    {% endfor %}
+    {% endif %}
+</ul>
+
+
+{% endif %}
+
     {% if messageCategory == 'danger' %}
     <p class="alert alert-danger">{{message}}</p>
     {% elif messageCategory == 'success' %}
     <p class="alert alert-success">{{message}}</p>
     {% endif %}
 
-
+<a class="btn btn-primary" type="button" href="{{url_for('post_create_workout')}}">Create Workout</a>
 
 {% endblock %}

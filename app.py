@@ -162,25 +162,90 @@ def home(message=None):
     return render_template('home.html', seshList=results, numResults=numResults, message=message)
 
 
-@app.get('/createworkout.html')
+@app.get('/createworkout.html/')
 def create_workout():
     if user_authenticated():
-        g = fetch_users_exercises()
-        if 'tentative_exercises' not in session.keys():
-            session['tentative_exercises']=[]
-        exerciseList = session['tentative_exercises']
-        return render_template('createworkout.html', exerciseList=exerciseList, existingExercises=g)
+        if 'wo_name' in request.args:
+            session['new_workout_name'] = request.args.get('wo_name')
+            message = f'Workout named {session["new_workout_name"]} successfully'
+        if 'new_exercise_name' in request.args:
+            if 'new_exercises' in session.keys():
+                new_exercises = session['new_exercises']
+                new_exercises.update({request.args.get('new_exercise_name'): request.args.get('new_exercise_type')})
+                session['new_exercises'] = new_exercises
+                message = 'New exercise added to workout'
+                return render_template('createworkout.html', message=message, messageCategory='success')
+            else:
+                session['new_exercises'] = {request.args.get('new_exercise_name'): request.args.get('new_exercise_type')}
+                message = 'New exercise added to workout'
+                return render_template('createworkout.html', message=message, messageCategory='success')
+        if 'existing_exercise' in request.args:
+            if 'existing_exercises' in session.keys():
+                existing_exercises = session['existing_exercises']
+                existing_exercises.append(request.args.get('existing_exercise'))
+                session['existing_exercises'] = existing_exercises
+                message = 'Existing exercise added to workout'
+                return render_template('createworkout.html', message=message, messageCategory='success')
+            else:
+                session['existing_exercises'] = [request.args.get('existing_exercise')]
+                message = 'Existing exercise added to workout'
+                return render_template('createworkout.html', message=message, messageCategory='success')
+
+        return render_template('createworkout.html')
+    else:
+        message = "You must be logged in to create workouts"
+        return render_template(url_for('login.html'), message=message)
+@app.get('/nameworkout.html')
+def name_workout():
+    if user_authenticated():
+        return render_template('nameworkout.html')
+    else:
+        message = "You must be logged in to create workouts"
+        return render_template(url_for('login.html'), message=message)
+@app.route('/remove/')
+def remove_exercise():
+    exName = request.args.get('remove')
+    if session['existing_exercises']:
+        if exName in session['existing_exercises']:
+            exList = session['existing_exercises']
+            exList.remove(exName)
+            session['existing_exercises'] = exList
+            message = 'Exercise removed'
+            return render_template('createworkout.html', message=message, messageCategory='success')
+    if session['new_exercises']:
+        if exName in session['new_exercises'].keys():
+            new_exercises = session['new_exercises']
+            new_exercises.pop(exName)
+            session['new_exercises'] = new_exercises
+            message = 'Exercise removed'
+            return render_template('createworkout.html', message=message, messageCategory='success')
+    message = "Could  not remove exercise"
+    return render_template('createworkout.html', message=message, messageCategory='danger')
+
+@app.route('/addexistingexercise.html')
+def add_existing_exercise():
+    if user_authenticated():
+        existing_exercises = fetch_users_exercises()
+
+        return render_template('addexistingexercise.html', existingExercises=existing_exercises)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
+@app.get('/createexercise.html')
+def create_exercise():
+    return render_template('createexercise.html')
+
+
+
+
 @app.post('/createworkout.html/')
 def post_create_workout():
     if user_authenticated():
-        wo_name = request.args.get('wo_name')
+
         cnxn = get_db()
         cursor = cnxn.cursor()
-        query = f"EXEC build_workout_return_woID {wo_name}, {session['user_id']}"
+        query = f"EXEC build_workout_return_woID {session['new_workout_name']}, {session['user_id']}"
         workout_id = cursor.execute(query)
 
         #workout created, use workout_id to associate exercises to workout
@@ -203,55 +268,6 @@ def post_create_workout():
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
-
-
-@app.route('/addexistingexercise.html/')
-def post_existing_exercise():
-    if user_authenticated():
-        exercise_name = request.args.get('ex_name')
-        if 'tentative_exercises' not in session.keys():
-            session['tentative_exercises'] = [exercise_name]
-        exercise_list = session['tentative_exercises']
-        exercise_list.append(exercise_name)
-        session['tentative_exercises'] = exercise_list
-        existingExercises = fetch_users_exercises()
-        redirect('/createworkout.html')
-        return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message='Exercise added', messageCategory='success', existingExercises=existingExercises)
-
-
-@app.get('/createexercise.html')
-def create_exercise():
-    return render_template('createexercise.html')
-@app.post('/createexercise.html')
-def post_create_exercise():
-    exName = request.form['new_exercise_name']
-    exerciseType1 = request.form['strength_radio']
-    exerciseType2 = request.form['cardio_radio']
-    print(exName)
-    print(exerciseType1)
-    print(exerciseType2)
-
-@app.route('/removeexercise/')
-def remove_exercise():
-    ex_name = request.args.get('ex_name')
-    if user_authenticated():
-        g = fetch_users_exercises()
-        if 'tentative_exercises' not in session.keys():
-            session['tentative_exercises'] = []
-        exercise_list = session['tentative_exercises']
-        if ex_name in exercise_list:
-            exercise_list.remove(ex_name)
-            session['tentative_exercises'] = exercise_list
-            message = "Exercise removed"
-            redirect('/createworkout.html')
-            return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message,
-                                   messageCategory='success', existingExercises=g)
-        else:
-            message = 'No exercise by that name in tentative exercise list'
-            redirect('/createworkout.html')
-            return render_template(url_for('create_workout'), tentative_exercise_list=exercise_list, message=message,existingExercises=g)
-
-
 
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
