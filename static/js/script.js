@@ -16,5 +16,8 @@ function createExercise(){
 function removeExercise(name){
     window.location.href='/remove/?remove='+name;
 }
+function postWorkout(){
+    window.location.href = '/postworkout.html/';
+}
 
 

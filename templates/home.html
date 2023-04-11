@@ -34,10 +34,10 @@
     <a href="{{url_for('create_workout')}}"><button>Create Workout</button></a>
 </div>
 {% if message == 'Workout created successfully'%}
-<p class="alert-success">{{message}}</p>
+<p class="alert-success mt-2">{{message}}</p>
 <a class="btn btn-primary" href="{{url_for('home')}}" role="button">Start workout sesh with your new workout?</a>
 {% elif message == 'DB initialized'%}
-<p class="alert-success">{{message}}</p>
+<p class="alert-success mt-2">{{message}}</p>
 {% endif %}
 
 {% endblock %}

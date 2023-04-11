@@ -1,7 +1,6 @@
 from flask import Flask, g, escape, render_template, request, session, redirect, url_for, flash
 from passlib.hash import pbkdf2_sha256
 import pyodbc
-from models import Workout, Exercise
 
 app = Flask('SwollTech')
 
@@ -239,38 +238,58 @@ def create_exercise():
 
 
 
-@app.post('/createworkout.html/')
+@app.route('/postworkout.html/')
 def post_create_workout():
     if user_authenticated():
-
+        if 'new_workout_name' not in session.keys():
+            return render_template('createworkout.html', message='Must name workout to create it', messageCategory='danger')
         cnxn = get_db()
         cursor = cnxn.cursor()
-        query = f"EXEC build_workout_return_woID {session['new_workout_name']} {session['user_id']}"
-        workout_id = cursor.execute(query).fetchall()
+        query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_workout_return_woID @workout_name='{session['new_workout_name']}', @user_id={session['user_id']}, @wo_id=5000; SELECT @rv AS return_value;"
+        cursor.execute(query)
+        workout_id = cursor.fetchval()
+        cnxn.commit()
+        print('new workout id ='+ str(workout_id))
 
 
         #workout created, use workout_id to associate exercises to workout
         #build individual exercises
         existingExerciseNames = fetch_all_exercise_names()
-        for exName in session['new_exercises'].keys():
-            if exName in existingExerciseNames:
-                #exercise with exName already exist, just associate it with the workout
+        if 'new_exercises' in session.keys():
+            for exName in session['new_exercises'].keys():
+                if exName in existingExerciseNames:
+                    #exercise with exName already exist, just associate it with the workout
+                    ex_id = get_exercise_id(exName)
+                    print('ex_id=' + str(ex_id))
+                    query = f"EXEC associate_exercise_with_workout {workout_id}, {ex_id};"
+                    cursor.execute(query)
+                    cnxn.commit()
+                else:
+                    #exercise with exName is new and needs to be added to exercises
+                    ex_type = session['new_exercises'].get(exName)
+                    ex_type_id = 0
+                    if ex_type == 'Strength':
+                        ex_type_id = 1
+                    else:
+                        ex_type_id = 2
+                    query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_exercise_return_exID '{exName}', {ex_type_id}, 0; SELECT @rv;"
+                    cursor.execute(query)
+                    ex_id = cursor.fetchval()
+                    print('ex_id='+str(ex_id))
+                    cnxn.commit()
+                    query = f"EXEC associate_exercise_with_workout {workout_id}, {ex_id};"
+                    cursor.execute(query)
+                    cnxn.commit()
+        if 'existing_exercises' in session.keys():
+            for exName in session['existing_exercises']:
                 ex_id = get_exercise_id(exName)
-                query = f"EXEC associate_exercise_with_workout {workout_id} {ex_id}"
+                print('existing_exercise_id=' + str(ex_id))
+                query = f"EXEC associate_exercise_with_workout {workout_id}, {ex_id};"
                 cursor.execute(query)
                 cnxn.commit()
-            else:
-                #exercise with exName is new and needs to be added to exercises
-                query = f"EXEC build_exercise_return_exID {exName} {session['new_exercises'].get(exName)})"
-                ex_id = cursor.execute(query)
-                query = f"EXEC associate_exercise_with_workout {workout_id} {ex_id}"
-                cnxn.commit()
-        for exName in session['existing_exercises']:
-            ex_id = get_exercise_id(exName)
-            query = f"EXEC associate_exercise_with_workout {workout_id} {ex_id}"
-            cursor.execute(query)
-            cnxn.commit()
+        cnxn.close()
         message = 'Workout created successfully'
+        redirect('/home.html')
         return render_template(url_for('home'), message=message)
     else:
         message = "You must be logged in to create workouts"
@@ -293,17 +312,19 @@ def fetch_all_exercise_names() -> []:
     cnxn = get_db()
     cursor = cnxn.cursor()
     query='EXEC fetch_all_exercise_names;'
-    results = cursor.execute(query)
-    cnxn.close()
+    results = cursor.execute(query).fetchall()
     ex_names = []
     for result in results:
         ex_names.append(result.exercise_name)
+    cnxn.close()
     return ex_names
 def get_exercise_id(exName) -> id:
     cnxn = get_db()
     cursor = cnxn.cursor()
-    query = f"EXEC get_exercise_id {exName};"
-    id = cursor.execute(query)
+    query = f"EXEC get_exercise_id '{exName}', 0;"
+    row = cursor.execute(query).fetchone()
+    id = row[0]
+    cnxn.close()
     return id
 #def build_exercise(exercise_name, exercise_type_id):
 
