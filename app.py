@@ -149,16 +149,23 @@ def home(message=None):
     if not user_authenticated():
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
-
-    #fetch users workouts
     cnxn = get_db()
     cursor = cnxn.cursor()
-    query = f"EXEC fetch_user_workouts {session['user_id']}"
-    workouts = cursor.execute(query).fetchall()
-    query = f"SELECT * FROM Sesh s INNER JOIN workout w ON s.workout_id = w.workout_id WHERE s.user_id = {session['user_id']};"
-    pastSeshs = cursor.execute(query).fetchall()
-    numResults = len(pastSeshs)
-    return render_template('home.html', seshList=pastSeshs, numResults=numResults, message=message, workouts=workouts)
+    return render_template('home.html', message=message)
+
+@app.route('/viewworkout.html')
+def view_workouts(users_workouts=None):
+    users_workouts = fetch_users_workouts()
+
+    return render_template('viewworkout.html', users_workouts=users_workouts)
+@app.route('/viewworkout.html/')
+def view_workout():
+    users_workouts = fetch_users_workouts()
+    workout_id = request.args.get('workout_id')
+    workout_name = request.args.get('workout_name')
+    exercises = get_exercises_by_workout(workout_id)
+
+    return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name)
 
 
 @app.get('/createworkout.html/')
@@ -236,8 +243,6 @@ def create_exercise():
     return render_template('createexercise.html')
 
 
-
-
 @app.route('/postworkout.html/')
 def post_create_workout():
     if user_authenticated():
@@ -250,7 +255,6 @@ def post_create_workout():
         workout_id = cursor.fetchval()
         cnxn.commit()
         print('new workout id ='+ str(workout_id))
-
 
         #workout created, use workout_id to associate exercises to workout
         #build individual exercises
@@ -288,9 +292,11 @@ def post_create_workout():
                 cursor.execute(query)
                 cnxn.commit()
         cnxn.close()
+        session.pop('new_workout_name')
+        session.pop('new_exercises')
+        session.pop('existing_exercises')
         message = 'Workout created successfully'
-        redirect('/home.html')
-        return render_template(url_for('home'), message=message)
+        return render_template(url_for('home'), message=message, messageCategory='success')
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
@@ -300,6 +306,16 @@ def user_authenticated() -> bool:
         return False
     return True
 
+
+def fetch_users_workouts():
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_user_workouts @user_id=?"
+    params = session['user_id']
+    cursor.execute(query, params)
+    results = cursor.fetchall()
+    cnxn.close()
+    return results
 
 def fetch_users_exercises():
         cnxn = get_db()
@@ -326,9 +342,15 @@ def get_exercise_id(exName) -> id:
     id = row[0]
     cnxn.close()
     return id
-#def build_exercise(exercise_name, exercise_type_id):
 
-#def associate_exercise_to_workout(exercise_id, workout_id):
+def get_exercises_by_workout(workout_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC get_exercises_by_workout @workout_id=?"
+    cursor.execute(query, workout_id)
+    results = cursor.fetchall()
+    return results
+
 
 
 

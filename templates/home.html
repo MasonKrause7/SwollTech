@@ -1,43 +1,42 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="border mt-2">
-    <h1 class="text-center mt-2">{% block title %} Welcome Home {{ session['fname'] }}{% endblock %}</h1>
-    <h2 class="text-center">Lets take a look at your past sessions... </h2>
-    {% if seshList %}
-        {% if numResults == 1 %}
-        <div class="border mt-5 ml-5 mr-5 mb-5">
-            <h3 class=" text-center">You've completed {{numResults}} workout! Keep it up</h3>
-            {% endif %}
-            {% if numResults > 1 %}
-            <h3 class="mt-5 text-center">You've completed {{numResults}} workouts! Keep it up</h3>
-            {% endif %}
-            <ul>
-            {% for sesh in seshList %}
-                <li class="text-center mt-3 fs-2 fw-bold">{{sesh['date_of_sesh']}} - {{sesh['workout_name']}}</li>
-            {% endfor %}
-            </ul>
-        </div>
-    {% endif %}
-    {% if workouts %}
-        <h2>Your workouts:</h2>
-        <ul>
-            {% for workout in workouts%}
-            <li>{{workout.workout_name}}</li>
-            {% endfor %}
+<div class="mt-2">
+    <h1 class="text-center mt-2">{% block title %} Welcome home {{ session['fname'] }}{% endblock %}</h1>
+    <h2 class="text-center">Lets take a look at your recent progress... </h2>
+    <div>
+        <h1 class="text-center mt-5 mb-5">GRAPH</h1>
+        <!-- Embedded data vizualization tool -->
+    </div>
+
+
+</div>
+
+<nav class="navbar navbar-expand sm bg-light">
+    <div class="container-fluid">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{{url_for('create_workout')}}">Create Workout</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{url_for('view_workout')}}">View Workout</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Edit Workout</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Delete Workout</a>
+            </li>
         </ul>
-    {% endif %}
+    </div>
 
-
-</div>
-<div class="border mt-2">
-    <a href="{{url_for('create_workout')}}"><button>Create Workout</button></a>
-</div>
-{% if message == 'Workout created successfully'%}
+</nav>
+{% if message %}
+{% if messageCategory == 'success'%}
 <p class="alert-success mt-2">{{message}}</p>
-<a class="btn btn-primary" href="{{url_for('home')}}" role="button">Start workout sesh with your new workout?</a>
-{% elif message == 'DB initialized'%}
-<p class="alert-success mt-2">{{message}}</p>
+{% elif messageCategory == 'danger' %}
+<p class="alert-danger mt-2">{{message}}</p>
+{% endif %}
 {% endif %}
 
 {% endblock %}

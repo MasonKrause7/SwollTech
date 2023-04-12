@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{% block title%}View Workout{% endblock%}</h1>
+
+{% if users_workouts %}
+<h2>Your Workouts:</h2>
+    <ul>
+        {% for workout in users_workouts %}
+            <li class="mb-2">
+                <form>
+                    <input type="button" name="{{workout.workout_id}},{{workout.workout_name}}" value="{{workout.workout_name}}" onclick="viewWorkout(name)">
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+{%endif%}
+{% if exercises %}
+<hr>
+    <h2>{{workout_name}}</h2>
+    <ul>
+        {% for exercise in exercises %}
+            <li>{{exercise.exercise_name}} - {{exercise.exercise_type_name}}</li>
+        {% endfor%}
+    </ul>
+{% endif %}
+
+
+
+{% endblock %}
