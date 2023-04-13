@@ -29,16 +29,31 @@
                 <a class="nav-link" href="{{url_for('about')}}">About</a>
             </li>
                 {% if 'user_id' in session.keys()%}
-            <li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{{url_for('account')}}">Account</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="{{url_for('logout')}}">Log Out</a>
             </li>
                 {% endif %}
             </ul>
         </div>
     </nav>
-    <div class="container">
-        {% block content %} {% endblock %}
+
+    <div class="container-fluid">
+    {% block content%} {% endblock %}
     </div>
+
+    {% if message%}
+    <div class="container-fluid">
+        {% if messageCategory == 'success'%}
+        <p class="alert-success">{{message}}</p>
+        {% elif messageCategory == 'danger'%}
+        <p class="alert-danger">{{message}}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

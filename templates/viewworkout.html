@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>{% block title%}View Workout{% endblock%}</h1>
+<h1 class="text-center mb-3">{% block title%}View Workout{% endblock%}</h1>
 
 {% if users_workouts %}
 <h2>Your Workouts:</h2>
@@ -9,7 +9,7 @@
         {% for workout in users_workouts %}
             <li class="mb-2">
                 <form>
-                    <input type="button" name="{{workout.workout_id}},{{workout.workout_name}}" value="{{workout.workout_name}}" onclick="viewWorkout(name)">
+                    <input class="btn btn-secondary" type="button" name="{{workout.workout_id}},{{workout.workout_name}}" value="{{workout.workout_name}}" onclick="viewWorkout(name)">
                 </form>
             </li>
         {% endfor %}

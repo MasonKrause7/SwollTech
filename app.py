@@ -141,8 +141,40 @@ def logout():
     session.clear()
 
     message = 'Successfully signed out'
-    return render_template('index.html', message=message)
+    return render_template('index.html', message=message, messageCategory='success')
 
+
+@app.route('/account.html')
+def account():
+    if user_authenticated():
+        return render_template('account.html')
+    else:
+        message = 'You must be logged in to view your account. Please log in or register for a free account.'
+        return render_template('index.html', message=message, messageCategory='danger')
+@app.route('/account.html/')
+def edit_account():
+    if user_authenticated():
+        action = request.args.get('action')
+        if action == 'change_email':
+            #do something
+            return render_template('account.html')
+        elif action == 'change_password':
+            #change password logic
+            return render_template('account.html')
+        elif action == 'delete_account':
+            flash('Are you sure you want to PERMANENTLY delete your account?\nALL of your workout data will be lost and cannot be recovered.')
+            return render_template('deleteaccount.html')
+        return render_template('account.html')
+    else:
+        message = 'You must be logged in to view your account. Please log in or register for a free account.'
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.route('/deleteaccount/')
+def delete_account():
+    user_id = request.args.get('user_id')
+    delete_user_account(user_id)
+    message = 'Your account has been deleted. Hope to see you back soon!'
+    return render_template('index.html', message=message, messageCategory='success')
 
 @app.route('/home.html/')
 def home(message=None):
@@ -155,18 +187,23 @@ def home(message=None):
 
 @app.route('/viewworkout.html')
 def view_workouts(users_workouts=None):
-    users_workouts = fetch_users_workouts()
-
-    return render_template('viewworkout.html', users_workouts=users_workouts)
+    if user_authenticated():
+        users_workouts = fetch_users_workouts()
+        return render_template('viewworkout.html', users_workouts=users_workouts)
+    else:
+        message = 'You must be logged in to view workouts. Please log in or make an account'
+        return render_template('index.html', message=message, messageCategory='danger')
 @app.route('/viewworkout.html/')
 def view_workout():
-    users_workouts = fetch_users_workouts()
-    workout_id = request.args.get('workout_id')
-    workout_name = request.args.get('workout_name')
-    exercises = get_exercises_by_workout(workout_id)
-
-    return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name)
-
+    if user_authenticated():
+        users_workouts = fetch_users_workouts()
+        workout_id = request.args.get('workout_id')
+        workout_name = request.args.get('workout_name')
+        exercises = get_exercises_by_workout(workout_id)
+        return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name)
+    else:
+        message = 'You must be logged in to view workouts. Please log in or make an account'
+        return render_template('index.html', message=message, messageCategory='danger')
 
 @app.get('/createworkout.html/')
 def create_workout():
@@ -210,23 +247,27 @@ def name_workout():
         return render_template(url_for('login.html'), message=message)
 @app.route('/remove/')
 def remove_exercise():
-    exName = request.args.get('remove')
-    if session['existing_exercises']:
-        if exName in session['existing_exercises']:
-            exList = session['existing_exercises']
-            exList.remove(exName)
-            session['existing_exercises'] = exList
-            message = 'Exercise removed'
-            return render_template('createworkout.html', message=message, messageCategory='success')
-    if session['new_exercises']:
-        if exName in session['new_exercises'].keys():
-            new_exercises = session['new_exercises']
-            new_exercises.pop(exName)
-            session['new_exercises'] = new_exercises
-            message = 'Exercise removed'
-            return render_template('createworkout.html', message=message, messageCategory='success')
-    message = "Could  not remove exercise"
-    return render_template('createworkout.html', message=message, messageCategory='danger')
+    if user_authenticated():
+        exName = request.args.get('remove')
+        if session['existing_exercises']:
+            if exName in session['existing_exercises']:
+                exList = session['existing_exercises']
+                exList.remove(exName)
+                session['existing_exercises'] = exList
+                message = 'Exercise removed'
+                return render_template('createworkout.html', message=message, messageCategory='success')
+        if session['new_exercises']:
+            if exName in session['new_exercises'].keys():
+                new_exercises = session['new_exercises']
+                new_exercises.pop(exName)
+                session['new_exercises'] = new_exercises
+                message = 'Exercise removed'
+                return render_template('createworkout.html', message=message, messageCategory='success')
+        message = "Could  not remove exercise"
+        return render_template('createworkout.html', message=message, messageCategory='danger')
+    else:
+        message='You must be logged in to edit workouts'
+        return render_template('index.html', message=message, messageCategory='danger')
 
 @app.route('/addexistingexercise.html')
 def add_existing_exercise():
@@ -240,7 +281,11 @@ def add_existing_exercise():
 
 @app.get('/createexercise.html')
 def create_exercise():
-    return render_template('createexercise.html')
+    if user_authenticated():
+        return render_template('createexercise.html')
+    else:
+        message='You must be logged in to create exercises'
+        return render_template('index.html', message=message, messageCategory='danger')
 
 
 @app.route('/postworkout.html/')
@@ -301,11 +346,28 @@ def post_create_workout():
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
+def delete_workout(workout_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    #need to decide on delete_workout procedure
+
+def delete_user_account(user_id):
+    cardio_sets = fetch_cardio_sets_by_user()
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+
+
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
         return False
     return True
 
+def fetch_cardio_sets_by_user():
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_cardio_sets_by_user @user_id=?"
+    cursor.execute(query, session['user_id'])
+    return cursor.fetchall
 
 def fetch_users_workouts():
     cnxn = get_db()
@@ -349,6 +411,7 @@ def get_exercises_by_workout(workout_id):
     query = f"EXEC get_exercises_by_workout @workout_id=?"
     cursor.execute(query, workout_id)
     results = cursor.fetchall()
+    cnxn.close()
     return results
 
 

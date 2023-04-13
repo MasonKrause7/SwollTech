@@ -29,5 +29,10 @@ function viewWorkout(name){
     console.log('workout_name='+workout_name)
     window.location.href = '/viewworkout.html/?workout_id='+workout_id+'&workout_name='+workout_name;
 }
-
+function editAccount(name){
+    window.location.href = '/account.html/?action='+name;
+}
+function deleteAccount(user_id){
+    window.location.href = '/deleteaccount/?user_id='+user_id;
+}
 

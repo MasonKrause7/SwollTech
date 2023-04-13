@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content%}
+<h1 class="text-center mb-3">Your {% block title %}SwollTech Account{%endblock%}</h1>
+
+<div>
+    <h3>Account Details</h3>
+    <ul>
+        <li>{{session['fname']}} {{session['lname']}}</li>
+        <li>{{session['email']}}</li>
+    </ul>
+    <h3>Edit Account</h3>
+    <ul>
+        <li><button class="mb-2 btn btn-secondary btn-sm" name="change_email" onclick="editAccount(name)">Change Email</button></li>
+        <li><button class="mb-2 btn btn-secondary btn-sm" name="change_password" onclick="editAccount(name)">Change Password</button></li>
+        <li><button class="mb-2 btn btn-secondary btn-sm" name="delete_account" onclick="editAccount(name)">Delete Account</button></li>
+    </ul>
+</div>
+
+{% endblock %}
