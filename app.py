@@ -363,9 +363,13 @@ def delete_user_account(user_id):
     wo_ex_ids = fetch_wo_ex_ids_by_user()
     for id in wo_ex_ids:
         delete_wo_ex(id.wo_ex_id)
+    seshs = fetch_sesh_ids_by_user()
+    for sesh in seshs:
+        delete_sesh(sesh.sesh_id)
     workouts = fetch_users_workouts()
     for workout in workouts:
         delete_workout(workout.workout_id)
+    delete_user()
 def fetch_wo_ex_ids_by_user():
     cnxn = get_db()
     cursor = cnxn.cursor()
@@ -382,6 +386,14 @@ def fetch_cardio_sets_by_user():
     sets = cursor.fetchall()
     cnxn.close()
     return sets
+def fetch_sesh_ids_by_user():
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f'EXEC fetch_sesh_ids_by_user @user_id={session["user_id"]}'
+    cursor.execute(query)
+    ids = cursor.fetchall()
+    cnxn.close()
+    return ids
 def fetch_strength_sets_by_user():
     cnxn = get_db()
     cursor = cnxn.cursor()
@@ -390,10 +402,25 @@ def fetch_strength_sets_by_user():
     sets = cursor.fetchall()
     cnxn.close()
     return sets
+def delete_user():
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"DELETE FROM Users WHERE user_id={session['user_id']};"
+    cursor.execute(query)
+    cnxn.commit()
+    cnxn.close()
+    session.clear()
 def delete_workout(workout_id):
     cnxn = get_db()
     cursor = cnxn.cursor()
     query=f"EXEC delete_workout @workout_id={workout_id};"
+    cursor.execute(query)
+    cnxn.commit()
+    cnxn.close()
+def delete_sesh(sesh_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC delete_sesh @sesh_id={sesh_id};"
     cursor.execute(query)
     cnxn.commit()
     cnxn.close()
