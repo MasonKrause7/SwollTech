@@ -45,8 +45,8 @@ def index():
 def api_init_db():
     init_db()
     if user_authenticated():
-        return render_template('home.html')
-    return render_template('index.html', message='DB initialized')
+        return render_template('home.html', message='DB initialized', messageCategory='success')
+    return render_template('index.html', message='DB initialized', messageCategory='success')
 
 @app.route('/about.html')
 def about():
@@ -372,21 +372,24 @@ def fetch_cardio_sets_by_user():
     cursor = cnxn.cursor()
     query = f"EXEC fetch_cardio_sets_by_user @user_id=?;"
     cursor.execute(query, session['user_id'])
+    sets = cursor.fetchall()
     cnxn.close()
-    return cursor.fetchall()
+    return sets
 def fetch_strength_sets_by_user():
     cnxn = get_db()
     cursor = cnxn.cursor()
     query = f"EXEC fetch_strength_sets_by_user @user_id=?;"
     cursor.execute(query, session['user_id'])
+    sets = cursor.fetchall()
     cnxn.close()
-    return cursor.fetchall()
+    return sets
 
 def delete_set(set_number, set_type, wo_ex_id):
     cnxn = get_db()
     cursor = cnxn.cursor()
     query = f"EXEC delete_set @set_number={set_number} , @set_type='{set_type}' , @wo_ex_id={wo_ex_id};"
     cursor.execute(query)
+    cnxn.commit()
     cnxn.close()
     print('set deleted')
 
