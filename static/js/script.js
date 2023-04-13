@@ -35,4 +35,7 @@ function editAccount(name){
 function deleteAccount(user_id){
     window.location.href = '/deleteaccount/?user_id='+user_id;
 }
+function deleteWorkout(workout_name){
+    window.location.href = '/deleteworkout/?workout_id='+workout_name;
+}
 

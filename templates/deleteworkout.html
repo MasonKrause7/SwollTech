@@ -3,6 +3,14 @@
 {% block content %}
 <h1 class="text-center mb-3">{%block title%}Delete Workout{% endblock %}</h1>
 
-
+{% if workouts%}
+<h2>Your workouts:</h2>
+<ul>
+    {% for workout in workouts %}
+        <li class="mt-2"><button name="{{workout.workout_id}}" class="btn btn-danger btn-sm" onclick="deleteWorkout(name)">{{workout.workout_name}}</button></li>
+    {% endfor %}
+</ul>
+{% endif %}
+<a type="button" class="mt-4 btn btn-primary btn-lg" href="{{url_for('home')}}">Back To Home</a>
 
 {% endblock %}

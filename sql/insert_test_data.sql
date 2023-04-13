@@ -5,7 +5,7 @@ INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Bench Press', 1);
 INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Back Squat', 1);
 INSERT INTO Exercise(exercise_name, exercise_type_id) VALUES('Run', 2);
 
-INSERT INTO Workout(user_id, workout_name) VALUES(1, 'Leg Day');
+INSERT INTO Workout(user_id, workout_name, deleted) VALUES(1, 'Leg Day', 0);
 
 INSERT INTO Workout_Exercise(workout_id, exercise_id) VALUES(1, 2);
 INSERT INTO Workout_Exercise(workout_id, exercise_id) VALUES(1, 3);

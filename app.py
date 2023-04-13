@@ -351,7 +351,23 @@ def post_create_workout():
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
+@app.route('/deleteworkout')
+def delete_workout():
+    if user_authenticated():
+        users_workouts = fetch_users_workouts()
+        return render_template('deleteworkout.html', workouts=users_workouts)
+    else:
+        message = "You are not logged in. Please log in or sign up to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
 
+@app.route('/deleteworkout/')
+def post_delete_workout():
+    if user_authenticated():
+        workout_id = request.args.get('workout_id')
+        delete_workout(workout_id)
+        return render_template('home.html', message='Workout Deleted', messageCategory='success')
+    else:
+        return render_template('index.html', message=message, messageCategory='danger')
 
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
@@ -378,7 +394,7 @@ def delete_user_account(user_id):
     workouts = fetch_users_workouts()
     if workouts:
         for workout in workouts:
-            delete_workout(workout.workout_id)
+            permanently_delete_workout(workout.workout_id)
     delete_user()
 def fetch_wo_ex_ids_by_user():
     cnxn = get_db()
@@ -423,7 +439,14 @@ def delete_user():
 def delete_workout(workout_id):
     cnxn = get_db()
     cursor = cnxn.cursor()
-    query=f"EXEC delete_workout @workout_id={workout_id};"
+    query=f"EXEC delete_workout @workout_id={int(workout_id)};"
+    cursor.execute(query)
+    cnxn.commit()
+    cnxn.close()
+def permanently_delete_workout(workout_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC permanently_delete_workout @workout_id={workout_id};"
     cursor.execute(query)
     cnxn.commit()
     cnxn.close()
