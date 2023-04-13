@@ -346,20 +346,6 @@ def post_create_workout():
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
-def delete_workout(workout_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    #need to decide on delete_workout procedure
-
-def delete_user_account(user_id):
-    cardio_sets = fetch_cardio_sets_by_user()
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    for set in cardio_sets:
-        delete_set(set.c_set_number, 'Cardio', set.wo_ex_id)
-    strength_sets = fetch_strength_sets_by_user()
-    for set in strength_sets:
-        delete_set(set.s_set_number, 'Strength', set.wo_ex_id)
 
 
 def user_authenticated() -> bool:
@@ -367,6 +353,27 @@ def user_authenticated() -> bool:
         return False
     return True
 
+def delete_user_account(user_id):
+    cardio_sets = fetch_cardio_sets_by_user()
+    for set in cardio_sets:
+        delete_set(set.c_set_number, 'Cardio', set.wo_ex_id)
+    strength_sets = fetch_strength_sets_by_user()
+    for set in strength_sets:
+        delete_set(set.s_set_number, 'Strength', set.wo_ex_id)
+    wo_ex_ids = fetch_wo_ex_ids_by_user()
+    for id in wo_ex_ids:
+        delete_wo_ex(id.wo_ex_id)
+    workouts = fetch_users_workouts()
+    for workout in workouts:
+        delete_workout(workout.workout_id)
+def fetch_wo_ex_ids_by_user():
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_wo_ex_ids_by_user @user_id={session['user_id']};"
+    cursor.execute(query)
+    ids = cursor.fetchall()
+    cnxn.close()
+    return ids
 def fetch_cardio_sets_by_user():
     cnxn = get_db()
     cursor = cnxn.cursor()
@@ -383,7 +390,21 @@ def fetch_strength_sets_by_user():
     sets = cursor.fetchall()
     cnxn.close()
     return sets
-
+def delete_workout(workout_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query=f"EXEC delete_workout @workout_id={workout_id};"
+    cursor.execute(query)
+    cnxn.commit()
+    cnxn.close()
+def delete_wo_ex(wo_ex_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC delete_wo_ex @wo_ex_id={wo_ex_id}"
+    cursor.execute(query)
+    cnxn.commit()
+    print('wo_ex deleted')
+    cnxn.close()
 def delete_set(set_number, set_type, wo_ex_id):
     cnxn = get_db()
     cursor = cnxn.cursor()
