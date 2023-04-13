@@ -355,6 +355,11 @@ def delete_user_account(user_id):
     cardio_sets = fetch_cardio_sets_by_user()
     cnxn = get_db()
     cursor = cnxn.cursor()
+    for set in cardio_sets:
+        delete_set(set.c_set_number, 'Cardio', set.wo_ex_id)
+    strength_sets = fetch_strength_sets_by_user()
+    for set in strength_sets:
+        delete_set(set.s_set_number, 'Strength', set.wo_ex_id)
 
 
 def user_authenticated() -> bool:
@@ -365,9 +370,25 @@ def user_authenticated() -> bool:
 def fetch_cardio_sets_by_user():
     cnxn = get_db()
     cursor = cnxn.cursor()
-    query = f"EXEC fetch_cardio_sets_by_user @user_id=?"
+    query = f"EXEC fetch_cardio_sets_by_user @user_id=?;"
     cursor.execute(query, session['user_id'])
-    return cursor.fetchall
+    cnxn.close()
+    return cursor.fetchall()
+def fetch_strength_sets_by_user():
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_strength_sets_by_user @user_id=?;"
+    cursor.execute(query, session['user_id'])
+    cnxn.close()
+    return cursor.fetchall()
+
+def delete_set(set_number, set_type, wo_ex_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC delete_set @set_number={set_number} , @set_type='{set_type}' , @wo_ex_id={wo_ex_id};"
+    cursor.execute(query)
+    cnxn.close()
+    print('set deleted')
 
 def fetch_users_workouts():
     cnxn = get_db()
