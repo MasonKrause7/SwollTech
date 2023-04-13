@@ -26,6 +26,8 @@ def init_db():
     cursor.execute('EXEC init_db')
     cnxn.commit()
     print('Tables created...')
+    with open('sql/create_account_audit_trigger.sql') as f:
+        cursor.execute(f.read())
     hash = pbkdf2_sha256.hash('pass')
     query = f"INSERT INTO Users(fname, lname, email, dob, password) VALUES ('Mason', 'Krause', 'masongkrause@yahoo.com', '03-20-1995', '{hash}')"
     cursor.execute(query)
@@ -171,11 +173,14 @@ def edit_account():
 
 @app.route('/deleteaccount/')
 def delete_account():
-    user_id = request.args.get('user_id')
-    delete_user_account(user_id)
-    message = 'Your account has been deleted. Hope to see you back soon!'
-    return render_template('index.html', message=message, messageCategory='success')
-
+    if user_authenticated():
+        user_id = request.args.get('user_id')
+        delete_user_account(user_id)
+        message = 'Your account has been deleted. Hope to see you back soon!'
+        return render_template('index.html', message=message, messageCategory='success')
+    else:
+        message = 'You are not logged in to an account. Please log in or sign up to continue.'
+        return render_template('index.html', message=message, messageCategory='danger')
 @app.route('/home.html/')
 def home(message=None):
     if not user_authenticated():
@@ -355,20 +360,25 @@ def user_authenticated() -> bool:
 
 def delete_user_account(user_id):
     cardio_sets = fetch_cardio_sets_by_user()
-    for set in cardio_sets:
-        delete_set(set.c_set_number, 'Cardio', set.wo_ex_id)
+    if cardio_sets:
+        for set in cardio_sets:
+            delete_set(set.c_set_number, 'Cardio', set.wo_ex_id)
     strength_sets = fetch_strength_sets_by_user()
-    for set in strength_sets:
-        delete_set(set.s_set_number, 'Strength', set.wo_ex_id)
+    if strength_sets:
+        for set in strength_sets:
+            delete_set(set.s_set_number, 'Strength', set.wo_ex_id)
     wo_ex_ids = fetch_wo_ex_ids_by_user()
-    for id in wo_ex_ids:
-        delete_wo_ex(id.wo_ex_id)
+    if wo_ex_ids:
+        for id in wo_ex_ids:
+            delete_wo_ex(id.wo_ex_id)
     seshs = fetch_sesh_ids_by_user()
-    for sesh in seshs:
-        delete_sesh(sesh.sesh_id)
+    if seshs:
+        for sesh in seshs:
+            delete_sesh(sesh.sesh_id)
     workouts = fetch_users_workouts()
-    for workout in workouts:
-        delete_workout(workout.workout_id)
+    if workouts:
+        for workout in workouts:
+            delete_workout(workout.workout_id)
     delete_user()
 def fetch_wo_ex_ids_by_user():
     cnxn = get_db()
