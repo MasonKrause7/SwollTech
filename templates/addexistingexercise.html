@@ -16,6 +16,9 @@
 
     {% endfor %}
 </ul>
+{% else %}
+<h4>Hmmm, you don't have any exercises... head over to <a href="{{url_for('create_exercise')}}">create an exercise</a></h4>
 {% endif%}
+<a type="button" class="mt-4 btn btn-primary btn-lg" href="{{url_for('home')}}">Back To Home</a>
 
 {% endblock %}
