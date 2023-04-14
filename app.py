@@ -82,8 +82,8 @@ def post_signup():
     users = results.fetchall()
     if len(users) > 0:  # if user already exists, render login
         user = users[0]
-        message = "That email is already associated with an account, please log in"
-        return render_template('login.html', message=message)
+        message = "That email is already associated with an account, please log in instead"
+        return render_template('login.html', message=message, messageCategory='danger')
     else: #valid new user, try adding to db
         message = ""
         try:
@@ -94,20 +94,20 @@ def post_signup():
             print("record added successfully")
             message = "Sign up successful. Please log in to your new account"
             cnxn.close()
-            return render_template(url_for('login'), message=message)
+            return render_template(url_for('login'), message=message, messageCategory='success')
 
         except:
             cnxn.rollback()
             message = "There was an error during the sign up process. Please try again."
             print('error inserting record')
             cnxn.close()
-            return render_template(url_for('get_signup'), message=message)
+            return render_template(url_for('get_signup'), message=message, messageCategory='danger')
 
 
 @app.route('/login.html', methods=['GET', 'POST'])
 def login(user=None, message=""):
     if request.method == 'GET':
-        return render_template('login.html', message=message)
+        return render_template('login.html')
     else:
         username = request.form.get('username')
         password = request.form.get('loginpassword')
@@ -120,7 +120,7 @@ def login(user=None, message=""):
         cnxn.close()
         if len(result) == 0:
             message = "No user exists with that email, please try again"
-            return render_template(url_for('login'), message=message)
+            return render_template(url_for('login'), message=message, messageCategory='danger')
         else:
             user = result[0]
             if pbkdf2_sha256.verify(password, user[5]):
@@ -132,14 +132,14 @@ def login(user=None, message=""):
                 return redirect(url_for('home'))
             else:
                 message = "Sorry, that password is incorrect."
-                return render_template(url_for('login'), message=message)
+                return render_template(url_for('login'), message=message, messageCategory='danger')
 
 
 @app.route('/logout')
 def logout():
     if len(session.keys()) == 0:
         message = 'You were not logged in'
-        return render_template('index.html', message=message)
+        return render_template('index.html', message=message, messageCategory='danger')
     session.clear()
 
     message = 'Successfully signed out'
@@ -243,14 +243,14 @@ def create_workout():
         return render_template('createworkout.html')
     else:
         message = "You must be logged in to create workouts"
-        return render_template(url_for('login.html'), message=message)
+        return render_template(url_for('login.html'), message=message, messageCategory='danger')
 @app.get('/nameworkout.html')
 def name_workout():
     if user_authenticated():
         return render_template('nameworkout.html')
     else:
         message = "You must be logged in to create workouts"
-        return render_template(url_for('login.html'), message=message)
+        return render_template(url_for('login.html'), message=message, messageCategory='danger')
 @app.route('/remove/')
 def remove_exercise():
     if user_authenticated():
@@ -343,9 +343,12 @@ def post_create_workout():
                 cursor.execute(query)
                 cnxn.commit()
         cnxn.close()
-        session.pop('new_workout_name')
-        session.pop('new_exercises')
-        session.pop('existing_exercises')
+        if 'new_workout_name' in session.keys():
+            session.pop('new_workout_name')
+        if 'new_exercises' in session.keys():
+            session.pop('new_exercises')
+        if 'existing_exercises' in session.keys():
+            session.pop('existing_exercises')
         message = 'Workout created successfully'
         return render_template(url_for('home'), message=message, messageCategory='success')
     else:
