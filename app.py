@@ -176,6 +176,7 @@ def delete_account():
     if user_authenticated():
         user_id = request.args.get('user_id')
         delete_user_account(user_id)
+        session.clear()
         message = 'Your account has been deleted. Hope to see you back soon!'
         return render_template('index.html', message=message, messageCategory='success')
     else:
@@ -376,26 +377,37 @@ def user_authenticated() -> bool:
 
 def delete_user_account(user_id):
     cardio_sets = fetch_cardio_sets_by_user()
+    used_wo_ex_ids = []
     if cardio_sets:
         for set in cardio_sets:
+            used_wo_ex_ids.append(set.wo_ex_id)
             delete_set(set.c_set_number, 'Cardio', set.wo_ex_id)
     strength_sets = fetch_strength_sets_by_user()
     if strength_sets:
         for set in strength_sets:
+            used_wo_ex_ids.append(set.wo_ex_id)
             delete_set(set.s_set_number, 'Strength', set.wo_ex_id)
     wo_ex_ids = fetch_wo_ex_ids_by_user()
+    used_workout_ids = []
     if wo_ex_ids:
         for id in wo_ex_ids:
-            delete_wo_ex(id.wo_ex_id)
+            if id in used_wo_ex_ids:
+                used_workout_ids.append(id.workout_id)
+                delete_wo_ex(id.wo_ex_id)
     seshs = fetch_sesh_ids_by_user()
     if seshs:
         for sesh in seshs:
             delete_sesh(sesh.sesh_id)
-    workouts = fetch_users_workouts()
+    workouts = fetch_all_user_workouts()
+    used_user_ids = []
     if workouts:
         for workout in workouts:
-            permanently_delete_workout(workout.workout_id)
-    delete_user()
+            if workout.workout_id in used_workout_ids:
+                used_user_ids.append(workout.user_id)
+                permanently_delete_workout(workout.workout_id)
+
+    if session['user_id'] in used_user_ids:
+        delete_user()
 def fetch_wo_ex_ids_by_user():
     cnxn = get_db()
     cursor = cnxn.cursor()
@@ -478,6 +490,15 @@ def fetch_users_workouts():
     cnxn = get_db()
     cursor = cnxn.cursor()
     query = f"EXEC fetch_user_workouts @user_id=?"
+    params = session['user_id']
+    cursor.execute(query, params)
+    results = cursor.fetchall()
+    cnxn.close()
+    return results
+def fetch_all_user_workouts():
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_all_user_workouts @user_id=?"
     params = session['user_id']
     cursor.execute(query, params)
     results = cursor.fetchall()
