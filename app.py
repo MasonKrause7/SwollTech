@@ -158,17 +158,37 @@ def edit_account():
     if user_authenticated():
         action = request.args.get('action')
         if action == 'change_email':
-            #do something
-            return render_template('account.html')
+            return render_template('changeemail.html')
         elif action == 'change_password':
-            #change password logic
-            return render_template('account.html')
+            return render_template('changepassword.html')
         elif action == 'delete_account':
-            flash('Are you sure you want to PERMANENTLY delete your account?\nALL of your workout data will be lost and cannot be recovered.')
             return render_template('deleteaccount.html')
         return render_template('account.html')
     else:
         message = 'You must be logged in to view your account. Please log in or register for a free account.'
+        return render_template('index.html', message=message, messageCategory='danger')
+@app.route('/change_email/')
+def change_email():
+    if user_authenticated():
+        new_email = request.form['new_email']
+        update_user_email(new_email)
+        return render_template('account.html', message='Email updated', messageCategory='success')
+    else:
+        message = 'You are not logged in. Please log in or create an account.'
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.route('change_password/')
+def change_password():
+    if user_authenticated():
+        new_password = request.form['new_password']
+        conf = request.form['conf_new_password']
+        if new_password == conf:
+            update_user_password(new_password)
+            return render_template('account.html', message='Password updated', messageCategory='success')
+        else:
+            return render_template('changepassword.html', message='Your new password did not match the password confirmation. Please double check your password and try again.', messageCategory='danger')
+    else:
+        message = 'You are not logged in. Please log in or create an account'
         return render_template('index.html', message=message, messageCategory='danger')
 
 @app.route('/deleteaccount/')

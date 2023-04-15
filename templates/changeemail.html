@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>{% block title %}Change Email{% endblock %}</h1>
+
+
+<form action="{{url_for('change_email')}}">
+
+    <input type="text" placeholder="New Email" id="new_email">
+    <input type="submit" class="btn btn-secondary btn-sm">
+</form>
+
+<a type="button" href="" class="btn btn-primary btn-large"></a>
+
+
+{% endblock %}
