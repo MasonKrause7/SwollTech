@@ -5,13 +5,21 @@
 <h1>{% block title %}Change Email{% endblock %}</h1>
 
 
-<form action="{{url_for('change_email')}}">
-
-    <input type="text" placeholder="New Email" id="new_email">
-    <input type="submit" class="btn btn-secondary btn-sm">
+<form method="POST" action="{{url_for('change_email')}}">
+    <div>
+        <label>New Email</label>
+        <input type="email" placeholder="New Email" id="new_email" name="new_email">
+    </div>
+    <div>
+        <label>Your Password</label>
+        <input type="password" placeholder="Your password" id="password" name="password">
+    </div>
+    <div>
+        <input type="submit" class="mt-2 btn btn-secondary btn-sm" value="Change Email">
+    </div>
 </form>
 
-<a type="button" href="" class="btn btn-primary btn-large"></a>
+<a type="button" href="{{url_for('account')}}" class="mt-4 btn btn-primary btn-large">Back To Account</a>
 
 
 {% endblock %}

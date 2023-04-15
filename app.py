@@ -167,26 +167,57 @@ def edit_account():
     else:
         message = 'You must be logged in to view your account. Please log in or register for a free account.'
         return render_template('index.html', message=message, messageCategory='danger')
-@app.route('/change_email/')
+@app.post('/change_email/')
 def change_email():
     if user_authenticated():
-        new_email = request.form['new_email']
-        update_user_email(new_email)
-        return render_template('account.html', message='Email updated', messageCategory='success')
+        new_email = request.form.get('new_email')
+        print(new_email)
+        password = request.form.get('password')
+        print(password)
+        cnxn = get_db()
+        crsr = cnxn.cursor()
+        query = f'SELECT password FROM Users WHERE user_id={session["user_id"]}'
+        result = crsr.execute(query).fetchall()
+        existing_password = result[0][0]
+        cnxn.close()
+        if password:
+            if pbkdf2_sha256.verify(password, existing_password):
+                print('passwords verified, updating user email')
+                update_user_email(new_email)
+                session['email'] = new_email
+                return render_template('account.html', message='Email updated', messageCategory='success')
+            else:
+                message = 'That password is incorrect, please check your entry and try again.'
+                return render_template('changeemail.html', message=message, messageCategory='danger')
+        else:
+            print('password could not be selected')
+            return render_template('changeemail.html', message='Something went wrong, password could not be selected', messageCategory = 'danger')
     else:
         message = 'You are not logged in. Please log in or create an account.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('change_password/')
+@app.post('/change_password/')
 def change_password():
     if user_authenticated():
+        curr_password = request.form['curr_password']
         new_password = request.form['new_password']
         conf = request.form['conf_new_password']
-        if new_password == conf:
-            update_user_password(new_password)
-            return render_template('account.html', message='Password updated', messageCategory='success')
+        cnxn = get_db()
+        crsr = cnxn.cursor()
+        query = f'SELECT password FROM Users WHERE user_id={session["user_id"]}'
+        result = crsr.execute(query).fetchall()
+        existing_password = result[0][0]
+        cnxn.close()
+        if pbkdf2_sha256.verify(curr_password, existing_password):
+            if new_password == conf:
+                update_user_password(new_password)
+                return render_template('account.html', message='Password updated', messageCategory='success')
+            else:
+                return render_template('changepassword.html', message='Your new password did not match the password confirmation. Please double check your password and try again.', messageCategory='danger')
         else:
-            return render_template('changepassword.html', message='Your new password did not match the password confirmation. Please double check your password and try again.', messageCategory='danger')
+            message = 'That password is incorrect, please check your entry and try again.'
+            return render_template('changeemail.html', message=message, messageCategory='danger')
+
     else:
         message = 'You are not logged in. Please log in or create an account'
         return render_template('index.html', message=message, messageCategory='danger')
@@ -398,6 +429,23 @@ def user_authenticated() -> bool:
         return False
     return True
 
+def update_user_email(new_email):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"UPDATE Users SET email='{new_email}' WHERE user_id={session['user_id']}"
+    cursor.execute(query)
+    cnxn.commit()
+    cnxn.close()
+
+
+def update_user_password(new_password):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    hash = pbkdf2_sha256.hash(new_password)
+    query = f"UPDATE Users SET password='{hash}' WHERE user_id={session['user_id']}; "
+    cursor.execute(query)
+    cnxn.commit()
+    cnxn.close()
 def delete_user_account(user_id):
     cardio_sets = fetch_cardio_sets_by_user()
     if cardio_sets:
