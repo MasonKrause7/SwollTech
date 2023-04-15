@@ -72,7 +72,7 @@ def post_signup():
     confPassword = request.form['confpass']
     if (password != confPassword):
         message = "Password and confirmation do not match, please try again"
-        return render_template(url_for('get_signup'), message=message, fname=fname, lname=lname, email=email, dob=dob, password=password)
+        return render_template(url_for('get_signup'), message=message, messageCategory='danger', fname=fname, lname=lname, email=email, dob=dob, password=password)
     #check if user exists in db
     successfulInsert = False
     cnxn = get_db()
@@ -216,7 +216,7 @@ def change_password():
                 return render_template('changepassword.html', message='Your new password did not match the password confirmation. Please double check your password and try again.', messageCategory='danger')
         else:
             message = 'That password is incorrect, please check your entry and try again.'
-            return render_template('changeemail.html', message=message, messageCategory='danger')
+            return render_template('changepassword.html', message=message, messageCategory='danger')
 
     else:
         message = 'You are not logged in. Please log in or create an account'
