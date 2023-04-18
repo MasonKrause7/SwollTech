@@ -422,7 +422,112 @@ def post_delete_workout():
         delete_workout(workout_id)
         return render_template('home.html', message='Workout Deleted', messageCategory='success')
     else:
+        message = 'You are not logged in. Please log in or sign up to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
+
+@app.route('/editworkout')
+def select_edit_workout():
+    if user_authenticated():
+        users_workouts = fetch_users_workouts()
+        return render_template('editworkout.html', users_workouts=users_workouts)
+    else:
+        message = 'You are not logged in. Please log in or sign up to continue.'
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.route('/editworkout/')
+def edit_workout():
+    if user_authenticated():
+        workout_id = request.args.get('workout_id')
+        exercises = get_exercises_by_workout(workout_id)
+        users_workouts = fetch_users_workouts()
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+        query = f'SELECT workout_name, workout_id FROM Workout WHERE workout_id={workout_id}'
+        cursor.execute(query)
+        result = cursor.fetchone()
+        cnxn.close()
+        workout_name = result.workout_name
+        return render_template('editworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, workout_id= result.workout_id)
+    else:
+        message = 'You are not logged in. Please sign up or log in to continue.'
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.get('/changename/')
+def change_workout_name():
+    if user_authenticated():
+        workout_id = request.args.get('workout_id')
+        session['workout_under_edit'] = workout_id
+        workout_name = request.args.get('workout_name')
+        return render_template('changename.html', workout_name=workout_name, workout_id=workout_id)
+    else:
+        message = 'You are not logged in. Please sign up or log in to continue.'
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.post('/postworkoutname/')
+def post_change_workout_name():
+    if user_authenticated():
+        new_workout_name = request.form.get('new_workout_name')
+
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+        query = f"UPDATE Workout SET workout_name='{new_workout_name}' WHERE workout_id={session['workout_under_edit']}"
+        cursor.execute(query)
+        cnxn.commit()
+        cnxn.close()
+        message = 'Workout name has been changed. You can find it in your workouts under the new name: '+new_workout_name
+        return render_template(url_for('home'), message=message, messageCategory='success')
+    else:
+        message = 'You are not logged in. Please sign up or log in to continue.'
+        return render_template('index.html', message=message, messageCategory='danger')
+
+
+@app.route('/addexercises/')
+def add_exercises_to_workout():
+    workout_id = request.args.get('workout_id')
+    session['workout_under_edit'] = workout_id
+    workout_name = request.args.get('workout_name')
+    exercises = get_exercises_by_workout(workout_id)
+    exercise_ids = []
+    workout_exercise_names = []
+    for exercise in exercises:
+        workout_exercise_names.append(exercise.exercise_name)
+        exercise_ids.append(exercise.exercise_id)
+    session['workout_exercises'] = exercise_ids
+    user_exercises=fetch_users_exercises()
+    showable_exercises = []
+    showable_exercise_ids = []
+    for exercise in user_exercises:
+        if exercise.exercise_name not in workout_exercise_names:
+            showable_exercises.append(exercise)
+            showable_exercise_ids.append(exercise[0])
+    session['showable_exercises']= showable_exercise_ids
+
+    return render_template('addexercisetoworkout.html', workout_id=workout_id, workout_name=workout_name, workoutExercises=exercises, userExercises=showable_exercises)
+@app.route('/editworkout_addexistingexercise/')
+def edit_workout_add_existing_exercises():
+    if user_authenticated():
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+        query = f"SELECT workout_name FROM Workout WHERE workout_id={session['workout_under_edit']}"
+        result = cursor.execute(query).fetchone()
+        workout_name = result[0]
+
+        exercise_id = request.args.get('ex_id')
+
+        query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {exercise_id})"
+        cursor.execute(query)
+        cnxn.commit()
+
+        query = f"SELECT * FROM Exercise WHERE exercise_id="+exercise_id;
+        result = cursor.execute(query).fetchone()
+        session['workout_exercises'].append(result)
+
+
+        return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'] )
+    else:
+        message = 'You are not logged in. Please sign up or log in to continue.'
+        return render_template('index.html', message=message, messageCategory='danger')
+
 
 def user_authenticated() -> bool:
     if session.get('user_id') is None:

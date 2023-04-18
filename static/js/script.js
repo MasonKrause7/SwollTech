@@ -35,7 +35,31 @@ function editAccount(name){
 function deleteAccount(user_id){
     window.location.href = '/deleteaccount/?user_id='+user_id;
 }
-function deleteWorkout(workout_name){
-    window.location.href = '/deleteworkout/?workout_id='+workout_name;
+function deleteWorkout(workout_id){
+    window.location.href = '/deleteworkout/?workout_id='+workout_id;
+}
+function editWorkout(workout_id){
+    window.location.href = '/editworkout/?workout_id='+workout_id;
+}
+function editWorkoutAction(workout_id, workout_name, action){
+    if(action == 'changename'){
+        window.location.href = '/changename/?workout_id='+workout_id+'&workout_name='+workout_name;
+    }
+    else if(action == 'addexercise'){
+        window.location.href = '/addexercises/?workout_id='+workout_id+'&workout_name='+workout_name;
+    }
+    else if(action == 'removeexercise'){
+        window.location.href = '/removefromworkout/?workout_id='+workout_id+'&workout_name='+workout_name;
+    }
+}
+function postUpdatedName(workout_id){
+    new_name = document.getElementById('new_workout_name');
+    window.location.href = '/postworkoutname/?workout_id='+workout_id+'&new_name='+new_name;
+}
+function buildExerciseForWorkout(workout_id){
+    new_ex_name = document.getElementById('new_exercise_name')
+}
+function editWorkoutAddExercise(ex_id){
+    window.location.href = '/editworkout_addexistingexercise/?ex_id'+ex_id;
 }
 

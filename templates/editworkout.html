@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>{% block title %}Edit Workout{% endblock %}</h1>
+{% if users_workouts %}
+<h2>Your workouts:</h2>
+<ul>
+    {% for workout in users_workouts %}
+    <li class="mt-2"><button name="{{workout.workout_id}}" onclick="editWorkout(name)" class="btn btn-primary btn-sm">Edit</button> - {{workout.workout_name}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% if exercises%}
+<hr>
+<h2>{{workout_name}}</h2>
+<ul>
+    {% for exercise in exercises%}
+        <li>{{exercise.exercise_name}}</li>
+    {% endfor%}
+</ul>
+
+<button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout_name}}', 'changename')" class="btn btn-secondary btn-sm">Change workout name</button>
+<button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout_name}}', 'addexercise')" class="btn btn-secondary btn-sm">Add exercises</button>
+<button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout_name}}', 'removeexercise')" class="btn btn-secondary btn-sm">Remove exercises</button>
+
+{% endif %}
+<div>
+    <a type="button" href="{{url_for('home')}}" class="mt-4 btn btn-primary btn-large">Back to Home</a>
+</div>
+
+{% endblock %}
