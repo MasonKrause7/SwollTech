@@ -57,9 +57,12 @@ function postUpdatedName(workout_id){
     window.location.href = '/postworkoutname/?workout_id='+workout_id+'&new_name='+new_name;
 }
 function buildExerciseForWorkout(workout_id){
-    new_ex_name = document.getElementById('new_exercise_name')
+    new_ex_name = document.getElementById('new_exercise_name').value;
+    new_ex_type = document.getElementById('exercise_type_input').value;
+    window.location.href = '/buildexforwo/?exercise_name='+new_ex_name+"&exercise_type="+new_ex_type;
+
 }
 function editWorkoutAddExercise(ex_id){
-    window.location.href = '/editworkout_addexistingexercise/?ex_id'+ex_id;
+    window.location.href = '/editworkout_addexistingexercise/?ex_id='+ex_id;
 }
 

@@ -352,7 +352,7 @@ def post_create_workout():
             return render_template('createworkout.html', message='Must name workout to create it', messageCategory='danger')
         cnxn = get_db()
         cursor = cnxn.cursor()
-        query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_workout_return_woID @workout_name='{session['new_workout_name']}', @user_id={session['user_id']}, @wo_id=5000; SELECT @rv AS return_value;"
+        query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_workout_return_woID @workout_name='{session['new_workout_name']}' , @user_id={session['user_id']} , @wo_id=5000; SELECT @rv AS return_value; "
         cursor.execute(query)
         workout_id = cursor.fetchval()
         cnxn.commit()
@@ -486,23 +486,20 @@ def add_exercises_to_workout():
     workout_id = request.args.get('workout_id')
     session['workout_under_edit'] = workout_id
     workout_name = request.args.get('workout_name')
-    exercises = get_exercises_by_workout(workout_id)
-    exercise_ids = []
-    workout_exercise_names = []
+    exercises = get_exercises_by_workout(session['workout_under_edit'])
+    workout_exercises = {}
     for exercise in exercises:
-        workout_exercise_names.append(exercise.exercise_name)
-        exercise_ids.append(exercise.exercise_id)
-    session['workout_exercises'] = exercise_ids
+        workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
+    session['workout_exercises'] = workout_exercises
     user_exercises=fetch_users_exercises()
-    showable_exercises = []
-    showable_exercise_ids = []
+    showable_exercises = {}
     for exercise in user_exercises:
-        if exercise.exercise_name not in workout_exercise_names:
-            showable_exercises.append(exercise)
-            showable_exercise_ids.append(exercise[0])
-    session['showable_exercises']= showable_exercise_ids
+        if exercise.exercise_id not in session['workout_exercises'].keys():
+            showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
+    session['showable_exercises'] = showable_exercises
 
-    return render_template('addexercisetoworkout.html', workout_id=workout_id, workout_name=workout_name, workoutExercises=exercises, userExercises=showable_exercises)
+
+    return render_template('addexercisetoworkout.html', workout_id=workout_id, workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
 @app.route('/editworkout_addexistingexercise/')
 def edit_workout_add_existing_exercises():
     if user_authenticated():
@@ -513,22 +510,90 @@ def edit_workout_add_existing_exercises():
         workout_name = result[0]
 
         exercise_id = request.args.get('ex_id')
+        print('exerciseId = '+str(exercise_id))
+        query = f"SELECT exercise_name FROM Exercise WHERE exercise_id={exercise_id}"
+        ex = cursor.execute(query).fetchall()
+        exercise_name = ex[0]
 
-        query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {exercise_id})"
-        cursor.execute(query)
-        cnxn.commit()
+        query = f"SELECT * FROM Workout_Exercise WHERE workout_id={session['workout_under_edit']} AND exercise_id={exercise_id};"
+        dup = cursor.execute(query).fetchall()
+        if dup:
+            cnxn.close()
+            return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
+        else:
+            query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {exercise_id});"
+            cursor.execute(query)
+            cnxn.commit()
+            cnxn.close()
+            exercises = get_exercises_by_workout(session['workout_under_edit'])
+            workout_exercises = {}
+            for exercise in exercises:
+                workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
+            session['workout_exercises'] = workout_exercises
+            user_exercises = fetch_users_exercises()
+            showable_exercises = {}
+            for exercise in user_exercises:
+                if exercise.exercise_id not in session['workout_exercises'].keys():
+                    showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
+            session['showable_exercises'] = showable_exercises
 
-        query = f"SELECT * FROM Exercise WHERE exercise_id="+exercise_id;
-        result = cursor.execute(query).fetchone()
-        session['workout_exercises'].append(result)
-
-
-        return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'] )
+            return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'] )
     else:
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
 
+@app.route('/buildexforwo/')
+def build_exercise_for_workout():
 
+    if user_authenticated():
+        exercise_name = request.args.get('exercise_name')
+        exercise_type = request.args.get('exercise_type')
+        exercises = fetch_users_exercises()
+        exercise_names = []
+        for exercise in exercises:
+            exercise_names.append(exercise.exercise_name)
+
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+        query = f"SELECT workout_name FROM Workout WHERE workout_id={session['workout_under_edit']};"
+        result = cursor.execute(query).fetchone()
+        workout_name = result.workout_name
+        print('exercise_type = ' + str(exercise_type))
+        if exercise_name in exercise_names:
+            ex_id = get_exercise_id(exercise_name)
+            query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {ex_id});"
+            cursor.execute(query)
+            cnxn.commit()
+        else:
+            if exercise_type == 'Strength':
+                query = f"INSERT INTO Exercise (exercise_name, exercise_type_id) VALUES ('{exercise_name}', 1);"
+            elif exercise_type == 'Cardio':
+                query = f"INSERT INTO Exercise (exercise_name, exercise_type_id) VALUES ('{exercise_name}', 2);"
+            cursor.execute(query)
+            cnxn.commit()
+            ex_id = get_exercise_id(exercise_name)
+
+            query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {ex_id});"
+            cursor.execute(query)
+            cnxn.commit()
+        exercises = get_exercises_by_workout(session['workout_under_edit'])
+        workout_exercises = {}
+        for exercise in exercises:
+            workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
+        session['workout_exercises'] = workout_exercises
+        user_exercises = fetch_users_exercises()
+        showable_exercises = {}
+        for exercise in user_exercises:
+            if exercise.exercise_id not in session['workout_exercises'].keys():
+                showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
+        session['showable_exercises'] = showable_exercises
+
+        return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'],
+                               workout_name=workout_name, workoutExercises=session['workout_exercises'],
+                               userExercises=session['showable_exercises'])
+    else:
+        message = "You are not logged in, please sign up or make an account to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
         return False
@@ -572,8 +637,6 @@ def delete_user_account(user_id):
     if workouts:
         for workout in workouts:
                 permanently_delete_workout(workout.workout_id)
-
-
         delete_user()
 def fetch_wo_ex_ids_by_user():
     cnxn = get_db()
@@ -653,6 +716,10 @@ def delete_set(set_number, set_type, wo_ex_id):
     cnxn.close()
     print('set deleted')
 
+def count_user_total_reps_of_exercise(exercise_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC count_user_total_reps @exercise_id={exercise_id}, @num_reps = 0"
 def fetch_users_workouts():
     cnxn = get_db()
     cursor = cnxn.cursor()

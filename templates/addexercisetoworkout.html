@@ -6,18 +6,19 @@
 {% if workoutExercises %}
 <h4>Current exercise list: </h4>
 <ul>
-    {% for exercise in workoutExercises %}
-    <li class="mt-2"><button class="btn btn-danger btn-sm">Remove</button>{{exercise.exercise_name}}</li>
+    {% for exerciseID in workoutExercises.keys() %}
+    <li class="mt-2">{{workoutExercises.get(exerciseID)}}</li>
     {% endfor %}
 </ul>
 {% endif %}
 
-{% if userExercises%}
+
+{% if userExercises %}
 <hr>
 <h4>Add existing exercises</h4>
 <ul>
-    {% for ex in userExercises %}
-        <li class="mt-2"><button class="btn btn-primary btn-sm" onclick="editWorkoutAddExercise({{ex.exercise_id}})">Add to workout</button> {{ex.exercise_name}} - {{ex.exercise_type_name}}</li>
+    {% for exId in userExercises.keys() %}
+        <li class="mt-2"><button class="btn btn-primary btn-sm" onclick="editWorkoutAddExercise({{exId}})">Add to workout</button> {{userExercises.get(exId)}}</li>
     {% endfor %}
 </ul>
 {% endif %}
@@ -26,11 +27,14 @@
 <form>
     <input id="new_exercise_name" name="new_exercise_name" type="text" placeholder="Exercise name" required="required">
     <label for="exercise_type_input">Select Exercise Type:</label>
-    <select required="required" id="exercise_type_input">
+    <select required="required" id="exercise_type_input" name="exercise_type_input">
         <option>Strength</option>
         <option>Cardio</option>
     </select>
-    <hr>
-    <input type="button" value="Add exercise" class="btn btn-primary" onclick="buildExerciseForWorkout({{workout_id}})">
+    <div>
+        <input type="button" value="Add exercise" class="mt-2 btn btn-primary btn-sm" onclick="buildExerciseForWorkout({{workout_id}})">
+    </div>
 </form>
+<hr>
+<a type="button" class="mt-4 btn btn-primary btn-large" href="{{url_for('home')}}">Back to Home</a>
 {% endblock %}
