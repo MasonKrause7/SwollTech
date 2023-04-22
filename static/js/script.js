@@ -65,4 +65,7 @@ function buildExerciseForWorkout(workout_id){
 function editWorkoutAddExercise(ex_id){
     window.location.href = '/editworkout_addexistingexercise/?ex_id='+ex_id;
 }
+function removeExerciseFromWorkout(exercise_id, workout_id){
+    window.location.href = '/removeexercisefromworkout/?ex_id='+exercise_id+"&wo_id="+workout_id;
+}
 

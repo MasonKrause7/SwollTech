@@ -7,7 +7,7 @@
 <h4>Current exercise list: </h4>
 <ul>
     {% for exerciseID in workoutExercises.keys() %}
-    <li class="mt-2">{{workoutExercises.get(exerciseID)}}</li>
+    <li class="mt-2"><button class="btn btn-danger btn-sm" onclick="removeExerciseFromWorkout({{exerciseID}}, {{session['workout_under_edit']}})">Remove</button> {{workoutExercises.get(exerciseID)}}</li>
     {% endfor %}
 </ul>
 {% endif %}

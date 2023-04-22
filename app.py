@@ -256,7 +256,11 @@ def view_workout():
         users_workouts = fetch_users_workouts()
         workout_id = request.args.get('workout_id')
         workout_name = request.args.get('workout_name')
-        exercises = get_exercises_by_workout(workout_id)
+        unfilt_exercises = get_exercises_by_workout(workout_id)
+        exercises = []
+        for ex in unfilt_exercises:
+            if ex.deleted is None or ex.deleted == 0:
+                exercises.append(ex)
         return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name)
     else:
         message = 'You must be logged in to view workouts. Please log in or make an account'
@@ -330,8 +334,12 @@ def remove_exercise():
 def add_existing_exercise():
     if user_authenticated():
         existing_exercises = fetch_users_exercises()
+        showable_exercises = []
+        for ex in existing_exercises:
+            if ex.deleted is None or ex.deleted == 0:
+                showable_exercises.append(ex)
 
-        return render_template('addexistingexercise.html', existingExercises=existing_exercises)
+        return render_template('addexistingexercise.html', existingExercises=showable_exercises)
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
@@ -438,7 +446,11 @@ def select_edit_workout():
 def edit_workout():
     if user_authenticated():
         workout_id = request.args.get('workout_id')
-        exercises = get_exercises_by_workout(workout_id)
+        temp_ex = get_exercises_by_workout(workout_id)
+        exercises = []
+        for ex in temp_ex:
+            if ex.deleted is None or ex.deleted == 0:
+                exercises.append(ex)
         users_workouts = fetch_users_workouts()
         cnxn = get_db()
         cursor = cnxn.cursor()
@@ -486,18 +498,7 @@ def add_exercises_to_workout():
     workout_id = request.args.get('workout_id')
     session['workout_under_edit'] = workout_id
     workout_name = request.args.get('workout_name')
-    exercises = get_exercises_by_workout(session['workout_under_edit'])
-    workout_exercises = {}
-    for exercise in exercises:
-        workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
-    session['workout_exercises'] = workout_exercises
-    user_exercises=fetch_users_exercises()
-    showable_exercises = {}
-    for exercise in user_exercises:
-        if exercise.exercise_id not in session['workout_exercises'].keys():
-            showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
-    session['showable_exercises'] = showable_exercises
-
+    build_workout_ex_list_and_showable_ex_list()
 
     return render_template('addexercisetoworkout.html', workout_id=workout_id, workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
 @app.route('/editworkout_addexistingexercise/')
@@ -525,17 +526,7 @@ def edit_workout_add_existing_exercises():
             cursor.execute(query)
             cnxn.commit()
             cnxn.close()
-            exercises = get_exercises_by_workout(session['workout_under_edit'])
-            workout_exercises = {}
-            for exercise in exercises:
-                workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
-            session['workout_exercises'] = workout_exercises
-            user_exercises = fetch_users_exercises()
-            showable_exercises = {}
-            for exercise in user_exercises:
-                if exercise.exercise_id not in session['workout_exercises'].keys():
-                    showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
-            session['showable_exercises'] = showable_exercises
+            build_workout_ex_list_and_showable_ex_list()
 
             return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'] )
     else:
@@ -576,17 +567,8 @@ def build_exercise_for_workout():
             query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {ex_id});"
             cursor.execute(query)
             cnxn.commit()
-        exercises = get_exercises_by_workout(session['workout_under_edit'])
-        workout_exercises = {}
-        for exercise in exercises:
-            workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
-        session['workout_exercises'] = workout_exercises
-        user_exercises = fetch_users_exercises()
-        showable_exercises = {}
-        for exercise in user_exercises:
-            if exercise.exercise_id not in session['workout_exercises'].keys():
-                showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
-        session['showable_exercises'] = showable_exercises
+        build_workout_ex_list_and_showable_ex_list()
+        cnxn.close()
 
         return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'],
                                workout_name=workout_name, workoutExercises=session['workout_exercises'],
@@ -594,6 +576,28 @@ def build_exercise_for_workout():
     else:
         message = "You are not logged in, please sign up or make an account to continue."
         return render_template('index.html', message=message, messageCategory='danger')
+
+
+@app.route('/removeexercisefromworkout/')
+def remove_exercise_from_workout():
+    ex_id = request.args.get('ex_id')
+    wo_id = request.args.get('wo_id')
+
+    #mark wo_ex_id with deleted=1
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"UPDATE Workout_Exercise SET deleted=1 WHERE workout_id={wo_id} AND exercise_id={ex_id};"
+    cursor.execute(query)
+    cnxn.commit()
+    query = f"SELECT workout_name FROM Workout WHERE workout_id={wo_id};"
+    result = cursor.execute(query).fetchone()
+    workout_name=result[0]
+    cnxn.close()
+    build_workout_ex_list_and_showable_ex_list()
+    return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'],
+                           workout_name=workout_name, workoutExercises=session['workout_exercises'],
+                           userExercises=session['showable_exercises'])
+
 def user_authenticated() -> bool:
     if session.get('user_id') is None:
         return False
@@ -643,7 +647,11 @@ def fetch_wo_ex_ids_by_user():
     cursor = cnxn.cursor()
     query = f"EXEC fetch_wo_ex_ids_by_user @user_id={session['user_id']};"
     cursor.execute(query)
-    ids = cursor.fetchall()
+    results = cursor.fetchall()
+    ids = []
+    for result in results:
+        if result.deleted is None or result.deleted == 0:
+            ids.append(result.wo_ex_id)
     cnxn.close()
     return ids
 def fetch_cardio_sets_by_user():
@@ -773,6 +781,21 @@ def get_exercises_by_workout(workout_id):
     results = cursor.fetchall()
     cnxn.close()
     return results
+
+def build_workout_ex_list_and_showable_ex_list():
+    exercises = get_exercises_by_workout(session['workout_under_edit'])
+    workout_exercises = {}
+    for exercise in exercises:
+        if exercise.deleted is None or exercise.deleted==0:
+            workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
+    session['workout_exercises'] = workout_exercises
+    user_exercises = fetch_users_exercises()
+    showable_exercises = {}
+    for exercise in user_exercises:
+        if exercise.deleted is None or exercise.deleted == 0:
+            if exercise.exercise_id not in session['workout_exercises'].keys():
+                showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
+    session['showable_exercises'] = showable_exercises
 
 
 
