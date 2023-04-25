@@ -40,20 +40,20 @@
 {% elif exercise.exercise_type_id == 2 %}
 <hr>
 <form method="GET" action="{{url_for('submit_cardio_set')}}">
-    <input type="number" id="distanceAmnt" name="distanceAmnt" placeholder="Amount of Distance">
-    <select id="distanceMetric" name="distanceMetric">
+    <input type="number" id="distanceAmnt" name="distanceAmnt" placeholder="Amount of Distance" required="required">
+    <select id="distanceMetric" name="distanceMetric" required="required">
         <option>Miles</option>
         <option>Kilometers</option>
         <option>Meters</option>
     </select>
-    <input type="number" id="timeAmnt" name="timeAmnt" placeholder="Amount of Time">
-    <select id="timeMetric" name="timeMetric">
+    <input type="number" id="duration_amnt" name="duration_amnt" placeholder="Amount of Time" required="required">
+    <select id="duration_metric" name="duration_metric" required="required">
         <option>Minutes</option>
         <option>Hours</option>
         <option>Seconds</option>
     </select>
     <div class="mt-2">
-    <input type="submit" class="btn btn-primary btn-sm" value="Submit Set">
+        <button type="submit" class="btn btn-primary btn-sm">Submit Set</button>
     </div>
 </form>
 <hr>

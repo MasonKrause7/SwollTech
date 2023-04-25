@@ -720,24 +720,30 @@ def submit_cardio_set():
 
         wo_ex_id = session['current_wo_ex_id']
         sesh_id = session['sesh_in_progress_id']
-        duration_amnt = request.form.get('duration_amnt')
-        duration_metric = request.form.get('duration_metric')
-        distance_amnt = request.form.get('distance_amnt')
-        distance_metric = request.form.get('distance_metric')
-        set_id = submitCardioSet(wo_ex_id, sesh_id, duration_amnt, duration_metric, distance_amnt, distance_metric)
+        print('sesh_id='+str(sesh_id))
+        duration_amnt = request.args['duration_amnt']
+        print('duration_amnt=' + str(duration_amnt))
+        duration_metric = request.args['duration_metric']
+        print('duration_metric=' + str(duration_metric))
+        distance_amnt = request.args['distanceAmnt']
+        print('distance_amnt=' + str(distance_amnt))
+        distance_metric = request.args['distanceMetric']
+        print('distance_metric=' + str(distance_metric))
+        set_id = submitCardioSet(int(wo_ex_id), int(sesh_id), float(duration_amnt), str(duration_metric), float(distance_amnt), str(distance_metric))
         print('set_id='+str(set_id))
 
         cnxn = get_db()
         cursor = cnxn.cursor()
         query = f"SELECT exercise_id FROM Workout_Exercise WHERE wo_ex_id={wo_ex_id}"
         ex_id = cursor.execute(query).fetchval()
+        print('**Ex_id='+str(ex_id))
         query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
         exercise = cursor.execute(query).fetchall()
         query = f"SELECT * FROM Cardio_Set WHERE sesh_id={sesh_id} AND wo_ex_id={wo_ex_id};"
         results = cursor.execute(query).fetchall()
         completed_sets = []
         for result in results:
-            completedSets.append(result)
+            completed_sets.append(result)
         cnxn.close
         return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
     else:
