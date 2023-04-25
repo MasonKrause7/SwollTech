@@ -598,7 +598,214 @@ def remove_exercise_from_workout():
                            workout_name=workout_name, workoutExercises=session['workout_exercises'],
                            userExercises=session['showable_exercises'])
 
-def user_authenticated() -> bool:
+
+@app.route('/selectworkout')
+def select_workout():
+    if user_authenticated():
+        workouts = fetch_users_workouts()
+        return render_template('selectworkout.html', workouts=workouts)
+    else:
+        message = "You are not logged in. Please log in or sign up to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
+@app.route('/displayselectedworkout/')
+def display_selected_workout():
+    if user_authenticated():
+        workouts = fetch_users_workouts()
+        wo_id = request.args.get('workout_id')
+        workout_name = get_workout_name(wo_id)
+        results = get_exercises_by_workout(wo_id)
+        exercises = []
+        for result in results:
+            if result.deleted is None or result.deleted == 0:
+                exercises.append(result)
+
+        return render_template('selectworkout.html', workouts=workouts, wo_id=wo_id, wo_name=workout_name, workout_exercises=exercises)
+
+    else:
+        message = "You are not logged in. Please log in or sign up to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.route('/startworkout/')
+def start_workout():
+    if user_authenticated():
+        wo_id = request.args.get('workout_id')
+        session['workout_in_progress_id'] = wo_id
+        session['workout_in_progress_name'] = get_workout_name(wo_id)
+        starting = request.args.get('starting')
+        if starting == 'True':
+            sesh = build_sesh()
+            session['sesh_in_progress_id'] = sesh.sesh_id
+            session['sesh_in_progress_date'] = str(sesh.date_of_sesh)
+        results = get_exercises_by_workout(wo_id)
+        exercises = []
+        session['exercises_with_sets'] = {}
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+        for result in results:
+            if result.deleted is None or result.deleted == 0:
+                exercises.append(result)
+                session['exercises_with_sets'].update({result.wo_ex_id : False})
+
+        markExercises()
+        print(' -> ' + str(session['exercises_with_sets']))
+
+        return render_template('workoutsesh.html', exercises=exercises)
+
+    else:
+        message = "You are not logged in. Please log in or sign up to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.route('/startexercise/')
+def start_exercise():
+    if user_authenticated():
+        ex_id = request.args.get('ex_id')
+        print('*****EX_ID = '+str(ex_id))
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+
+        if ex_id:
+            query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
+            exercise = cursor.execute(query).fetchone()
+            query = f"SELECT wo_ex_id From Workout_Exercise WHERE workout_id={session['workout_in_progress_id']} AND exercise_id={ex_id};"
+            session['current_wo_ex_id'] = cursor.execute(query).fetchval()
+        else:
+            query = f"SELECT exercise_id FROM Workout_Exercise WHERE wo_ex_id={session['current_wo_ex_id']};"
+            exercise_id = cursor.execute(query).fetchval()
+            query = f"SELECT * FROM Exercise WHERE exercise_id={exercise_id};"
+            exercise = cursor.execute(query).fetchone()
+        query = f"SELECT * FROM Strength_Set WHERE sesh_id={session['sesh_in_progress_id']} AND wo_ex_id={session['current_wo_ex_id']};"
+        results = cursor.execute(query).fetchall()
+        completedSets = []
+        for result in results:
+            completedSets.append(result)
+
+        cnxn.close()
+        return render_template('doexercise.html', exercise=exercise, completedSets=completedSets)
+    else:
+        message = "You are not logged in. Please log in or sign up to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
+@app.route('/submitstrengthset/')
+def submit_strength_set():
+    if user_authenticated():
+        ex_id = request.args.get('ex_id')
+        num_reps = request.args.get('num_reps')
+        weight_amnt = request.args.get('weight_amnt')
+        weight_metric = request.args.get('weight_metric')
+        wo_ex_id = session['current_wo_ex_id']
+        submitStrengthSet(wo_ex_id, session['sesh_in_progress_id'], num_reps, weight_amnt, weight_metric)
+
+
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+
+        query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
+        exercise = cursor.execute(query).fetchone()
+
+        query = f"SELECT * FROM Strength_Set WHERE sesh_id={session['sesh_in_progress_id']} AND wo_ex_id={session['current_wo_ex_id']};"
+        results = cursor.execute(query).fetchall()
+        completedSets = []
+        for result in results:
+            completedSets.append(result)
+
+        cnxn.close()
+
+        return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
+    else:
+        message = "You are not logged in. Please log in or sign up to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
+
+@app.route('/submitcardioset/')
+def submit_cardio_set():
+    if user_authenticated():
+
+        wo_ex_id = session['current_wo_ex_id']
+        sesh_id = session['sesh_in_progress_id']
+        duration_amnt = request.form.get('duration_amnt')
+        duration_metric = request.form.get('duration_metric')
+        distance_amnt = request.form.get('distance_amnt')
+        distance_metric = request.form.get('distance_metric')
+        set_id = submitCardioSet(wo_ex_id, sesh_id, duration_amnt, duration_metric, distance_amnt, distance_metric)
+        print('set_id='+str(set_id))
+
+        cnxn = get_db()
+        cursor = cnxn.cursor()
+        query = f"SELECT exercise_id FROM Workout_Exercise WHERE wo_ex_id={wo_ex_id}"
+        ex_id = cursor.execute(query).fetchval()
+        query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
+        exercise = cursor.execute(query).fetchall()
+        query = f"SELECT * FROM Cardio_Set WHERE sesh_id={sesh_id} AND wo_ex_id={wo_ex_id};"
+        results = cursor.execute(query).fetchall()
+        completed_sets = []
+        for result in results:
+            completedSets.append(result)
+        cnxn.close
+        return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
+    else:
+        message = "You are not logged in. Please log in or sign up to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
+
+
+@app.route('/endworkout/')
+def end_workout():
+    if user_authenticated():
+        workout_id = session['workout_in_progress_id']
+        workout_name = session['workout_in_progress_name']
+        sesh_id = session['sesh_in_progress_id']
+        session.pop('workout_in_progress_id')
+        #pop other workout specific session data
+
+        message = f"{workout_name} completed. Nice work!"
+        return render_template('home.html', message=message, messageCategory='success')
+
+    else:
+        message = "You are not logged in. Please login or create an account to continue."
+        return render_template('index.html', message=message, messageCategory='danger')
+
+
+def markExercises():
+    strength_sets = fetch_strength_sets_by_user()
+
+    for set in strength_sets:
+        if set.wo_ex_id in session['exercises_with_sets'].keys() and set.sesh_id == session['sesh_in_progress_id']:
+            session['exercises_with_sets'].update({set.wo_ex_id : True})
+def submitStrengthSet(wo_ex_id, sesh_id, num_reps, weight_amnt, weight_metric):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_strength_set @wo_ex_id={wo_ex_id}, @sesh_id={sesh_id}, @number_of_reps={num_reps}, @weight_amount={weight_amnt}, @weight_metric='{weight_metric}', @set_number=0; SELECT @rv"
+    set_number = cursor.execute(query).fetchval()
+    cnxn.commit()
+    cnxn.close()
+    return set_number
+
+def submitCardioSet(wo_ex_id, sesh_id, duration_amount, duration_metric, distance_amount, distance_metric):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"SET NOCOUNT ON; DECLARE @set_id int; EXEC @set_id = build_cardio_set {wo_ex_id}, {sesh_id}, {duration_amount}, '{duration_metric}', {distance_amount}, '{distance_metric}', 0; SELECT @set_id;"
+    set_id = cursor.execute(query).fetchval()
+    cnxn.commit()
+    cnxn.close()
+    return set_id
+def get_workout_name(workout_id):
+     cnxn = get_db()
+     cursor = cnxn.cursor()
+     query = f"SELECT workout_name FROM Workout WHERE workout_id={workout_id};"
+     result = cursor.execute(query).fetchone()
+     workout_name = result[0]
+     cnxn.close()
+     return workout_name
+def build_sesh():
+     cnxn = get_db()
+     cursor = cnxn.cursor()
+     query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_sesh_return_sesh @user_id={session['user_id']}, @workout_id={session['workout_in_progress_id']}, @sesh_id=0; SELECT @rv AS return_value;"
+     sesh_id = cursor.execute(query).fetchval()
+     cnxn.commit()
+     query = f"SELECT * FROM Sesh WHERE sesh_id={sesh_id};"
+     sesh = cursor.execute(query).fetchone()
+     cnxn.close()
+     return sesh
+
+
+def user_authenticated():
     if session.get('user_id') is None:
         return False
     return True

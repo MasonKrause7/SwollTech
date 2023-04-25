@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="text-center mb-3">{% block title %}Welcome home {{ session['fname'] }}{% endblock %}</h1>
 <div class="border-end d-flex justify-content-center align-items-center">
-    <button class="btn btn-primary btn-large">Start a Workout Sesh</button>
+    <a type="button" class="btn btn-primary btn-large" href="{{url_for('select_workout')}}">Start a Workout Sesh</a>
 </div>
 <div class="mt-3">
     <h2 class="text-center">Lets take a look at your recent progress... </h2>

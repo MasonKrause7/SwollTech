@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>{% block title %}Select Workout to Start {% endblock %}</h1>
+{% if workouts %}
+<ul>
+    {% for workout in workouts %}
+    <li class="mt-2"><button class="btn btn-primary btn-sm" onclick="displaySelectedWorkout({{workout.workout_id}})">Start Workout</button> {{workout.workout_name}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% if wo_id %}
+    <hr>
+    <h3>{{wo_name}}</h3>
+    {% if workout_exercises %}
+        <ul>
+            {% for exercise in workout_exercises %}
+                <li>{{exercise.exercise_name}}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+<button class="btn btn-primary btn-large" onclick="startWorkout({{wo_id}})">START WORKOUT</button>
+{% endif %}
+
+{% endblock %}

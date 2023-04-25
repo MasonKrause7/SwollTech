@@ -68,4 +68,34 @@ function editWorkoutAddExercise(ex_id){
 function removeExerciseFromWorkout(exercise_id, workout_id){
     window.location.href = '/removeexercisefromworkout/?ex_id='+exercise_id+"&wo_id="+workout_id;
 }
+function displaySelectedWorkout(workout_id){
+    window.location.href = '/displayselectedworkout/?workout_id='+workout_id;
+}
+function startWorkout(workout_id){
+    window.location.href = '/startworkout/?workout_id='+workout_id+'&starting=True';
+}
+function startExercise(exercise_id){
+    window.location.href = '/startexercise/?ex_id='+exercise_id;
+}
+function submitStrengthSet(exercise_id){
+    num_reps = document.getElementById('numReps').value;
+    weight_amnt = document.getElementById('amntWeight').value;
+    weight_metric = document.getElementById('weightMetric').value;
+
+    window.location.href = '/submitstrengthset/?ex_id='+exercise_id+'&num_reps='+num_reps+'&weight_amnt='+weight_amnt+'&weight_metric='+weight_metric;
+}
+function submitCardioSet(exercise_id){
+    duration_amnt = document.getElementById().value;
+    duration_metric = document.getElementById().value;
+    distance_amnt = document.getElementById().value;
+    distance_metric = document.getElementById().value;
+
+    window.location.href = 'submitcardioset/?ex_id='+ex_id+'&duration_amnt='+duration_amnt+'&duration_metric='+duration_metric+'&distance_amnt='+distance_amnt+'&distance_metric='+distance_metric;
+}
+function backToWorkout(workout_id){
+    window.location.href = '/startworkout/?workout_id='+workout_id+'&starting=False';
+}
+function endWorkout(){
+    window.location.href = '/endworkout/';
+}
 
