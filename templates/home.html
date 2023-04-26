@@ -1,15 +1,16 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
 <h1 class="text-center mb-3">{% block title %}Welcome home {{ session['fname'] }}{% endblock %}</h1>
 <div class="border-end d-flex justify-content-center align-items-center">
     <a type="button" class="btn btn-primary btn-large" href="{{url_for('select_workout')}}">Start a Workout Sesh</a>
 </div>
 <div class="mt-3">
     <h2 class="text-center">Lets take a look at your recent progress... </h2>
-    <div>
-        <h1 class="text-center mt-5 mb-5">GRAPH</h1>
-        <!-- Embedded data vizualization tool -->
+    <div id="chart" class="container-fluid align-items-center justify-content-center" style="height:250px; width:500px;">
+
+
     </div>
 
 
@@ -35,5 +36,23 @@
 
 </nav>
 
+<script>
+    var graphs = {{graphJSON | safe}};
+    Plotly.newPlot('chart', graphs, {});
+</script>
+
+<!--
+<script type="text/javascript">
+
+    TESTER = document.getElementById('chart');
+    Plotly.newPlot( TESTER, [{
+        x: [1, 2, 3, 4, 5],
+        y: [1, 2, 4, 8, 16]
+    },
+    {
+        margin: { t: 0 }
+    }]);
+</script>
+-->
 {% endblock %}
 

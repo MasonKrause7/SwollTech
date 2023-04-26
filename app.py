@@ -1,6 +1,13 @@
-from flask import Flask, g, escape, render_template, request, session, redirect, url_for, flash
+from flask import Flask, escape, render_template, request, session, redirect, url_for
 from passlib.hash import pbkdf2_sha256
 import pyodbc
+import pandas as pd
+import numpy as np
+import json
+from json import dumps
+import plotly
+from plotly import utils
+import plotly.express as px
 
 app = Flask('SwollTech')
 
@@ -41,7 +48,7 @@ def init_db():
 @app.route('/')
 def index():
     if user_authenticated():
-        return render_template('home.html')
+        return redirect(url_for('home'))
     return render_template('index.html')
 @app.route('/api/init_db')
 def api_init_db():
@@ -238,9 +245,20 @@ def home(message=None):
     if not user_authenticated():
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    return render_template('home.html', message=message)
+
+    #TESTING plotly
+    data = [
+        135, 225, 275
+    ]
+
+    df= pd.DataFrame([135, 225, 275],index=['Bench', 'Squat', 'Deadlift'])
+    df.index.name = 'Exercises'
+    df.columns.name = 'Max Weight'
+    print(df)
+    fig = px.bar(df, barmode='group')
+
+    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return render_template('home.html', message=message, graphJSON=graphJSON)
 
 @app.route('/viewworkout.html')
 def view_workouts(users_workouts=None):
@@ -639,8 +657,7 @@ def start_workout():
         results = get_exercises_by_workout(wo_id)
         exercises = []
         session['exercises_with_sets'] = {}
-        cnxn = get_db()
-        cursor = cnxn.cursor()
+
         for result in results:
             if result.deleted is None or result.deleted == 0:
                 exercises.append(result)
@@ -678,7 +695,10 @@ def start_exercise():
         completedSets = []
         for result in results:
             completedSets.append(result)
-
+        query = f"SELECT * FROM Cardio_Set WHERE sesh_id={session['sesh_in_progress_id']} AND wo_ex_id={session['current_wo_ex_id']};"
+        results = cursor.execute(query).fetchall()
+        for result in results:
+            completedSets.append(result)
         cnxn.close()
         return render_template('doexercise.html', exercise=exercise, completedSets=completedSets)
     else:
@@ -738,13 +758,15 @@ def submit_cardio_set():
         ex_id = cursor.execute(query).fetchval()
         print('**Ex_id='+str(ex_id))
         query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
-        exercise = cursor.execute(query).fetchall()
+        exercise = cursor.execute(query).fetchone()
+        print(str(exercise.exercise_name)+' - '+str(exercise.exercise_id))
+        print('sesh_id='+str(sesh_id)+', wo_ex_id='+str(wo_ex_id))
         query = f"SELECT * FROM Cardio_Set WHERE sesh_id={sesh_id} AND wo_ex_id={wo_ex_id};"
         results = cursor.execute(query).fetchall()
         completed_sets = []
         for result in results:
             completed_sets.append(result)
-        cnxn.close
+        cnxn.close()
         return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
@@ -770,10 +792,15 @@ def end_workout():
 
 def markExercises():
     strength_sets = fetch_strength_sets_by_user()
-
+    cardio_sets = fetch_cardio_sets_by_user()
     for set in strength_sets:
         if set.wo_ex_id in session['exercises_with_sets'].keys() and set.sesh_id == session['sesh_in_progress_id']:
             session['exercises_with_sets'].update({set.wo_ex_id : True})
+    for set in cardio_sets:
+        if set.wo_ex_id in session['exercises_with_sets'].keys() and set.sesh_id == session['sesh_in_progress_id']:
+            session['exercises_with_sets'].update({set.wo_ex_id : True})
+
+
 def submitStrengthSet(wo_ex_id, sesh_id, num_reps, weight_amnt, weight_metric):
     cnxn = get_db()
     cursor = cnxn.cursor()
