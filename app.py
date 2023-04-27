@@ -249,14 +249,10 @@ def home(message=None):
     # TESTING plotly
     cnxn = get_db()
     cursor = cnxn.cursor()
-    query = '''SELECT e.exercise_id, e.exercise_name, s.date_of_sesh, ss.s_set_number, ss.number_of_reps, ss.weight_amount, ss.weight_metric 
-                FROM Strength_Set ss
-                INNER JOIN Workout_Exercise we ON ss.wo_ex_id=we.wo_ex_id
-                INNER JOIN Exercise e ON we.exercise_id=e.exercise_id
-                INNER JOIN Sesh s ON ss.sesh_id = s.sesh_id
-                WHERE s.user_id = 1
-                ORDER BY s.date_of_sesh;'''
+    query = f"EXEC fetch_onerepmax_data {session['user_id']};"
     results = cursor.execute(query).fetchall()
+    if results is None or len(results) == 0:
+        return render_template('home.html')
     #made up test data
     #data = {'Bench': [135, 155, 175], 'Squat':[155, 175, 185], 'Deadlift': [200, 225, 255]}
     data = [[]]
@@ -292,14 +288,14 @@ def home(message=None):
 
 
 
-    df = pd.DataFrame(data, columns=["Exercise", "Best 1 Rep Max"], index=indexs)
+    df = pd.DataFrame(data, columns=["Exercise", "Weight"], index=indexs)
 
     print(df)
 
-    fig = px.bar(df, x="Exercise", y="Best 1 Rep Max", barmode='group')
+    fig = px.bar(df, x="Exercise", y="Weight", title="Best 1 Rep Max", barmode='group')
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-    return render_template('home.html', message=message, graphJSON=graphJSON)
+    return render_template('home.html', graphJSON=graphJSON)
 
 @app.route('/viewworkout.html')
 def view_workouts(users_workouts=None):

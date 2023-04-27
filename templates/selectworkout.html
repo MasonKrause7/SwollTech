@@ -9,6 +9,8 @@
     <li class="mt-2"><button class="btn btn-primary btn-sm" onclick="displaySelectedWorkout({{workout.workout_id}})">Start Workout</button> {{workout.workout_name}}</li>
     {% endfor %}
 </ul>
+{% else %}
+<p><b>You don't have any workouts yet! Head over to <a href="{{url_for('create_workout')}}">create workout</a> to get started.</b></p>
 {% endif %}
 {% if wo_id %}
     <hr>
