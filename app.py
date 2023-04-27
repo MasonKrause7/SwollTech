@@ -54,7 +54,7 @@ def index():
 def api_init_db():
     init_db()
     if user_authenticated():
-        return render_template('home.html', message='DB initialized', messageCategory='success')
+        return redirect(url_for('home'))
     return render_template('index.html', message='DB initialized', messageCategory='success')
 
 @app.route('/about.html')
@@ -246,18 +246,59 @@ def home(message=None):
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
 
-    #TESTING plotly
-    data = [
-        135, 225, 275
-    ]
+    # TESTING plotly
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = '''SELECT e.exercise_id, e.exercise_name, s.date_of_sesh, ss.s_set_number, ss.number_of_reps, ss.weight_amount, ss.weight_metric 
+                FROM Strength_Set ss
+                INNER JOIN Workout_Exercise we ON ss.wo_ex_id=we.wo_ex_id
+                INNER JOIN Exercise e ON we.exercise_id=e.exercise_id
+                INNER JOIN Sesh s ON ss.sesh_id = s.sesh_id
+                WHERE s.user_id = 1
+                ORDER BY s.date_of_sesh;'''
+    results = cursor.execute(query).fetchall()
+    #made up test data
+    #data = {'Bench': [135, 155, 175], 'Squat':[155, 175, 185], 'Deadlift': [200, 225, 255]}
+    data = [[]]
+    maxData={}
 
-    df= pd.DataFrame([135, 225, 275],index=['Bench', 'Squat', 'Deadlift'])
-    df.index.name = 'Exercises'
-    df.columns.name = 'Max Weight'
+    #building real data set
+    for result in results:
+        l = []
+        if result.weight_metric == 'kg':
+            weight_kgs = result.weight_amount
+            weight_lbs = float(weight_kgs) * 2.20462262
+            result.weight_metric = 'lbs'
+            result.weight_amount = weight_lbs
+        #Epleys formula for calulating one rep max
+        onerepmax = float(result.weight_amount) * (1 + float(result.number_of_reps)/30)
+        l.append(result.exercise_name)
+        l.append(onerepmax)
+        data.append(l)
+        #data[i] = ['Bench', 225.68749]
+    data.pop(0) #removes empty list
+    for i in range(0, len(data)):
+        if data[i][0] in maxData.keys():
+            currMax = maxData.get(data[i][0])
+            if currMax < data[i][1]:
+                maxData.update({data[i][0] : data[i][1]})
+        else:
+            maxData.update({data[i][0] : data[i][1]})
+    data = []
+    indexs = []
+    for key in maxData.keys():
+        indexs.append(key)
+        data.append([key, maxData.get(key)])
+
+
+
+    df = pd.DataFrame(data, columns=["Exercise", "Best 1 Rep Max"], index=indexs)
+
     print(df)
-    fig = px.bar(df, barmode='group')
 
+    fig = px.bar(df, x="Exercise", y="Best 1 Rep Max", barmode='group')
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
     return render_template('home.html', message=message, graphJSON=graphJSON)
 
 @app.route('/viewworkout.html')
@@ -427,7 +468,8 @@ def post_create_workout():
         if 'existing_exercises' in session.keys():
             session.pop('existing_exercises')
         message = 'Workout created successfully'
-        return render_template(url_for('home'), message=message, messageCategory='success')
+
+        return redirect(url_for('home'))
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
@@ -446,7 +488,7 @@ def post_delete_workout():
     if user_authenticated():
         workout_id = request.args.get('workout_id')
         delete_workout(workout_id)
-        return render_template('home.html', message='Workout Deleted', messageCategory='success')
+        return redirect(url_for('home'))
     else:
         message = 'You are not logged in. Please log in or sign up to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
@@ -505,7 +547,7 @@ def post_change_workout_name():
         cnxn.commit()
         cnxn.close()
         message = 'Workout name has been changed. You can find it in your workouts under the new name: '+new_workout_name
-        return render_template(url_for('home'), message=message, messageCategory='success')
+        return redirect(url_for('home'))
     else:
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
@@ -776,14 +818,11 @@ def submit_cardio_set():
 @app.route('/endworkout/')
 def end_workout():
     if user_authenticated():
-        workout_id = session['workout_in_progress_id']
         workout_name = session['workout_in_progress_name']
-        sesh_id = session['sesh_in_progress_id']
-        session.pop('workout_in_progress_id')
-        #pop other workout specific session data
 
         message = f"{workout_name} completed. Nice work!"
-        return render_template('home.html', message=message, messageCategory='success')
+        return redirect(url_for('home'))
+
 
     else:
         message = "You are not logged in. Please login or create an account to continue."
