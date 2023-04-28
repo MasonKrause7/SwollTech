@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1 class="text-center mb-3">{% block title%}View Workout{% endblock%}</h1>
+<h1 class="text-center mb-3">{% block title%}View Workouts{% endblock%}</h1>
 
 {% if users_workouts %}
 <h2>Your Workouts:</h2>
@@ -25,6 +25,9 @@
             <li>{{exercise.exercise_name}} - {{exercise.exercise_type_name}}</li>
         {% endfor%}
     </ul>
+{% endif %}
+{% if last_workout %}
+
 {% endif %}
 <a type="button" class="mt-5 btn btn-primary btn-lg" href="{{url_for('home')}}">Back to Home</a>
 

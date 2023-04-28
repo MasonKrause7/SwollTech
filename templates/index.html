@@ -2,10 +2,12 @@
 
 
 {% block content %}
-    <h1>{% block title %} Welcome to SwollTech {% endblock %}</h1>
+    <h1 class="text-center mt-1 mb-3"><b>{% block title %} Welcome to SwollTech {% endblock %}</b></h1>
 
-    <h2>Start building custom workouts, keeping stats for each set, and tracking your progress over time</h2>
-    <span><a href="{{ url_for('get_signup')}}">Register</a> for a free account and start using SwollTech to get data driven results.</span>
-    <span>Already have an account? <a href="{{ url_for('login')}}">Sign in</a> instead.</span>
+    <h2 class="text-center mt-2 mb-3">Start driving real, trackable progress in your workouts using strategic data analysis</h2>
+    <div class="mt-4">
+        <span><a href="{{ url_for('get_signup')}}">Sign up</a> for a free account, or <a href="{{ url_for('login')}}">sign in</a> if you already have an account.</span>
+
+    </div>
     <hr>
 {% endblock %}

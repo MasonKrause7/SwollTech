@@ -316,7 +316,9 @@ def view_workout():
         for ex in unfilt_exercises:
             if ex.deleted is None or ex.deleted == 0:
                 exercises.append(ex)
-        return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name)
+
+        last_workout = fetch_last_workout(workout_id)
+        return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, last_workout=last_workout)
     else:
         message = 'You must be logged in to view workouts. Please log in or make an account'
         return render_template('index.html', message=message, messageCategory='danger')
@@ -824,7 +826,13 @@ def end_workout():
         message = "You are not logged in. Please login or create an account to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-
+def fetchLastWorkout(workout_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_last_workout {workout_id};"
+    last_workout = cursor.execute(query)
+    cnxn.close()
+    return last_workout
 def markExercises():
     strength_sets = fetch_strength_sets_by_user()
     cardio_sets = fetch_cardio_sets_by_user()
