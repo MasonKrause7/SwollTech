@@ -320,25 +320,14 @@ def view_workout():
         strength_sets = fetch_last_workout_strength_sets(workout_id)
         for set in strength_sets:
             datetime = str(set.date_of_sesh)
-            months = {1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',7:'July',8:'August',9:'September',10:'October',11:'November',12:'December'}
-            time = datetime[11:16]
-            year = datetime[:4]
-            month = datetime[5:7]
-            day = datetime[8:10]
-            formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
+            formatted_date_time=format_time(datetime)
 
             set.date_of_sesh = formatted_date_time
 
         cardio_sets = fetch_last_workout_cardio_sets(workout_id)
         for set in cardio_sets:
             datetime = str(set.date_of_sesh)
-            months = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August',
-                      9: 'September', 10: 'October', 11: 'November', 12: 'December'}
-            time = datetime[11:16]
-            year = datetime[:4]
-            month = datetime[5:7]
-            day = datetime[8:10]
-            formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
+            formatted_date_time = format_time(datetime)
             set.date_of_sesh = formatted_date_time
         return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, strength_sets=strength_sets, cardio_sets=cardio_sets)
     else:
@@ -718,13 +707,7 @@ def start_workout():
             session['sesh_in_progress_date'] = str(sesh.date_of_sesh)
 
         date = session['sesh_in_progress_date']
-        months = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August',
-                  9: 'September', 10: 'October', 11: 'November', 12: 'December'}
-        time = date[11:16]
-        year = date[:4]
-        month = date[5:7]
-        day = date[8:10]
-        formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
+        formatted_date_time= format_time(date)
 
         results = get_exercises_by_workout(wo_id)
         exercises = []
@@ -772,10 +755,25 @@ def start_exercise():
 
         #fetch sets from last workout
         sets = []
+
         if ex_id:
             sets = fetch_last_workout_sets_by_exercise(ex_id)
+            if sets:
+                print(str(sets[0].date_of_sesh) + " !=!=! " + session['sesh_in_progress_date'])
+                if str(sets[0].date_of_sesh) == session['sesh_in_progress_date']:
+                     return render_template('doexercise.html', exercise=exercise, completedSets=completedSets)
+
+                for set in sets:
+                    formatted_date_time = format_time(set.date_of_sesh)
+                    set.date_of_sesh = formatted_date_time
         else:
             sets = fetch_last_workout_sets_by_exercise(exercise_id)
+            if sets:
+                if str(sets[0].date_of_sesh) == session['sesh_in_progress_date']:
+                    return render_template('doexercise.html', exercise=exercise, completedSets=completedSets)
+                for set in sets:
+                    formatted_date_time = format_time(set.date_of_sesh)
+                    set.date_of_sesh = formatted_date_time
         cnxn.close()
         return render_template('doexercise.html', exercise=exercise, completedSets=completedSets, last_workout_sets=sets)
     else:
@@ -847,6 +845,19 @@ def submit_cardio_set():
         return render_template('index.html', message=message, messageCategory='danger')
 
 
+@app.route('/deleteset/')
+def delete_set():
+    set_id = request.args.get('set_id')
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"DELETE FROM Strength_Set WHERE s_set_number={set_id};"
+    cursor.execute(query)
+    query = f"DELETE FROM Cardio_Set WHERE c_set_number={set_id};"
+    cursor.execute(query)
+    cnxn.commit()
+    cnxn.close()
+    return redirect(url_for('start_exercise'))
+
 @app.route('/endworkout/')
 def end_workout():
     if user_authenticated():
@@ -860,7 +871,16 @@ def end_workout():
         message = "You are not logged in. Please login or create an account to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-
+def format_time(datetime):
+    datetime = str(datetime)
+    months = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August',
+              9: 'September', 10: 'October', 11: 'November', 12: 'December'}
+    time = datetime[11:16]
+    year = datetime[:4]
+    month = datetime[5:7]
+    day = datetime[8:10]
+    formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
+    return formatted_date_time
 def fetch_last_workout_strength_sets(workout_id):
     cnxn = get_db()
     cursor = cnxn.cursor()
@@ -882,7 +902,10 @@ def fetch_last_workout_sets_by_exercise(exercise_id):
     query = f"EXEC fetch_last_workout_sets_by_exercise {session['workout_in_progress_id']}, {int(exercise_id)};"
     sets = cursor.execute(query).fetchall()
     cnxn.close()
-    return sets
+    if sets:
+        return sets
+    else:
+        return None
 def markExercises():
     strength_sets = fetch_strength_sets_by_user()
     cardio_sets = fetch_cardio_sets_by_user()

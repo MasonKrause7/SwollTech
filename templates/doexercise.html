@@ -2,27 +2,9 @@
 
 {% block content%}
 <h1>{{session['workout_in_progress_name']}} - <b>{% block title %}{{exercise.exercise_name}}{% endblock %}</b></h1>
-{% if completedSets %}
-<hr>
-<h3>Completed Sets: </h3>
-<ul>
-    {% for set in completedSets %}
-    {% if exercise.exercise_type_id == 1%}
-    <li class="mt-2">
-        {{set.number_of_reps}} reps - {{set.weight_amount}} {{set.weight_metric}}
-    </li>
-    {% elif exercise.exercise_type_id == 2 %}
-    <li class="mt-2">
-        {{set.distance_amount}} {{set.distance_metric}} - {{set.duration_amount}} {{set.duration_metric}}
-    </li>
-    {% endif %}
-    {% endfor %}
-</ul>
-<hr>
-{% endif %}
 
 {% if exercise.exercise_type_id == 1 %}
-<hr>
+<h3>Current Set:</h3>
 <form>
     <input id="numReps" name="numReps" type="number" placeholder="Number of Reps">
     <br>
@@ -38,9 +20,10 @@
 </form>
 <hr>
 {% elif exercise.exercise_type_id == 2 %}
-<hr>
+
+<h3>Current Set:</h3>
 <form method="GET" action="{{url_for('submit_cardio_set')}}">
-    <input type="number" id="distanceAmnt" name="distanceAmnt" placeholder="Amount of Distance" required="required">
+    <input class="mb-1" type="number" id="distanceAmnt" name="distanceAmnt" placeholder="Amount of Distance" required="required">
     <select id="distanceMetric" name="distanceMetric" required="required">
         <option>Miles</option>
         <option>Kilometers</option>
@@ -57,21 +40,40 @@
     </div>
 </form>
 <hr>
-
 {%endif%}
+{% if completedSets %}
+<h3>Completed Sets: </h3>
+<ul>
+    {% for set in completedSets %}
+    {% if exercise.exercise_type_id == 1%}
+    <li class="mt-2">
+        <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet({{set.s_set_number}})">Delete</button>{{set.number_of_reps}} reps - {{set.weight_amount}} {{set.weight_metric}}
+    </li>
+    {% elif exercise.exercise_type_id == 2 %}
+    <li class="mt-2">
+        <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet({{set.c_set_number}})">Delete</button>{{set.distance_amount}} {{set.distance_metric}} - {{set.duration_amount}} {{set.duration_metric}}
+    </li>
+    {% endif %}
+    {% endfor %}
+</ul>
+<hr>
+{% endif %}
 {% if last_workout_sets %}
-    <hr>
     <h4>Last time you did {{session['workout_in_progress_name']}}</h4>
-    <h5>last_workout_sets[0].date_of_sesh</h5>
-    <ul>
+    <h5>{{last_workout_sets[0].date_of_sesh}}</h5>
+    <ol>
         {% for set in last_workout_sets %}
+
             {% if set.weight_amount %}
-                <li>{{set.weight_amount}} {{set.weight_metric}} for {{number_of_reps}} reps</li>
+                <li>{{set.weight_amount}} {{set.weight_metric}} for {{set.number_of_reps}} reps</li>
             {% elif set.distance_amount %}
                 <li>{{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
             {% endif %}
         {% endfor %}
-    </ul>
+    </ol>
+{% else %}
+<h4>No previous workout data for this exercise</h4>
+<h5>After you complete this workout, your past set data will display here</h5>
 {% endif %}
 
 <button onclick="backToWorkout({{session['workout_in_progress_id']}})" class="btn btn-secondary btn-large">Back to Workout</button>

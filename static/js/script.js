@@ -98,4 +98,7 @@ function backToWorkout(workout_id){
 function endWorkout(){
     window.location.href = '/endworkout/';
 }
+function deleteSet(set_id){
+    window.location.href = '/deleteset/?set_id='+set_id;
+}
 
