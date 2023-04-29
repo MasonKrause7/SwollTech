@@ -298,7 +298,7 @@ def home(message=None):
     return render_template('home.html', graphJSON=graphJSON)
 
 @app.route('/viewworkout.html')
-def view_workouts(users_workouts=None):
+def view_workouts():
     if user_authenticated():
         users_workouts = fetch_users_workouts()
         return render_template('viewworkout.html', users_workouts=users_workouts)
@@ -317,8 +317,30 @@ def view_workout():
             if ex.deleted is None or ex.deleted == 0:
                 exercises.append(ex)
 
-        last_workout = fetch_last_workout(workout_id)
-        return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, last_workout=last_workout)
+        strength_sets = fetch_last_workout_strength_sets(workout_id)
+        for set in strength_sets:
+            datetime = str(set.date_of_sesh)
+            months = {1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',7:'July',8:'August',9:'September',10:'October',11:'November',12:'December'}
+            time = datetime[11:16]
+            year = datetime[:4]
+            month = datetime[5:7]
+            day = datetime[8:10]
+            formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
+
+            set.date_of_sesh = formatted_date_time
+
+        cardio_sets = fetch_last_workout_cardio_sets(workout_id)
+        for set in cardio_sets:
+            datetime = str(set.date_of_sesh)
+            months = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August',
+                      9: 'September', 10: 'October', 11: 'November', 12: 'December'}
+            time = datetime[11:16]
+            year = datetime[:4]
+            month = datetime[5:7]
+            day = datetime[8:10]
+            formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
+            set.date_of_sesh = formatted_date_time
+        return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, strength_sets=strength_sets, cardio_sets=cardio_sets)
     else:
         message = 'You must be logged in to view workouts. Please log in or make an account'
         return render_template('index.html', message=message, messageCategory='danger')
@@ -694,6 +716,16 @@ def start_workout():
             sesh = build_sesh()
             session['sesh_in_progress_id'] = sesh.sesh_id
             session['sesh_in_progress_date'] = str(sesh.date_of_sesh)
+
+        date = session['sesh_in_progress_date']
+        months = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August',
+                  9: 'September', 10: 'October', 11: 'November', 12: 'December'}
+        time = date[11:16]
+        year = date[:4]
+        month = date[5:7]
+        day = date[8:10]
+        formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
+
         results = get_exercises_by_workout(wo_id)
         exercises = []
         session['exercises_with_sets'] = {}
@@ -704,9 +736,7 @@ def start_workout():
                 session['exercises_with_sets'].update({result.wo_ex_id : False})
 
         markExercises()
-        print(' -> ' + str(session['exercises_with_sets']))
-
-        return render_template('workoutsesh.html', exercises=exercises)
+        return render_template('workoutsesh.html', exercises=exercises, formatted_date_time=formatted_date_time)
 
     else:
         message = "You are not logged in. Please log in or sign up to continue."
@@ -716,7 +746,7 @@ def start_workout():
 def start_exercise():
     if user_authenticated():
         ex_id = request.args.get('ex_id')
-        print('*****EX_ID = '+str(ex_id))
+        exercise_id = 0
         cnxn = get_db()
         cursor = cnxn.cursor()
 
@@ -739,8 +769,15 @@ def start_exercise():
         results = cursor.execute(query).fetchall()
         for result in results:
             completedSets.append(result)
+
+        #fetch sets from last workout
+        sets = []
+        if ex_id:
+            sets = fetch_last_workout_sets_by_exercise(ex_id)
+        else:
+            sets = fetch_last_workout_sets_by_exercise(exercise_id)
         cnxn.close()
-        return render_template('doexercise.html', exercise=exercise, completedSets=completedSets)
+        return render_template('doexercise.html', exercise=exercise, completedSets=completedSets, last_workout_sets=sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
@@ -754,13 +791,10 @@ def submit_strength_set():
         wo_ex_id = session['current_wo_ex_id']
         submitStrengthSet(wo_ex_id, session['sesh_in_progress_id'], num_reps, weight_amnt, weight_metric)
 
-
         cnxn = get_db()
         cursor = cnxn.cursor()
-
         query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
         exercise = cursor.execute(query).fetchone()
-
         query = f"SELECT * FROM Strength_Set WHERE sesh_id={session['sesh_in_progress_id']} AND wo_ex_id={session['current_wo_ex_id']};"
         results = cursor.execute(query).fetchall()
         completedSets = []
@@ -826,13 +860,29 @@ def end_workout():
         message = "You are not logged in. Please login or create an account to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-def fetchLastWorkout(workout_id):
+
+def fetch_last_workout_strength_sets(workout_id):
     cnxn = get_db()
     cursor = cnxn.cursor()
-    query = f"EXEC fetch_last_workout {workout_id};"
-    last_workout = cursor.execute(query)
+    query = f"EXEC fetch_last_workout_strength_sets {int(workout_id)};"
+    strength_sets = cursor.execute(query).fetchall()
     cnxn.close()
-    return last_workout
+    return strength_sets
+def fetch_last_workout_cardio_sets(workout_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_last_workout_cardio_sets {int(workout_id)};"
+    cardio_sets = cursor.execute(query).fetchall()
+    cnxn.close()
+    return cardio_sets
+
+def fetch_last_workout_sets_by_exercise(exercise_id):
+    cnxn = get_db()
+    cursor = cnxn.cursor()
+    query = f"EXEC fetch_last_workout_sets_by_exercise {session['workout_in_progress_id']}, {int(exercise_id)};"
+    sets = cursor.execute(query).fetchall()
+    cnxn.close()
+    return sets
 def markExercises():
     strength_sets = fetch_strength_sets_by_user()
     cardio_sets = fetch_cardio_sets_by_user()

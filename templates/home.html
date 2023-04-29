@@ -29,7 +29,7 @@
                 <a class="nav-link" href="{{url_for('create_workout')}}">Create Workout</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{url_for('view_workout')}}">View Workout</a>
+                <a class="nav-link" href="{{url_for('view_workouts')}}">View Workout</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{{url_for('select_edit_workout')}}">Edit Workout</a>
@@ -41,7 +41,7 @@
     </div>
 
 </nav>
-<p>Detailed exercise history visualization tools will be available soon. For now, be consistent entering in set data for your workouts. The more data you have, the better visualizations and insights you will be able to uncover.</p>
+<p>**Detailed exercise history visualization tools will be available soon. For now, be consistent entering in set data for your workouts. The more data you have, the better visualizations and insights you will be able to uncover.</p>
 
 <script>
     var graphs = {{graphJSON | safe}};

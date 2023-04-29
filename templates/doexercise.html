@@ -59,6 +59,20 @@
 <hr>
 
 {%endif%}
+{% if last_workout_sets %}
+    <hr>
+    <h4>Last time you did {{session['workout_in_progress_name']}}</h4>
+    <h5>last_workout_sets[0].date_of_sesh</h5>
+    <ul>
+        {% for set in last_workout_sets %}
+            {% if set.weight_amount %}
+                <li>{{set.weight_amount}} {{set.weight_metric}} for {{number_of_reps}} reps</li>
+            {% elif set.distance_amount %}
+                <li>{{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endif %}
 
 <button onclick="backToWorkout({{session['workout_in_progress_id']}})" class="btn btn-secondary btn-large">Back to Workout</button>
 {% endblock %}

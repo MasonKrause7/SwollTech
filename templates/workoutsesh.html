@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>{% block title %}{{session['workout_in_progress_name']}} : {{session['sesh_in_progress_date']}}{% endblock %}</h1>
+<h1>{% block title %}{{session['workout_in_progress_name']}}{% endblock %}</h1>
+<h2 class="mb-4">{{formatted_date_time}}</h2>
 {% if exercises %}
     <ul class="mt-2">
         {% for exercise in exercises %}
