@@ -1,10 +1,10 @@
 from flask import Flask, escape, render_template, request, session, redirect, url_for
 from passlib.hash import pbkdf2_sha256
+from flask_sqlalchemy import SQLAlchemy
 from database.models import Users #, import other database models
 import pandas as pd
 import numpy as np
 import json
-from json import dumps
 import plotly
 from plotly import utils
 import plotly.express as px
@@ -12,10 +12,10 @@ import os
 
 
 application = Flask(__name__)
-db = SQLAlchemy()
-
 uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
 application.config['SQLALCHEMY_DATABASE_URI'] = uri
+application.config['SECRET_KEY'] = "testing key"
+
 db = SQLAlchemy(application)
 
 @application.route('/')
@@ -1128,8 +1128,9 @@ def build_workout_ex_list_and_showable_ex_list():
     session['showable_exercises'] = showable_exercises
 
 if __name__ == "__main__":
-    application.debug = True
-    application.run()
+    db.drop_all()
+    db.create_all()
+    application.run(debug=True)
 
 
 
