@@ -1,6 +1,6 @@
 from flask import Flask, escape, render_template, request, session, redirect, url_for
 from passlib.hash import pbkdf2_sha256
-import pyodbc
+from database.models import Users #, import other database models
 import pandas as pd
 import numpy as np
 import json
@@ -8,66 +8,40 @@ from json import dumps
 import plotly
 from plotly import utils
 import plotly.express as px
+import os
 
-app = Flask('SwollTech')
 
-laptopserver='(LocalDB)\MSSQLLocalDB'
-desktopserver='localhost'
-database='swolltech'
-laptopusername='DESKTOP-02M87G6\mason'
-desktopusername='MGK777\mason'
+application = Flask(__name__)
+db = SQLAlchemy()
 
-cnxnstr = f"DRIVER={'{ODBC Driver 18 for SQL Server}'}; SERVER={laptopserver};DATABASE={database};UID={laptopusername}; ENCRYPT=Optional; Trusted_connection=Yes"
-app.secret_key = 'TESTING_KEY_(CHANGE_LATER)'
+uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
+application.config['SQLALCHEMY_DATABASE_URI'] = uri
+db = SQLAlchemy(application)
 
-tentative_exercises_cache = {}
-users_existing_exercises_cache = {}
-
-def get_db():
-    connection = pyodbc.connect(cnxnstr)
-    return connection
-
-def init_db():
-    cnxn = pyodbc.connect(cnxnstr)
-    cursor = cnxn.cursor()
-    cursor.execute('EXEC init_db')
-    cnxn.commit()
-    print('Tables created...')
-    with open('sql/create_account_audit_trigger.sql') as f:
-        cursor.execute(f.read())
-    hash = pbkdf2_sha256.hash('pass')
-    query = f"INSERT INTO Users(fname, lname, email, dob, password) VALUES ('Mason', 'Krause', 'masongkrause@yahoo.com', '03-20-1995', '{hash}')"
-    cursor.execute(query)
-    cnxn.commit()
-    print('User added...')
-    with open('sql/insert_test_data.sql') as f:
-        cursor.execute(f.read())
-    cnxn.commit()
-    cnxn.close()
-
-@app.route('/')
+@application.route('/')
 def index():
     if user_authenticated():
         return redirect(url_for('home'))
     return render_template('index.html')
-@app.route('/api/init_db')
+@application.route('/api/init_db')
 def api_init_db():
     init_db()
     if user_authenticated():
         return redirect(url_for('home'))
     return render_template('index.html', message='DB initialized', messageCategory='success')
 
-@app.route('/about.html')
+
+@application.route('/about.html')
 def about():
     return render_template('about.html')
 
 
-@app.get('/signup.html')
+@application.get('/signup.html')
 def get_signup():
     return render_template('signup.html')
 
 
-@app.post('/signup.html')
+@application.post('/signup.html')
 def post_signup():
     # NEED TO VALIDATE REGISTRATION DATA
     #collecting form data
@@ -111,7 +85,7 @@ def post_signup():
             return render_template(url_for('get_signup'), message=message, messageCategory='danger')
 
 
-@app.route('/login.html', methods=['GET', 'POST'])
+@application.route('/login.html', methods=['GET', 'POST'])
 def login(user=None, message=""):
     if request.method == 'GET':
         return render_template('login.html')
@@ -142,7 +116,7 @@ def login(user=None, message=""):
                 return render_template(url_for('login'), message=message, messageCategory='danger')
 
 
-@app.route('/logout')
+@application.route('/logout')
 def logout():
     if len(session.keys()) == 0:
         message = 'You were not logged in'
@@ -153,14 +127,14 @@ def logout():
     return render_template('index.html', message=message, messageCategory='success')
 
 
-@app.route('/account.html')
+@application.route('/account.html')
 def account():
     if user_authenticated():
         return render_template('account.html')
     else:
         message = 'You must be logged in to view your account. Please log in or register for a free account.'
         return render_template('index.html', message=message, messageCategory='danger')
-@app.route('/account.html/')
+@application.route('/account.html/')
 def edit_account():
     if user_authenticated():
         action = request.args.get('action')
@@ -174,7 +148,7 @@ def edit_account():
     else:
         message = 'You must be logged in to view your account. Please log in or register for a free account.'
         return render_template('index.html', message=message, messageCategory='danger')
-@app.post('/change_email/')
+@application.post('/change_email/')
 def change_email():
     if user_authenticated():
         new_email = request.form.get('new_email')
@@ -203,7 +177,7 @@ def change_email():
         message = 'You are not logged in. Please log in or create an account.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.post('/change_password/')
+@application.post('/change_password/')
 def change_password():
     if user_authenticated():
         curr_password = request.form['curr_password']
@@ -229,7 +203,7 @@ def change_password():
         message = 'You are not logged in. Please log in or create an account'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/deleteaccount/')
+@application.route('/deleteaccount/')
 def delete_account():
     if user_authenticated():
         user_id = request.args.get('user_id')
@@ -240,7 +214,7 @@ def delete_account():
     else:
         message = 'You are not logged in to an account. Please log in or sign up to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
-@app.route('/home.html/')
+@application.route('/home.html/')
 def home(message=None):
     if not user_authenticated():
         message = 'You must be logged in to access your home page'
@@ -297,7 +271,7 @@ def home(message=None):
 
     return render_template('home.html', graphJSON=graphJSON)
 
-@app.route('/viewworkout.html')
+@application.route('/viewworkout.html')
 def view_workouts():
     if user_authenticated():
         users_workouts = fetch_users_workouts()
@@ -305,7 +279,7 @@ def view_workouts():
     else:
         message = 'You must be logged in to view workouts. Please log in or make an account'
         return render_template('index.html', message=message, messageCategory='danger')
-@app.route('/viewworkout.html/')
+@application.route('/viewworkout.html/')
 def view_workout():
     if user_authenticated():
         users_workouts = fetch_users_workouts()
@@ -334,7 +308,7 @@ def view_workout():
         message = 'You must be logged in to view workouts. Please log in or make an account'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.get('/createworkout.html/')
+@application.get('/createworkout.html/')
 def create_workout():
     if user_authenticated():
         if 'wo_name' in request.args:
@@ -367,14 +341,14 @@ def create_workout():
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message, messageCategory='danger')
-@app.get('/nameworkout.html')
+@application.get('/nameworkout.html')
 def name_workout():
     if user_authenticated():
         return render_template('nameworkout.html')
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message, messageCategory='danger')
-@app.route('/remove/')
+@application.route('/remove/')
 def remove_exercise():
     if user_authenticated():
         exName = request.args.get('remove')
@@ -398,7 +372,7 @@ def remove_exercise():
         message='You must be logged in to edit workouts'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/addexistingexercise.html')
+@application.route('/addexistingexercise.html')
 def add_existing_exercise():
     if user_authenticated():
         existing_exercises = fetch_users_exercises()
@@ -412,7 +386,7 @@ def add_existing_exercise():
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
-@app.get('/createexercise.html')
+@application.get('/createexercise.html')
 def create_exercise():
     if user_authenticated():
         return render_template('createexercise.html')
@@ -421,7 +395,7 @@ def create_exercise():
         return render_template('index.html', message=message, messageCategory='danger')
 
 
-@app.route('/postworkout.html/')
+@application.route('/postworkout.html/')
 def post_create_workout():
     if user_authenticated():
         if 'new_workout_name' not in session.keys():
@@ -483,7 +457,7 @@ def post_create_workout():
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
 
-@app.route('/deleteworkout')
+@application.route('/deleteworkout')
 def delete_workout():
     if user_authenticated():
         users_workouts = fetch_users_workouts()
@@ -492,7 +466,7 @@ def delete_workout():
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/deleteworkout/')
+@application.route('/deleteworkout/')
 def post_delete_workout():
     if user_authenticated():
         workout_id = request.args.get('workout_id')
@@ -502,7 +476,7 @@ def post_delete_workout():
         message = 'You are not logged in. Please log in or sign up to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/editworkout')
+@application.route('/editworkout')
 def select_edit_workout():
     if user_authenticated():
         users_workouts = fetch_users_workouts()
@@ -511,7 +485,7 @@ def select_edit_workout():
         message = 'You are not logged in. Please log in or sign up to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/editworkout/')
+@application.route('/editworkout/')
 def edit_workout():
     if user_authenticated():
         workout_id = request.args.get('workout_id')
@@ -533,7 +507,7 @@ def edit_workout():
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.get('/changename/')
+@application.get('/changename/')
 def change_workout_name():
     if user_authenticated():
         workout_id = request.args.get('workout_id')
@@ -544,7 +518,7 @@ def change_workout_name():
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.post('/postworkoutname/')
+@application.post('/postworkoutname/')
 def post_change_workout_name():
     if user_authenticated():
         new_workout_name = request.form.get('new_workout_name')
@@ -562,7 +536,7 @@ def post_change_workout_name():
         return render_template('index.html', message=message, messageCategory='danger')
 
 
-@app.route('/addexercises/')
+@application.route('/addexercises/')
 def add_exercises_to_workout():
     workout_id = request.args.get('workout_id')
     session['workout_under_edit'] = workout_id
@@ -570,7 +544,7 @@ def add_exercises_to_workout():
     build_workout_ex_list_and_showable_ex_list()
 
     return render_template('addexercisetoworkout.html', workout_id=workout_id, workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
-@app.route('/editworkout_addexistingexercise/')
+@application.route('/editworkout_addexistingexercise/')
 def edit_workout_add_existing_exercises():
     if user_authenticated():
         cnxn = get_db()
@@ -602,7 +576,7 @@ def edit_workout_add_existing_exercises():
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/buildexforwo/')
+@application.route('/buildexforwo/')
 def build_exercise_for_workout():
 
     if user_authenticated():
@@ -647,7 +621,7 @@ def build_exercise_for_workout():
         return render_template('index.html', message=message, messageCategory='danger')
 
 
-@app.route('/removeexercisefromworkout/')
+@application.route('/removeexercisefromworkout/')
 def remove_exercise_from_workout():
     ex_id = request.args.get('ex_id')
     wo_id = request.args.get('wo_id')
@@ -668,7 +642,7 @@ def remove_exercise_from_workout():
                            userExercises=session['showable_exercises'])
 
 
-@app.route('/selectworkout')
+@application.route('/selectworkout')
 def select_workout():
     if user_authenticated():
         workouts = fetch_users_workouts()
@@ -676,7 +650,7 @@ def select_workout():
     else:
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
-@app.route('/displayselectedworkout/')
+@application.route('/displayselectedworkout/')
 def display_selected_workout():
     if user_authenticated():
         workouts = fetch_users_workouts()
@@ -694,7 +668,7 @@ def display_selected_workout():
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/startworkout/')
+@application.route('/startworkout/')
 def start_workout():
     if user_authenticated():
         wo_id = request.args.get('workout_id')
@@ -725,7 +699,7 @@ def start_workout():
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/startexercise/')
+@application.route('/startexercise/')
 def start_exercise():
     if user_authenticated():
         ex_id = request.args.get('ex_id')
@@ -779,7 +753,7 @@ def start_exercise():
     else:
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
-@app.route('/submitstrengthset/')
+@application.route('/submitstrengthset/')
 def submit_strength_set():
     if user_authenticated():
         ex_id = request.args.get('ex_id')
@@ -806,7 +780,7 @@ def submit_strength_set():
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-@app.route('/submitcardioset/')
+@application.route('/submitcardioset/')
 def submit_cardio_set():
     if user_authenticated():
 
@@ -845,7 +819,7 @@ def submit_cardio_set():
         return render_template('index.html', message=message, messageCategory='danger')
 
 
-@app.route('/deleteset/')
+@application.route('/deleteset/')
 def delete_set():
     set_id = request.args.get('set_id')
     cnxn = get_db()
@@ -858,7 +832,7 @@ def delete_set():
     cnxn.close()
     return redirect(url_for('start_exercise'))
 
-@app.route('/endworkout/')
+@application.route('/endworkout/')
 def end_workout():
     if user_authenticated():
         workout_name = session['workout_in_progress_name']
@@ -1153,6 +1127,9 @@ def build_workout_ex_list_and_showable_ex_list():
                 showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
     session['showable_exercises'] = showable_exercises
 
+if __name__ == "__main__":
+    application.debug = True
+    application.run()
 
 
 
