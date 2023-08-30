@@ -25,7 +25,7 @@ class Users(db.Model):
     lname = db.Column(db.String(80), unique=False, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     dob = db.Column(db.DateTime, unique=False, nullable=False)
-    passowrd = db.Column(db.String(200), unique=False, nullable=False)
+    password = db.Column(db.String(200), unique=False, nullable=False)
 
 class Workout(db.Model):
     workout_id = db.Column(db.Integer, primary_key=True)
@@ -97,33 +97,26 @@ def post_signup():
         message = "Password and confirmation do not match, please try again"
         return render_template(url_for('get_signup'), message=message, messageCategory='danger', fname=fname, lname=lname, email=email, dob=dob, password=password)
     #check if user exists in db
-    successfulInsert = False
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"SELECT * FROM Users WHERE email='{email}'"
-    results = cursor.execute(query)
-    users = results.fetchall()
-    if len(users) > 0:  # if user already exists, render login
-        user = users[0]
+
+    user = db.session.execute(db.select(Users).where(Users.email == email)).scalar_one_or_none()
+    if user:  # if user already exists, render login
         message = "That email is already associated with an account, please log in instead"
         return render_template('login.html', message=message, messageCategory='danger')
     else: #valid new user, try adding to db
-        message = ""
         try:
             hashword = pbkdf2_sha256.hash(password)
-            query = f"INSERT INTO Users (fname, lname, email, dob, password) VALUES ('{fname}', '{lname}', '{email}', '{dob}', '{hashword}')"
-            cursor.execute(query)
-            cnxn.commit()
-            print("record added successfully")
+            user = Users(fname=fname, lname=lname, email=email, dob=dob, password=hashword)
+            print(user.fname + " model created...")
+            db.session.add(user)
+            db.session.commit()
+            print("User successfully commited to db")
             message = "Sign up successful. Please log in to your new account"
-            cnxn.close()
             return render_template(url_for('login'), message=message, messageCategory='success')
 
         except:
-            cnxn.rollback()
+            db.session.delete(user)
             message = "There was an error during the sign up process. Please try again."
-            print('error inserting record')
-            cnxn.close()
+            print('Error committing user to db')
             return render_template(url_for('get_signup'), message=message, messageCategory='danger')
 
 
@@ -134,24 +127,20 @@ def login(user=None, message=""):
     else:
         username = request.form.get('username')
         password = request.form.get('loginpassword')
-        userExists = False
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = f"SELECT * FROM Users WHERE email= '{username}'"
-        results = cursor.execute(query)
-        result = results.fetchall()
-        cnxn.close()
-        if len(result) == 0:
+
+        result = db.session.execute(db.select(Users).filter_by(email=username)).scalar_one()
+
+
+        if not result:
             message = "No user exists with that email, please try again"
             return render_template(url_for('login'), message=message, messageCategory='danger')
         else:
-            user = result[0]
-            if pbkdf2_sha256.verify(password, user[5]):
+            if pbkdf2_sha256.verify(password, result.password):
                 session['logged_in'] = True
-                session['user_id'] = user[0]
-                session['email'] = user[3]
-                session['fname'] = user[1]
-                session['lname'] = user[2]
+                session['user_id'] = result.user_id
+                session['email'] = result.email
+                session['fname'] = result.fname
+                session['lname'] = result.lname
                 return redirect(url_for('home'))
             else:
                 message = "Sorry, that password is incorrect."
@@ -164,7 +153,6 @@ def logout():
         message = 'You were not logged in'
         return render_template('index.html', message=message, messageCategory='danger')
     session.clear()
-
     message = 'Successfully signed out'
     return render_template('index.html', message=message, messageCategory='success')
 
@@ -263,10 +251,10 @@ def home(message=None):
         return render_template(url_for('login'), message=message)
 
     # TESTING plotly
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC fetch_onerepmax_data {session['user_id']};"
-    results = cursor.execute(query).fetchall()
+    #cnxn = get_db()
+    #cursor = cnxn.cursor()
+    #query = f"EXEC fetch_onerepmax_data {session['user_id']};"
+    results = None
     if results is None or len(results) == 0:
         return render_template('home.html')
     #made up test data
@@ -976,12 +964,8 @@ def user_authenticated():
     return True
 
 def update_user_email(new_email):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"UPDATE Users SET email='{new_email}' WHERE user_id={session['user_id']}"
-    cursor.execute(query)
-    cnxn.commit()
-    cnxn.close()
+    db.session.execute(db.update(Users).where(Users.user_id == session['user_id']).values(email=new_email))
+    print('email updated')
 
 
 def update_user_password(new_password):
