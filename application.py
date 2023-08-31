@@ -37,7 +37,7 @@ class Sesh(db.Model):
     sesh_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey(Users.user_id))
     workout_id = db.Column(db.Integer, db.ForeignKey(Workout.workout_id))
-    date_of_sesh = db.Column(db.DateTime, nullable=False)
+    date_of_sesh = db.Column(db.DateTime)
 class Exercise_Type(db.Model):
     exercise_type_id = db.Column(db.Integer, primary_key=True)
     exercise_type_name = db.Column(db.String(25))
@@ -941,48 +941,48 @@ def submitStrengthSet(wo_ex_id, sesh_id, num_reps, weight_amnt, weight_metric):
 def submitCardioSet(wo_ex_id, sesh_id, duration_amount, duration_metric, distance_amount, distance_metric):
     cnxn = get_db()
     cursor = cnxn.cursor()
-    query = f"SET NOCOUNT ON; DECLARE @set_id int; EXEC @set_id = build_cardio_set {wo_ex_id}, {sesh_id}, {duration_amount}, '{duration_metric}', {distance_amount}, '{distance_metric}', 0; SELECT @set_id;"
+    #build_cardio_set {wo_ex_id}, {sesh_id}, {duration_amount}, '{duration_metric}', {distance_amount}, '{distance_metric}', 0;
     set_id = cursor.execute(query).fetchval()
     cnxn.commit()
     cnxn.close()
     return set_id
+
+#UPDATED, NEEDS TESTED
 def get_workout_name(workout_id):
-     cnxn = get_db()
-     cursor = cnxn.cursor()
-     query = f"SELECT workout_name FROM Workout WHERE workout_id={workout_id};"
-     result = cursor.execute(query).fetchone()
-     workout_name = result[0]
-     cnxn.close()
-     return workout_name
+     workout = db.session.execute(db.select(Workout).where(Workout.workout_id == workout_id)).scalar_one_or_none()
+     return workout.workout_name
+
+# UPDATED, NEEDS TESTED
 def build_sesh():
-     cnxn = get_db()
-     cursor = cnxn.cursor()
-     query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_sesh_return_sesh @user_id={session['user_id']}, @workout_id={session['workout_in_progress_id']}, @sesh_id=0; SELECT @rv AS return_value;"
-     sesh_id = cursor.execute(query).fetchval()
-     cnxn.commit()
-     query = f"SELECT * FROM Sesh WHERE sesh_id={sesh_id};"
-     sesh = cursor.execute(query).fetchone()
-     cnxn.close()
-     return sesh
+    sesh = Sesh(
+        user_id=session['user_id'],
+        workout_id=session['workout_in_progress_id']
+    )
+    db.session.add(sesh)
+    db.session.commit()
+    db.session.refresh()
+    return sesh
 
-
+#UPDATED, NEEDS TESTED
 def user_authenticated():
     if session.get('user_id') is None:
         return False
     return True
 
+#UPDATED, TESTED
 def update_user_email(new_email):
     db.session.execute(db.update(Users).where(Users.user_id == session['user_id']).values(email=new_email))
     db.session.commit()
     print('email updated')
 
-
+#UPDATED
 def update_user_password(new_password):
     hashword = pbkdf2_sha256.hash(new_password)
     db.session.execute(db.update(Users).where(Users.user_id == session['user_id']).values(password=hashword))
     db.session.commit()
     print('password upated')
 
+#UPDATED, NEEDS TESTED
 def delete_user_account(user_id):
     cardio_sets = fetch_cardio_sets_by_user()
     if cardio_sets:
@@ -995,7 +995,7 @@ def delete_user_account(user_id):
     wo_ex_ids = fetch_wo_ex_ids_by_user()
     if wo_ex_ids:
         for id in wo_ex_ids:
-                delete_wo_ex(id.wo_ex_id)
+            delete_wo_ex(id)
     seshs = fetch_sesh_ids_by_user()
     if seshs:
         for sesh in seshs:
@@ -1005,79 +1005,68 @@ def delete_user_account(user_id):
         for workout in workouts:
                 permanently_delete_workout(workout.workout_id)
         delete_user()
+
+#UPDATED, NEEDS TESTED
 def fetch_wo_ex_ids_by_user():
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC fetch_wo_ex_ids_by_user @user_id={session['user_id']};"
-    cursor.execute(query)
-    results = cursor.fetchall()
-    ids = []
-    for result in results:
-        if result.deleted is None or result.deleted == 0:
-            ids.append(result.wo_ex_id)
-    cnxn.close()
-    return ids
+    users_workouts = db.session.execute(db.select(Workout).where(Workout.user_id == session['user_id'])).scalars()
+    workout_ids = []
+    for workout in users_workouts:
+        workout_ids.append(workout.workout_id)
+    workout_exercises = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id in workout_ids)).scalars()
+    wo_ex_ids = []
+    for wo_ex in workout_exercises:
+        wo_ex_ids.append(wo_ex.wo_ex_id)
+    return wo_ex_ids
+
+#UPDATED, NEEDS TESTED
 def fetch_cardio_sets_by_user():
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC fetch_cardio_sets_by_user @user_id=?;"
-    cursor.execute(query, session['user_id'])
-    sets = cursor.fetchall()
-    cnxn.close()
+    wo_ex_ids = fetch_wo_ex_ids_by_user()
+    sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.wo_ex_id in wo_ex_ids))
     return sets
+
+#UPDATED, NEEDS TESTED
 def fetch_sesh_ids_by_user():
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f'EXEC fetch_sesh_ids_by_user @user_id={session["user_id"]}'
-    cursor.execute(query)
-    ids = cursor.fetchall()
-    cnxn.close()
+    ids = db.session.execute(db.select(Sesh).where(Sesh.user_id==session['user_id'])).scalars()
     return ids
+
+#UPDATED, NEEDS TESTED
 def fetch_strength_sets_by_user():
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC fetch_strength_sets_by_user @user_id=?;"
-    cursor.execute(query, session['user_id'])
-    sets = cursor.fetchall()
-    cnxn.close()
+    #use the session['user_id'] to get
+    # all strength sets associated with this user
+    wo_ex_ids = fetch_wo_ex_ids_by_user()
+    sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.wo_ex_id in wo_ex_ids)).scalars()
     return sets
+
+#UPDATED, NEEDS TESTED
 def delete_user():
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"DELETE FROM Users WHERE user_id={session['user_id']};"
-    cursor.execute(query)
-    cnxn.commit()
-    cnxn.close()
+    db.session.delete(Users).where(Users.user_id==session['user_id'])
+    db.session.commit()
     session.clear()
+
+#UPDATED, NEEDS TESTED
 def delete_workout(workout_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query=f"EXEC delete_workout @workout_id={int(workout_id)};"
-    cursor.execute(query)
-    cnxn.commit()
-    cnxn.close()
+    workout = db.session.execute(db.select(Workout).where(Workout.workout_id==workout_id)).scalar_one_or_none()
+    if not workout:
+        print("Error, could not find the workout with that workout_id")
+    workout.deleted = 1
+    db.session.commit()
+
+#UPDATED, NEEDS TESTED
 def permanently_delete_workout(workout_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC permanently_delete_workout @workout_id={workout_id};"
-    cursor.execute(query)
-    cnxn.commit()
-    cnxn.close()
+    db.session.delete(Workout).where(Workout.workout_id==workout_id)
+    db.session.commit()
+
+#UPDATED, NEEDS TESTED
 def delete_sesh(sesh_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC delete_sesh @sesh_id={sesh_id};"
-    cursor.execute(query)
-    cnxn.commit()
-    cnxn.close()
+    db.session.delete(Sesh).where(Sesh.sesh_id==sesh_id)
+    db.commit()
+
+#UPDATED, NEEDS TESTED
 def delete_wo_ex(wo_ex_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC delete_wo_ex @wo_ex_id={wo_ex_id}"
-    cursor.execute(query)
-    cnxn.commit()
-    print('wo_ex deleted')
-    cnxn.close()
+    db.session.execute(db.session.delete(Workout_Exercise).where(Workout_Exercise.wo_ex_id==wo_ex_id))
+    db.session.commit()
+
+#UPDATED, NEEDS TESTED
 def delete_set(set_number, set_type, wo_ex_id):
 
     if set_type == 'Cardio':
@@ -1089,55 +1078,64 @@ def delete_set(set_number, set_type, wo_ex_id):
     else:
         print('invalid set type')
 
-
-def count_user_total_reps_of_exercise(exercise_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC count_user_total_reps @exercise_id={exercise_id}, @num_reps = 0"
+#UPDATED, NEEDS TESTED
 def fetch_users_workouts():
     results = db.session.execute(db.select(Workout).where(Workout.user_id == session['user_id']).where(Workout.deleted == 0)).scalars()
-
     return results
+
+#UPDATED, NEEDS TESTED
 def fetch_all_user_workouts():
     results = db.session.execute(db.select(Workout).where(Workout.user_id == session['user_id'])).scalars()
     return results
 
+#UPDATED, NEEDS TESTED
 def fetch_users_exercises():
-        results = db.session.execute(db.select(Exercise).where)
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = "EXEC fetch_user_exercises "+str(session['user_id'])
-        results = cursor.execute(query).fetchall()
-        cnxn.close()
-        return results;
+        #figure out how to get the exercises based on user_id ->
+        # 1. get all of a users workouts
+        users_workouts = db.session.execute(db.select(Workout).where(Workout.user_id==session['user_id'])).scalars()
+        workout_ids = []
+        for workout in users_workouts:
+            workout_ids.append(workout.workout_id)
+        #workout_ids now holds all the workouts for this user
+        # 2. get all the exercises that haven't been deleted
+        results = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id in workout_ids).where(Workout_Exercise.deleted==0)).scalars()
+        ex_ids = []
+        for result in results:
+            ex_ids.append(result.exercise_id)
+        exercises = db.session.execute(db.select(Exercise).where(Exercise.exercise_id in ex_ids)).scalars()
+        #now we have all the users exercises(that haven't been deleted) in results
+        return exercises
+
+#UPDATED, NEEDS TESTED
 def fetch_all_exercise_names() -> []:
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query='EXEC fetch_all_exercise_names;'
-    results = cursor.execute(query).fetchall()
+    results = db.session.execute(db.select(Exercise))
     ex_names = []
     for result in results:
         ex_names.append(result.exercise_name)
-    cnxn.close()
     return ex_names
+
+#UPDATED, NEEDS TESTED
 def get_exercise_id(exName) -> id:
     ex = db.session.execute(db.select(Exercise).where(Exercise.exercise_name == exName)).scalar_one_or_none()
     id = ex.exercise_id
     return id
 
+#UPDATED, NEEDS TESTED
 def get_exercises_by_workout(workout_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC get_exercises_by_workout @workout_id=?"
-    cursor.execute(query, workout_id)
-    results = cursor.fetchall()
-    cnxn.close()
-    return results
 
+    results = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==workout_id))
+    ex_ids = []
+    for result in results:
+        ex_ids.append(result.exercise_id)
+    exercises = db.session.execute(db.select(Exercise).where(Exercise.exercise_id in ex_ids))
+    return exercises
+
+#UPDATED, NEEDS TESTED
 def build_workout_ex_list_and_showable_ex_list():
-    exercises = get_exercises_by_workout(session['workout_under_edit'])
+    exercises = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id == session['workout_under_edit'])).scalars()
     workout_exercises = {}
     for exercise in exercises:
+        #if the exercise has never been deleted, add it to workout_exercises with the id mapped to the exercise_name
         if exercise.deleted is None or exercise.deleted==0:
             workout_exercises.update({exercise.exercise_id: exercise.exercise_name})
     session['workout_exercises'] = workout_exercises
@@ -1148,6 +1146,8 @@ def build_workout_ex_list_and_showable_ex_list():
             if exercise.exercise_id not in session['workout_exercises'].keys():
                 showable_exercises.update({exercise.exercise_id: exercise.exercise_name})
     session['showable_exercises'] = showable_exercises
+
+
 
 if __name__ == "__main__":
     db.drop_all()
