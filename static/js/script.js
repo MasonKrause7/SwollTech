@@ -2,8 +2,10 @@
 var localaddress = "127.0.0.1:5000";
 
 function nameWorkout(){
-    wo_name = document.getElementById('new_workout_name').value;
-    window.location.href = 'createworkout.html/?wo_name='+wo_name;
+    wo_name = document.getElementById('workout_name').value;
+
+    window.location.href = 'createworkout.html/?wo_name=' + wo_name;
+
 }
 function addExercise(exercise_name){
     window.location.href= 'createworkout.html/?existing_exercise='+exercise_name;

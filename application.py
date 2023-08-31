@@ -12,7 +12,7 @@ import os
 db = SQLAlchemy()
 
 application = Flask(__name__)
-uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
+uri = f"mysql://{'root'}:{'SoccerPlayer7!'}@{'localhost'}:3306/{'swolltech'}"
 application.config['SQLALCHEMY_DATABASE_URI'] = uri
 application.config['SECRET_KEY'] = "testing key"
 
@@ -321,10 +321,11 @@ def create_workout():
 @application.get('/nameworkout.html')
 def name_workout():
     if user_authenticated():
-        return render_template('nameworkout.html')
+            return render_template('nameworkout.html')
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message, messageCategory='danger')
+
 @application.route('/remove/')
 def remove_exercise():
     if user_authenticated():
@@ -384,7 +385,7 @@ def post_create_workout():
         )
         db.session.add(Workout)
         db.session.commit()
-        wo = db.session.execute(db.select(Workout).where(Workout.user_id==session['user_id']).where(Workout.workout_name==session['new_workout_name'])).scalar_one_or_none()
+        wo = db.session.execute(db.select(Workout).where(Workout.user_id==session['user_id'] & Workout.workout_name==session['new_workout_name'])).scalar_one_or_none()
         workout_id = wo.workout_id
 
         #workout created, use workout_id to associate exercises to workout
@@ -417,7 +418,7 @@ def post_create_workout():
                     )
                     db.session.add(exercise)
                     db.session.commit()
-                    exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_name==exName).where(Exercise.exercise_type_id==ex_type_id))
+                    exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_name==exName & Exercise.exercise_type_id==ex_type_id))
                     exercise_id = exercise.exercise_id
                     workout_exercise = Workout_Exercise(
                         workout_id=workout_id,
@@ -536,7 +537,7 @@ def edit_workout_add_existing_exercises():
         exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==exercise_id)).scalar_one_or_none()
         exercise_name = exercise.exercise_name
 
-        dup = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==workout.workout_id).where(Workout_Exercise.exercise_id==exercise_id)).scalar_one_or_none()
+        dup = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==workout.workout_id & Workout_Exercise.exercise_id==exercise_id)).scalar_one_or_none()
         if dup:
             return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
         else:
