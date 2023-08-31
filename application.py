@@ -210,13 +210,8 @@ def change_password():
         curr_password = request.form['curr_password']
         new_password = request.form['new_password']
         conf = request.form['conf_new_password']
-        cnxn = get_db()
-        crsr = cnxn.cursor()
-        query = f'SELECT password FROM Users WHERE user_id={session["user_id"]}'
-        result = crsr.execute(query).fetchall()
-        existing_password = result[0][0]
-        cnxn.close()
-        if pbkdf2_sha256.verify(curr_password, existing_password):
+        user = db.session.execute(db.select(Users).where(Users.user_id==session['user_id'])).scalar_one_or_none()
+        if pbkdf2_sha256.verify(curr_password, user.password):
             if new_password == conf:
                 update_user_password(new_password)
                 return render_template('account.html', message='Password updated', messageCategory='success')
@@ -247,56 +242,11 @@ def home(message=None):
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message)
 
-    # TESTING plotly
-    #cnxn = get_db()
-    #cursor = cnxn.cursor()
-    #query = f"EXEC fetch_onerepmax_data {session['user_id']};"
+    # NEED TO BUILD USEFUL GRAPH DISPLAY HERE
     results = None
     if results is None or len(results) == 0:
-        return render_template('home.html')
-    #made up test data
-    #data = {'Bench': [135, 155, 175], 'Squat':[155, 175, 185], 'Deadlift': [200, 225, 255]}
-    data = [[]]
-    maxData={}
+        return render_template('home.html', message='Graphing features will be available on the home screen very soon!', messageCategory='success')
 
-    #building real data set
-    for result in results:
-        l = []
-        if result.weight_metric == 'kg':
-            weight_kgs = result.weight_amount
-            weight_lbs = float(weight_kgs) * 2.20462262
-            result.weight_metric = 'lbs'
-            result.weight_amount = weight_lbs
-        #Epleys formula for calulating one rep max
-        onerepmax = float(result.weight_amount) * (1 + float(result.number_of_reps)/30)
-        l.append(result.exercise_name)
-        l.append(onerepmax)
-        data.append(l)
-        #data[i] = ['Bench', 225.68749]
-    data.pop(0) #removes empty list
-    for i in range(0, len(data)):
-        if data[i][0] in maxData.keys():
-            currMax = maxData.get(data[i][0])
-            if currMax < data[i][1]:
-                maxData.update({data[i][0] : data[i][1]})
-        else:
-            maxData.update({data[i][0] : data[i][1]})
-    data = []
-    indexs = []
-    for key in maxData.keys():
-        indexs.append(key)
-        data.append([key, maxData.get(key)])
-
-
-
-    df = pd.DataFrame(data, columns=["Exercise", "Weight"], index=indexs)
-
-    print(df)
-
-    fig = px.bar(df, x="Exercise", y="Weight", title="Best 1 Rep Max", barmode='group')
-    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
-    return render_template('home.html', graphJSON=graphJSON)
 
 @application.route('/viewworkout.html')
 def view_workouts():
@@ -537,13 +487,8 @@ def edit_workout():
             if ex.deleted is None or ex.deleted == 0:
                 exercises.append(ex)
         users_workouts = fetch_users_workouts()
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = f'SELECT workout_name, workout_id FROM Workout WHERE workout_id={workout_id}'
-        cursor.execute(query)
-        result = cursor.fetchone()
-        cnxn.close()
-        workout_name = result.workout_name
+        workout = db.session.execute(db.select(Workout).where(Workout.workout_id==workout_id))
+        workout_name = workout.workout_name
         return render_template('editworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, workout_id= result.workout_id)
     else:
         message = 'You are not logged in. Please sign up or log in to continue.'
@@ -564,13 +509,9 @@ def change_workout_name():
 def post_change_workout_name():
     if user_authenticated():
         new_workout_name = request.form.get('new_workout_name')
-
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = f"UPDATE Workout SET workout_name='{new_workout_name}' WHERE workout_id={session['workout_under_edit']}"
-        cursor.execute(query)
-        cnxn.commit()
-        cnxn.close()
+        workout = db.session.execute(db.select(Workout).where(Workout.workout_id==session['workout_under_edit'])).scalar_one_or_none()
+        workout.name = new_workout_name
+        db.session.commit()
         message = 'Workout name has been changed. You can find it in your workouts under the new name: '+new_workout_name
         return redirect(url_for('home'))
     else:
@@ -589,28 +530,23 @@ def add_exercises_to_workout():
 @application.route('/editworkout_addexistingexercise/')
 def edit_workout_add_existing_exercises():
     if user_authenticated():
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = f"SELECT workout_name FROM Workout WHERE workout_id={session['workout_under_edit']}"
-        result = cursor.execute(query).fetchone()
-        workout_name = result[0]
-
         exercise_id = request.args.get('ex_id')
-        print('exerciseId = '+str(exercise_id))
-        query = f"SELECT exercise_name FROM Exercise WHERE exercise_id={exercise_id}"
-        ex = cursor.execute(query).fetchall()
-        exercise_name = ex[0]
+        workout = db.session.execute(db.select(Workout).where(Workout.workout_id==session['workout_under_edit'])).scalar_one_or_none()
+        workout_name = workout.workout_name
+        exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==exercise_id)).scalar_one_or_none()
+        exercise_name = exercise.exercise_name
 
-        query = f"SELECT * FROM Workout_Exercise WHERE workout_id={session['workout_under_edit']} AND exercise_id={exercise_id};"
-        dup = cursor.execute(query).fetchall()
+        dup = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==workout.workout_id).where(Workout_Exercise.exercise_id==exercise_id)).scalar_one_or_none()
         if dup:
-            cnxn.close()
             return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
         else:
-            query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {exercise_id});"
-            cursor.execute(query)
-            cnxn.commit()
-            cnxn.close()
+            workout_exercise = Workout_Exercise(
+                workout_id=workout.workout_id,
+                exercise_id=exercise_id,
+                deleted=0
+            )
+            db.session.add(workout_exercise)
+            db.session.commit()
             build_workout_ex_list_and_showable_ex_list()
 
             return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'] )
@@ -629,32 +565,44 @@ def build_exercise_for_workout():
         for exercise in exercises:
             exercise_names.append(exercise.exercise_name)
 
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = f"SELECT workout_name FROM Workout WHERE workout_id={session['workout_under_edit']};"
-        result = cursor.execute(query).fetchone()
-        workout_name = result.workout_name
-        print('exercise_type = ' + str(exercise_type))
+        workout = db.session.execute(db.select(Workout).where(Workout.workout_id==session['workout_under_edit']))
+
+        #exercise already exists for user, so just associate it with the workout
         if exercise_name in exercise_names:
             ex_id = get_exercise_id(exercise_name)
-            query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {ex_id});"
-            cursor.execute(query)
-            cnxn.commit()
+            wo_ex = Workout_Exercise(
+                workout_id=session['workout_under_edit'],
+                exercise_id=ex_id,
+                deleted=0
+            )
+            db.session.add(wo_ex)
+            db.session.commit()
         else:
             if exercise_type == 'Strength':
-                query = f"INSERT INTO Exercise (exercise_name, exercise_type_id) VALUES ('{exercise_name}', 1);"
+                exercise = Exercise(
+                    exercise_name=exercise_name,
+                    exercise_type_id=1
+                )
+                db.session.add(exercise)
+                db.session.commit()
             elif exercise_type == 'Cardio':
-                query = f"INSERT INTO Exercise (exercise_name, exercise_type_id) VALUES ('{exercise_name}', 2);"
-            cursor.execute(query)
-            cnxn.commit()
+                exercise = Exercise(
+                    exercise_name=exercise_name,
+                    exercise_type_id=2
+                )
+                db.session.add(exercise)
+                db.session.commit()
+
             ex_id = get_exercise_id(exercise_name)
+            workout_exercise = Workout_Exercise(
+                workout_id=session['workout_under_edit'],
+                exercise_id=ex_id,
+                deleted=0
+            )
+            db.session.add(workout_exercise)
+            db.session.commit()
 
-            query = f"INSERT INTO Workout_Exercise (workout_id, exercise_id) VALUES ({session['workout_under_edit']}, {ex_id});"
-            cursor.execute(query)
-            cnxn.commit()
         build_workout_ex_list_and_showable_ex_list()
-        cnxn.close()
-
         return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'],
                                workout_name=workout_name, workoutExercises=session['workout_exercises'],
                                userExercises=session['showable_exercises'])
@@ -669,15 +617,11 @@ def remove_exercise_from_workout():
     wo_id = request.args.get('wo_id')
 
     #mark wo_ex_id with deleted=1
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"UPDATE Workout_Exercise SET deleted=1 WHERE workout_id={wo_id} AND exercise_id={ex_id};"
-    cursor.execute(query)
-    cnxn.commit()
-    query = f"SELECT workout_name FROM Workout WHERE workout_id={wo_id};"
-    result = cursor.execute(query).fetchone()
-    workout_name=result[0]
-    cnxn.close()
+    wo_ex = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==wo_id).where(Workout_Exercise.exercise_id==ex_id)).scalar_one_or_none()
+    wo_ex.deleted=1
+    db.session.commit()
+
+    workout_name = db.session.execute(db.select(Workout).where(Workout.workout_id==wo_id))
     build_workout_ex_list_and_showable_ex_list()
     return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'],
                            workout_name=workout_name, workoutExercises=session['workout_exercises'],
@@ -745,27 +689,24 @@ def start_workout():
 def start_exercise():
     if user_authenticated():
         ex_id = request.args.get('ex_id')
-        exercise_id = 0
-        cnxn = get_db()
-        cursor = cnxn.cursor()
+
+
 
         if ex_id:
-            query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
-            exercise = cursor.execute(query).fetchone()
-            query = f"SELECT wo_ex_id From Workout_Exercise WHERE workout_id={session['workout_in_progress_id']} AND exercise_id={ex_id};"
-            session['current_wo_ex_id'] = cursor.execute(query).fetchval()
+            exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==ex_id)).scalar_one_or_none()
+            wo_ex = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.exercise_id==ex_id).where(Workout_Exercise.workout_id==session['workout_in_progress_id'])).scalar_one_or_none()
+            session['current_wo_ex_id'] = wo_ex.wo_ex_id
         else:
-            query = f"SELECT exercise_id FROM Workout_Exercise WHERE wo_ex_id={session['current_wo_ex_id']};"
-            exercise_id = cursor.execute(query).fetchval()
-            query = f"SELECT * FROM Exercise WHERE exercise_id={exercise_id};"
-            exercise = cursor.execute(query).fetchone()
-        query = f"SELECT * FROM Strength_Set WHERE sesh_id={session['sesh_in_progress_id']} AND wo_ex_id={session['current_wo_ex_id']};"
-        results = cursor.execute(query).fetchall()
+            wo_ex = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.wo_ex_id==session['current_wo_ex_id'])).scalar_one_or_none()
+            exercise_id = wo_ex.exercise_id
+            exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==exercise_id)).scalar_one_or_none()
+
+        results = db.session.execute(db.select(Strength_Set).where(Strength_Set.sesh_id==session['sesh_in_progress_id']).where(Strength_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
+
         completedSets = []
         for result in results:
             completedSets.append(result)
-        query = f"SELECT * FROM Cardio_Set WHERE sesh_id={session['sesh_in_progress_id']} AND wo_ex_id={session['current_wo_ex_id']};"
-        results = cursor.execute(query).fetchall()
+        results = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.sesh_id==session['sesh_in_progress_id']).where(Cardio_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
         for result in results:
             completedSets.append(result)
 
@@ -775,7 +716,6 @@ def start_exercise():
         if ex_id:
             sets = fetch_last_workout_sets_by_exercise(ex_id)
             if sets:
-                print(str(sets[0].date_of_sesh) + " !=!=! " + session['sesh_in_progress_date'])
                 if str(sets[0].date_of_sesh) == session['sesh_in_progress_date']:
                      return render_template('doexercise.html', exercise=exercise, completedSets=completedSets)
 
@@ -790,7 +730,7 @@ def start_exercise():
                 for set in sets:
                     formatted_date_time = format_time(set.date_of_sesh)
                     set.date_of_sesh = formatted_date_time
-        cnxn.close()
+
         return render_template('doexercise.html', exercise=exercise, completedSets=completedSets, last_workout_sets=sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
@@ -800,61 +740,33 @@ def submit_strength_set():
     if user_authenticated():
         ex_id = request.args.get('ex_id')
         num_reps = request.args.get('num_reps')
-        weight_amnt = request.args.get('weight_amnt')
+        weight_amount = request.args.get('weight_amnt')
         weight_metric = request.args.get('weight_metric')
         wo_ex_id = session['current_wo_ex_id']
-        submitStrengthSet(wo_ex_id, session['sesh_in_progress_id'], num_reps, weight_amnt, weight_metric)
-
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
-        exercise = cursor.execute(query).fetchone()
-        query = f"SELECT * FROM Strength_Set WHERE sesh_id={session['sesh_in_progress_id']} AND wo_ex_id={session['current_wo_ex_id']};"
-        results = cursor.execute(query).fetchall()
-        completedSets = []
-        for result in results:
-            completedSets.append(result)
-
-        cnxn.close()
-
+        submitStrengthSet(wo_ex_id, session['sesh_in_progress_id'], num_reps, weight_amount, weight_metric)
+        # set is submitted, reload all the completed sets so far
+        exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==ex_id)).scalar_one_or_none()
+        completed_sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.sesh_id==session['sesh_in_progress_id']).where(Strength_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
         return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
+#UPDATED, NEEDS TESTING
 @application.route('/submitcardioset/')
 def submit_cardio_set():
     if user_authenticated():
-
         wo_ex_id = session['current_wo_ex_id']
         sesh_id = session['sesh_in_progress_id']
-        print('sesh_id='+str(sesh_id))
         duration_amnt = request.args['duration_amnt']
-        print('duration_amnt=' + str(duration_amnt))
         duration_metric = request.args['duration_metric']
-        print('duration_metric=' + str(duration_metric))
         distance_amnt = request.args['distanceAmnt']
-        print('distance_amnt=' + str(distance_amnt))
         distance_metric = request.args['distanceMetric']
-        print('distance_metric=' + str(distance_metric))
         set_id = submitCardioSet(int(wo_ex_id), int(sesh_id), float(duration_amnt), str(duration_metric), float(distance_amnt), str(distance_metric))
-        print('set_id='+str(set_id))
-
-        cnxn = get_db()
-        cursor = cnxn.cursor()
-        query = f"SELECT exercise_id FROM Workout_Exercise WHERE wo_ex_id={wo_ex_id}"
-        ex_id = cursor.execute(query).fetchval()
-        print('**Ex_id='+str(ex_id))
-        query = f"SELECT * FROM Exercise WHERE exercise_id={ex_id};"
-        exercise = cursor.execute(query).fetchone()
-        print(str(exercise.exercise_name)+' - '+str(exercise.exercise_id))
-        print('sesh_id='+str(sesh_id)+', wo_ex_id='+str(wo_ex_id))
-        query = f"SELECT * FROM Cardio_Set WHERE sesh_id={sesh_id} AND wo_ex_id={wo_ex_id};"
-        results = cursor.execute(query).fetchall()
-        completed_sets = []
-        for result in results:
-            completed_sets.append(result)
-        cnxn.close()
+        #set is submitted, reload all the completed sets so far
+        workout_exercise = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.wo_ex_id==wo_ex_id)).scalar_one_or_none()
+        exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==workout_exercise.exercise_id)).scalar_one_or_none()
+        completed_sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.sesh_id==sesh_id).where(Cardio_Set.wo_ex_id==wo_ex_id)).scalars()
         return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
@@ -893,31 +805,33 @@ def format_time(datetime):
     day = datetime[8:10]
     formatted_date_time = f"{months.get(int(month))} {day}, {year} at {time}"
     return formatted_date_time
-def fetch_last_workout_strength_sets(workout_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC fetch_last_workout_strength_sets {int(workout_id)};"
-    strength_sets = cursor.execute(query).fetchall()
-    cnxn.close()
-    return strength_sets
-def fetch_last_workout_cardio_sets(workout_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC fetch_last_workout_cardio_sets {int(workout_id)};"
-    cardio_sets = cursor.execute(query).fetchall()
-    cnxn.close()
-    return cardio_sets
 
+#UPDATED, NEEDS TESTING
+def fetch_last_workout_strength_sets(workout_id):
+    sesh = db.session.execute(db.select(Sesh).where(Sesh.workout_id==workout_id).orderby(Sesh.date_of_sesh)).scalar_one_or_none()
+    sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.sesh_id==sesh.sesh_id)).scalars()
+    return sets
+
+#UPDATED, NEEDS TESTING
+def fetch_last_workout_cardio_sets(workout_id):
+    sesh = db.session.execute(db.select(Sesh).where(Sesh.workout_id==workout_id).orderby(Sesh.date_of_sesh)).scalar_one_or_none()
+    sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.sesh_id==sesh.sesh_id)).scalars()
+    return sets
+
+#UPDATED BUT NEEDS SERIOUS TESTING
 def fetch_last_workout_sets_by_exercise(exercise_id):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"EXEC fetch_last_workout_sets_by_exercise {session['workout_in_progress_id']}, {int(exercise_id)};"
-    sets = cursor.execute(query).fetchall()
-    cnxn.close()
-    if sets:
-        return sets
+    sesh = db.session.execute(db.select(Sesh).where(Sesh.workout_id==session['workout_in_progress_id']).orderby(Sesh.date_of_sesh)).scalar_one_or_none()
+    wo_exs = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==session['workout_in_progress_id']).where(Workout_Exercise.exercise_id==exercise_id)).scalars()
+    exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==exercise_id)).scalar_one_or_none()
+    if exercise.exercise_type_id == 1:
+        #find strength sets
+        sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.sesh_id==sesh.sesh_id).where(Strength_Set.wo_ex_id in wo_exs))
     else:
-        return None
+        #find cardio sets
+        sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.sesh_id==sesh.sesh_id).where(Cardio_Set.wo_ex_id in wo_exs))
+
+
+#UPDATED, NEEDS TESTED
 def markExercises():
     strength_sets = fetch_strength_sets_by_user()
     cardio_sets = fetch_cardio_sets_by_user()
@@ -928,24 +842,34 @@ def markExercises():
         if set.wo_ex_id in session['exercises_with_sets'].keys() and set.sesh_id == session['sesh_in_progress_id']:
             session['exercises_with_sets'].update({set.wo_ex_id : True})
 
+#UPDATED, NEEDS TESTED
+def submitStrengthSet(wo_ex_id, sesh_id, num_reps, weight_amount, weight_metric):
+    strength_set = Strength_Set(
+        wo_ex_id=wo_ex_id,
+        sesh_id=sesh_id,
+        num_reps=num_reps,
+        weight_amount=weight_amount,
+        weight_metric=weight_metric
+    )
+    db.session.add(strength_set)
+    db.session.commit()
+    db.session.refresh(strength_set)
+    return strength_set.s_set_number
 
-def submitStrengthSet(wo_ex_id, sesh_id, num_reps, weight_amnt, weight_metric):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    query = f"SET NOCOUNT ON; DECLARE @rv int; EXEC @rv = build_strength_set @wo_ex_id={wo_ex_id}, @sesh_id={sesh_id}, @number_of_reps={num_reps}, @weight_amount={weight_amnt}, @weight_metric='{weight_metric}', @set_number=0; SELECT @rv"
-    set_number = cursor.execute(query).fetchval()
-    cnxn.commit()
-    cnxn.close()
-    return set_number
-
+#UPDATED, NEEDS TESTED
 def submitCardioSet(wo_ex_id, sesh_id, duration_amount, duration_metric, distance_amount, distance_metric):
-    cnxn = get_db()
-    cursor = cnxn.cursor()
-    #build_cardio_set {wo_ex_id}, {sesh_id}, {duration_amount}, '{duration_metric}', {distance_amount}, '{distance_metric}', 0;
-    set_id = cursor.execute(query).fetchval()
-    cnxn.commit()
-    cnxn.close()
-    return set_id
+    cardio_set = Cardio_Set(
+        wo_ex_id=wo_ex_id,
+        sesh_id=sesh_id,
+        duration_amount=duration_amount,
+        duration_metric=duration_metric,
+        distance_amount=distance_amount,
+        distance_metric=distance_metric
+    )
+    db.session.add(cardio_set)
+    db.session.commit()
+    db.session.refresh(cardio_set)
+    return cardio_set.c_set_number
 
 #UPDATED, NEEDS TESTED
 def get_workout_name(workout_id):
@@ -960,7 +884,7 @@ def build_sesh():
     )
     db.session.add(sesh)
     db.session.commit()
-    db.session.refresh()
+    db.session.refresh(sesh)
     return sesh
 
 #UPDATED, NEEDS TESTED
