@@ -1,6 +1,7 @@
 from flask import Flask, escape, render_template, request, session, redirect, url_for
 from passlib.hash import pbkdf2_sha256
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import and_
 import pandas as pd
 import numpy as np
 import json
@@ -12,7 +13,7 @@ import os
 db = SQLAlchemy()
 
 application = Flask(__name__)
-uri = f"mysql://{'root'}:{'SoccerPlayer7!'}@{'localhost'}:3306/{'swolltech'}"
+uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
 application.config['SQLALCHEMY_DATABASE_URI'] = uri
 application.config['SECRET_KEY'] = "testing key"
 
@@ -355,11 +356,15 @@ def add_existing_exercise():
     if user_authenticated():
         existing_exercises = fetch_users_exercises()
         showable_exercises = []
-        for ex in existing_exercises:
-            if ex.deleted is None or ex.deleted == 0:
-                showable_exercises.append(ex)
+        if existing_exercises:
+            for ex in existing_exercises:
+                if ex.deleted is None or ex.deleted == 0:
+                    showable_exercises.append(ex)
+            return render_template('addexistingexercise.html', existingExercises=showable_exercises)
+        else:
+            return render_template('createworkout.html', message="You don't have any existing exercises, create new exercises to build your first workout", messageCategory='danger')
 
-        return render_template('addexistingexercise.html', existingExercises=showable_exercises)
+
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message)
@@ -378,14 +383,22 @@ def post_create_workout():
     if user_authenticated():
         if 'new_workout_name' not in session.keys():
             return render_template('createworkout.html', message='Must name workout to create it', messageCategory='danger')
+        #make sure user doesnt have any other workouts with the same name
+        workouts = db.session.execute(db.select(Workout).where(Workout.user_id==session['user_id'])).scalars()
+        workout_names = []
+        for workout in workouts:
+            workout_names.append(workout.workout_name)
+        if session['new_workout_name'] in workout_names:
+            return render_template('createworkout.html', message='That workout name is in use for another workout, please rename your workout and recreate', messageCategory='danger')
+
         workout = Workout(
             user_id=session['user_id'],
             workout_name=session['new_workout_name'],
             deleted=0
         )
-        db.session.add(Workout)
+        db.session.add(workout)
         db.session.commit()
-        wo = db.session.execute(db.select(Workout).where(Workout.user_id==session['user_id'] & Workout.workout_name==session['new_workout_name'])).scalar_one_or_none()
+        wo = db.session.execute(db.select(Workout).filter(Workout.user_id==session['user_id'], Workout.workout_name==session['new_workout_name'])).scalar_one_or_none()
         workout_id = wo.workout_id
 
         #workout created, use workout_id to associate exercises to workout
@@ -418,7 +431,7 @@ def post_create_workout():
                     )
                     db.session.add(exercise)
                     db.session.commit()
-                    exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_name==exName & Exercise.exercise_type_id==ex_type_id))
+                    exercise = db.session.execute(db.select(Exercise).filter(Exercise.exercise_name==exName, Exercise.exercise_type_id==ex_type_id))
                     exercise_id = exercise.exercise_id
                     workout_exercise = Workout_Exercise(
                         workout_id=workout_id,
@@ -537,7 +550,7 @@ def edit_workout_add_existing_exercises():
         exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==exercise_id)).scalar_one_or_none()
         exercise_name = exercise.exercise_name
 
-        dup = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==workout.workout_id & Workout_Exercise.exercise_id==exercise_id)).scalar_one_or_none()
+        dup = db.session.execute(db.select(Workout_Exercise).filter(Workout_Exercise.workout_id==workout.workout_id, Workout_Exercise.exercise_id==exercise_id)).scalar_one_or_none()
         if dup:
             return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'], workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
         else:
@@ -618,7 +631,7 @@ def remove_exercise_from_workout():
     wo_id = request.args.get('wo_id')
 
     #mark wo_ex_id with deleted=1
-    wo_ex = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==wo_id).where(Workout_Exercise.exercise_id==ex_id)).scalar_one_or_none()
+    wo_ex = db.session.execute(db.select(Workout_Exercise).filter(Workout_Exercise.workout_id==wo_id, Workout_Exercise.exercise_id==ex_id)).scalar_one_or_none()
     wo_ex.deleted=1
     db.session.commit()
 
@@ -691,23 +704,21 @@ def start_exercise():
     if user_authenticated():
         ex_id = request.args.get('ex_id')
 
-
-
         if ex_id:
             exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==ex_id)).scalar_one_or_none()
-            wo_ex = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.exercise_id==ex_id).where(Workout_Exercise.workout_id==session['workout_in_progress_id'])).scalar_one_or_none()
+            wo_ex = db.session.execute(db.select(Workout_Exercise).filter(Workout_Exercise.exercise_id==ex_id, Workout_Exercise.workout_id==session['workout_in_progress_id'])).scalar_one_or_none()
             session['current_wo_ex_id'] = wo_ex.wo_ex_id
         else:
             wo_ex = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.wo_ex_id==session['current_wo_ex_id'])).scalar_one_or_none()
             exercise_id = wo_ex.exercise_id
             exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==exercise_id)).scalar_one_or_none()
 
-        results = db.session.execute(db.select(Strength_Set).where(Strength_Set.sesh_id==session['sesh_in_progress_id']).where(Strength_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
+        results = db.session.execute(db.select(Strength_Set).filter(Strength_Set.sesh_id==session['sesh_in_progress_id'], Strength_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
 
         completedSets = []
         for result in results:
             completedSets.append(result)
-        results = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.sesh_id==session['sesh_in_progress_id']).where(Cardio_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
+        results = db.session.execute(db.select(Cardio_Set).filter(Cardio_Set.sesh_id==session['sesh_in_progress_id'], Cardio_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
         for result in results:
             completedSets.append(result)
 
@@ -747,7 +758,7 @@ def submit_strength_set():
         submitStrengthSet(wo_ex_id, session['sesh_in_progress_id'], num_reps, weight_amount, weight_metric)
         # set is submitted, reload all the completed sets so far
         exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==ex_id)).scalar_one_or_none()
-        completed_sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.sesh_id==session['sesh_in_progress_id']).where(Strength_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
+        completed_sets = db.session.execute(db.select(Strength_Set).filter(Strength_Set.sesh_id==session['sesh_in_progress_id'], Strength_Set.wo_ex_id==session['current_wo_ex_id'])).scalars()
         return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
@@ -767,7 +778,7 @@ def submit_cardio_set():
         #set is submitted, reload all the completed sets so far
         workout_exercise = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.wo_ex_id==wo_ex_id)).scalar_one_or_none()
         exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==workout_exercise.exercise_id)).scalar_one_or_none()
-        completed_sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.sesh_id==sesh_id).where(Cardio_Set.wo_ex_id==wo_ex_id)).scalars()
+        completed_sets = db.session.execute(db.select(Cardio_Set).filter(Cardio_Set.sesh_id==sesh_id, Cardio_Set.wo_ex_id==wo_ex_id)).scalars()
         return render_template('doexercise.html', exercise=exercise, completedSets=completed_sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
@@ -822,14 +833,17 @@ def fetch_last_workout_cardio_sets(workout_id):
 #UPDATED BUT NEEDS SERIOUS TESTING
 def fetch_last_workout_sets_by_exercise(exercise_id):
     sesh = db.session.execute(db.select(Sesh).where(Sesh.workout_id==session['workout_in_progress_id']).orderby(Sesh.date_of_sesh)).scalar_one_or_none()
-    wo_exs = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==session['workout_in_progress_id']).where(Workout_Exercise.exercise_id==exercise_id)).scalars()
+    wo_exs = db.session.execute(db.select(Workout_Exercise).filter(Workout_Exercise.workout_id==session['workout_in_progress_id'], Workout_Exercise.exercise_id==exercise_id)).scalars()
+    wo_ex_ids = []
+    for ex in wo_exs:
+        wo_ex_ids.append(ex.wo_ex_id)
     exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id==exercise_id)).scalar_one_or_none()
     if exercise.exercise_type_id == 1:
         #find strength sets
-        sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.sesh_id==sesh.sesh_id).where(Strength_Set.wo_ex_id in wo_exs))
+        sets = db.session.execute(db.select(Strength_Set).filter(Strength_Set.sesh_id==sesh.sesh_id, Strength_Set.wo_ex_id.in_(wo_ex_ids)))
     else:
         #find cardio sets
-        sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.sesh_id==sesh.sesh_id).where(Cardio_Set.wo_ex_id in wo_exs))
+        sets = db.session.execute(db.select(Cardio_Set).filter(Cardio_Set.sesh_id==sesh.sesh_id, Cardio_Set.wo_ex_id.in_(wo_ex_ids)))
 
 
 #UPDATED, NEEDS TESTED
@@ -937,7 +951,7 @@ def fetch_wo_ex_ids_by_user():
     workout_ids = []
     for workout in users_workouts:
         workout_ids.append(workout.workout_id)
-    workout_exercises = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id in workout_ids)).scalars()
+    workout_exercises = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id.in_(workout_ids))).scalars()
     wo_ex_ids = []
     for wo_ex in workout_exercises:
         wo_ex_ids.append(wo_ex.wo_ex_id)
@@ -946,7 +960,7 @@ def fetch_wo_ex_ids_by_user():
 #UPDATED, NEEDS TESTED
 def fetch_cardio_sets_by_user():
     wo_ex_ids = fetch_wo_ex_ids_by_user()
-    sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.wo_ex_id in wo_ex_ids))
+    sets = db.session.execute(db.select(Cardio_Set).where(Cardio_Set.wo_ex_id.in_(wo_ex_ids))).scalars()
     return sets
 
 #UPDATED, NEEDS TESTED
@@ -959,7 +973,7 @@ def fetch_strength_sets_by_user():
     #use the session['user_id'] to get
     # all strength sets associated with this user
     wo_ex_ids = fetch_wo_ex_ids_by_user()
-    sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.wo_ex_id in wo_ex_ids)).scalars()
+    sets = db.session.execute(db.select(Strength_Set).where(Strength_Set.wo_ex_id.in_(wo_ex_ids))).scalars()
     return sets
 
 #UPDATED, NEEDS TESTED
@@ -995,17 +1009,17 @@ def delete_wo_ex(wo_ex_id):
 def delete_set(set_number, set_type, wo_ex_id):
 
     if set_type == 'Cardio':
-        db.session.execute(db.session.delete(Cardio_Set).where(Cardio_Set.c_set_number == set_number).where(Cardio_Set.wo_ex_id==wo_ex_id))
+        db.session.execute(db.session.delete(Cardio_Set).filter(Cardio_Set.c_set_number == set_number, Cardio_Set.wo_ex_id==wo_ex_id))
         db.session.commit()
     elif set_type == 'Strength':
-        db.session.execute(db.session.delete(Strength_Set).where(Strength_Set.s_set_number == set_number).where(Strength_Set.wo_ex_id==wo_ex_id))
+        db.session.execute(db.session.delete(Strength_Set).filter(Strength_Set.s_set_number == set_number, Strength_Set.wo_ex_id==wo_ex_id))
         db.session.commit()
     else:
         print('invalid set type')
 
 #UPDATED, NEEDS TESTED
 def fetch_users_workouts():
-    results = db.session.execute(db.select(Workout).where(Workout.user_id == session['user_id']).where(Workout.deleted == 0)).scalars()
+    results = db.session.execute(db.select(Workout).filter(and_(Workout.user_id == session['user_id'], Workout.deleted == 0))).scalars()
     return results
 
 #UPDATED, NEEDS TESTED
@@ -1023,21 +1037,25 @@ def fetch_users_exercises():
             workout_ids.append(workout.workout_id)
         #workout_ids now holds all the workouts for this user
         # 2. get all the exercises that haven't been deleted
-        results = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id in workout_ids).where(Workout_Exercise.deleted==0)).scalars()
-        ex_ids = []
-        for result in results:
-            ex_ids.append(result.exercise_id)
-        exercises = db.session.execute(db.select(Exercise).where(Exercise.exercise_id in ex_ids)).scalars()
-        #now we have all the users exercises(that haven't been deleted) in results
-        return exercises
+        if workout_ids:
+            results = db.session.execute(db.select(Workout_Exercise).filter(Workout_Exercise.workout_id.in_(workout_ids), Workout_Exercise.deleted==0)).scalars()
+            ex_ids = []
+            for result in results:
+                ex_ids.append(result.exercise_id)
+            exercises = db.session.execute(db.select(Exercise).where(Exercise.exercise_id.in_(ex_ids))).scalars()
+            #now we have all the users exercises(that haven't been deleted) in results
+            return exercises
 
 #UPDATED, NEEDS TESTED
 def fetch_all_exercise_names() -> []:
     results = db.session.execute(db.select(Exercise))
-    ex_names = []
-    for result in results:
-        ex_names.append(result.exercise_name)
-    return ex_names
+    if results:
+        ex_names = []
+        for result in results:
+            ex_names.append(result.exercise_name)
+        return ex_names
+    else:
+        return None
 
 #UPDATED, NEEDS TESTED
 def get_exercise_id(exName) -> id:
@@ -1048,11 +1066,11 @@ def get_exercise_id(exName) -> id:
 #UPDATED, NEEDS TESTED
 def get_exercises_by_workout(workout_id):
 
-    results = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==workout_id))
+    results = db.session.execute(db.select(Workout_Exercise).where(Workout_Exercise.workout_id==workout_id)).scalars()
     ex_ids = []
     for result in results:
         ex_ids.append(result.exercise_id)
-    exercises = db.session.execute(db.select(Exercise).where(Exercise.exercise_id in ex_ids))
+    exercises = db.session.execute(db.select(Exercise).where(Exercise.exercise_id.in_(ex_ids))).scalars()
     return exercises
 
 #UPDATED, NEEDS TESTED
