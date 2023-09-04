@@ -13,15 +13,15 @@
 {% endif %}
 {% if exercises%}
 <hr>
-<h2>{{workout_name}}</h2>
+<h2>{{workout.workout_name}}</h2>
 <ul>
     {% for exercise in exercises%}
         <li>{{exercise.exercise_name}}</li>
     {% endfor%}
 </ul>
 
-<button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout_name}}', 'changename')" class="btn btn-secondary btn-sm">Change workout name</button>
-<button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout_name}}', 'addexercise')" class="btn btn-secondary btn-sm">Add/Remove exercises</button>
+<button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout.workout_name}}', 'changename')" class="btn btn-secondary btn-sm">Change workout name</button>
+<button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout.workout_name}}', 'addexercise')" class="btn btn-secondary btn-sm">Add/Remove exercises</button>
 
 
 {% endif %}
