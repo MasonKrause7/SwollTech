@@ -13,14 +13,14 @@ import os
 db = SQLAlchemy()
 
 application = Flask(__name__)
+aws_uri=f"mysql://{'admin'}:{'SoccerPlayer7!'}@{'db-swolltech.cxkpf5rcmqhr.us-east-1.rds.amazonaws.com'}:3306/{'db-swolltech'}"
 uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
-application.config['SQLALCHEMY_DATABASE_URI'] = uri
-application.config['SECRET_KEY'] = "testing key"
+application.config['SQLALCHEMY_DATABASE_URI'] = aws_uri
+application.config['SECRET_KEY'] = "as0k59r878lnkl"
 
 db.init_app(application)
 
 if __name__ == "__main__":
-    application.debug = False
     application.run()
 
 class Users(db.Model):
