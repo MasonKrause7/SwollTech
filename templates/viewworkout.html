@@ -22,43 +22,49 @@
     <h2>{{workout_name}}</h2>
     <ul>
         {% for exercise in exercises %}
-            <li>{{exercise.exercise_name}} - {{exercise.exercise_type_name}}</li>
+            <li>{{exercise.exercise_name}}</li>
         {% endfor%}
     </ul>
 {% endif %}
 <hr>
 {% if workout_name %}
-    {% if strength_sets %}
-        {% if cardio_sets %}
+    {% if strength_sets and cardio_sets %}
         <h2>Your previous sets from {{workout_name}}</h2>
-        <h3>{{strength_sets[0].date_of_sesh}}</h3>
+        <h3>{{formatted_time}}</h3>
         <ul>
             {% for set in strength_sets %}
-                <li>{{set.exercise_name}}: {{set.weight_amount}} {{set.weight_metric}} for {{set.number_of_reps}} reps</li>
+                <li>{{ss[set.s_set_number]}}: {{set.weight_amount}} {{set.weight_metric}} for {{set.number_of_reps}} reps</li>
             {% endfor %}
             {% for set in cardio_sets %}
-                <li>{{set.exercise_name}}: {{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
+                <li>{{cs[set.c_set_number]}}: {{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
             {% endfor %}
             </ul>
-        {% endif %}
+
     {% elif strength_sets %}
         <h2>Your previous sets from {{workout_name}}</h2>
-        <h3>{{strength_sets[0].date_of_sesh}}</h3>
+        <h3>{{formatted_time}}</h3>
         <ul>
             {% for set in strength_sets %}
-                <li>{{set.exercise_name}}: {{set.weight_amount}} {{set.weight_metric}} for {{set.number_of_reps}} reps</li>
+                <li>{{ss[set.s_set_number]}}: {{set.weight_amount}} {{set.weight_metric}} for {{set.number_of_reps}} reps</li>
             {% endfor %}
         </ul>
     {% elif cardio_sets %}
         <h2>Your previous sets from {{workout_name}}</h2>
-        <h3>{{cardio_sets[0].date_of_sesh}}</h3>
+        <h3>{{formatted_time}}</h3>
         <ul>
             {% for set in cardio_sets %}
-                <li>{{set.exercise_name}}: {{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
+                <li>{{cs[set.c_set_number]}}: {{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
             {% endfor %}
         </ul>
     {% else %}
         <h3>You have not completed this workout before. Once you do this workout, you can view your most recent set data here.</h3>
+    {% endif %}
+    {% if dates%}
+    <hr>
+    <h3>You've done this workout {{num_times}} times:</h3>
+        {% for date in dates %}
+            <h4>{{date}}</h4>
+        {% endfor %}
     {% endif %}
 {% endif %}
 <a type="button" class="mt-5 btn btn-primary btn-lg" href="{{url_for('home')}}">Back to Home</a>

@@ -15,7 +15,7 @@ db = SQLAlchemy()
 application = Flask(__name__)
 aws_uri=f"mysql://{'admin'}:{'SoccerPlayer7!'}@{'db-swolltech.cxkpf5rcmqhr.us-east-1.rds.amazonaws.com'}:3306/{'db-swolltech'}"
 uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
-application.config['SQLALCHEMY_DATABASE_URI'] = aws_uri
+application.config['SQLALCHEMY_DATABASE_URI'] = uri
 application.config['SECRET_KEY'] = "as0k59r878lnkl"
 
 db.init_app(application)
@@ -255,12 +255,13 @@ def delete_account():
 def home(message=None):
     if not user_authenticated():
         message = 'You must be logged in to access your home page'
-        return render_template(url_for('login'), message=message)
+        return render_template(url_for('login'), message=message, messageCategory='danger')
 
     # NEED TO BUILD USEFUL GRAPH DISPLAY HERE
-    results = None
-    if results is None or len(results) == 0:
-        return render_template('home.html', message='Graphing features will be available on the home screen very soon!', messageCategory='success')
+    #find total number of workouts completed
+    sesh_objs = Sesh.query.filter_by(user_id=session['user_id']).all()
+    num_seshs = len(sesh_objs)
+    return render_template('home.html', num_seshs=num_seshs)
 
 
 @application.route('/viewworkout.html')
@@ -278,21 +279,41 @@ def view_workout():
         workout_id = request.args.get('workout_id')
         workout_name = request.args.get('workout_name')
         exercises = get_exercises_by_workout(workout_id)
+        formatted_date_time = None
 
         strength_sets = fetch_last_workout_strength_sets(workout_id)
+
+        ss = {}
         if strength_sets:
+            sesh = Sesh.query.filter_by(sesh_id=strength_sets[0].sesh_id).first()
+
             for set in strength_sets:
-                datetime = str(set.date_of_sesh)
-                formatted_date_time=format_time(datetime)
-                set.date_of_sesh = formatted_date_time
+                wo_ex = Workout_Exercise.query.filter_by(wo_ex_id=set.wo_ex_id).first()
+                ex = Exercise.query.filter_by(exercise_id=wo_ex.exercise_id).first()
+                ss.update({set.s_set_number : ex.exercise_name})
+                datetime = str(sesh.date_of_sesh)
+                formatted_date_time = format_time(datetime)
 
         cardio_sets = fetch_last_workout_cardio_sets(workout_id)
+        cs = {}
+
         if cardio_sets:
+            sesh = Sesh.query.filter_by(sesh_id=cardio_sets[0].sesh_id).first()
             for set in cardio_sets:
-                datetime = str(set.date_of_sesh)
+                wo_ex = Workout_Exercise.query.filter_by(wo_ex_id=set.wo_ex_id).first()
+                ex = Exercise.query.filter_by(exercise_id=wo_ex.exercise_id).first()
+                cs.update({set.c_set_number : ex.exercise_name})
+                datetime = str(sesh.date_of_sesh)
                 formatted_date_time = format_time(datetime)
-                set.date_of_sesh = formatted_date_time
-        return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, strength_sets=strength_sets, cardio_sets=cardio_sets)
+
+        seshs = Sesh.query.filter(Sesh.workout_id==workout_id, Sesh.user_id==session['user_id']).order_by(Sesh.date_of_sesh.desc()).all()
+        seshs = seshs[1:]
+        dates = []
+        for sesh in seshs:
+            dates.append(format_time(str(sesh.date_of_sesh)))
+        if len(dates) == 0:
+            dates = None
+        return render_template('viewworkout.html', users_workouts=users_workouts, exercises=exercises, workout_name=workout_name, ss=ss, strength_sets=strength_sets, cs=cs, cardio_sets=cardio_sets, num_times=len(seshs)+1, dates=dates, formatted_time=formatted_date_time)
     else:
         message = 'You must be logged in to view workouts. Please log in or make an account'
         return render_template('index.html', message=message, messageCategory='danger')
@@ -697,12 +718,16 @@ def start_workout():
         date = session['sesh_in_progress_date']
         formatted_date_time= format_time(date)
 
-        exercises = get_exercises_by_workout(wo_id)
         session['exercises_with_sets'] = {}
-
+        exercises = get_exercises_by_workout(wo_id)
 
         markExercises()
-        return render_template('workoutsesh.html', exercises=exercises, formatted_date_time=formatted_date_time)
+        wo_ex_to_ex = {}
+        for ex in exercises:
+            wo_ex = Workout_Exercise.query.filter(Workout_Exercise.workout_id == wo_id, Workout_Exercise.exercise_id ==ex.exercise_id).first()
+            wo_ex_to_ex.update({ex.exercise_name : wo_ex.wo_ex_id})
+
+        return render_template('workoutsesh.html', exercises=exercises, formatted_date_time=formatted_date_time, wo_ex_to_ex=wo_ex_to_ex)
 
     else:
         message = "You are not logged in. Please log in or sign up to continue."
@@ -729,20 +754,27 @@ def start_exercise():
         #fetch sets from last workout
         if ex_id:
             sets = fetch_last_workout_sets_by_exercise(ex_id) #this gets the sets from last workout, or returns none
-            if sets:
+            print('SETS:')
+            print(sets)
+
+            if sets and len(sets) > 0:
                 #these are sets that were completed during this workout, not last
-                if str(sets[0].date_of_sesh) == session['sesh_in_progress_date']:
-                    return render_template('doexercise.html', exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
-            #if there were no sets from a previous workout
-            return render_template('doexercise.html', exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+                sesh = Sesh.query.filter_by(sesh_id=sets[0].sesh_id).first()
+                if str(sesh.date_of_sesh) == session['sesh_in_progress_date']:
+                    return render_template('doexercise.html', sesh=sesh, exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+                #if there were no sets from a previous workout
+                return render_template('doexercise.html', sesh=sesh, exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+            return render_template('doexercise.html', exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+
         else:
             sets = fetch_last_workout_sets_by_exercise(exercise_id)
-            if sets:
-                for set in sets:
-                    formatted_date_time = format_time(set.date_of_sesh)
-                    set.date_of_sesh = formatted_date_time
-                return render_template('doexercise.html', exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
-            return render_template('doexercise.html', exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+            if sets and len(sets) > 0:
+                sesh = Sesh.query.filter_by(sesh_id=sets[0].sesh_id).first()
+
+                formatted_date_time = format_time(sesh.date_of_sesh)
+
+                return render_template('doexercise.html', exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets, formatted_time=formatted_date_time)
+            return render_template('doexercise.html', exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets,formatted_time=formatted_date_time)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
@@ -833,7 +865,7 @@ def format_time(datetime):
 
 #UPDATED, NEEDS TESTING
 def fetch_last_workout_strength_sets(workout_id):
-    sesh = Sesh.query.filter(Sesh.workout_id==workout_id).order_by(Sesh.date_of_sesh).first()
+    sesh = Sesh.query.filter(Sesh.workout_id==workout_id).order_by(Sesh.date_of_sesh.desc()).first()
     if sesh:
         sets = Strength_Set.query.filter(Strength_Set.sesh_id==sesh.sesh_id).all()
         return sets
@@ -852,6 +884,8 @@ def fetch_last_workout_cardio_sets(workout_id):
 #UPDATED BUT NEEDS SERIOUS TESTING
 def fetch_last_workout_sets_by_exercise(exercise_id):
     seshs = Sesh.query.filter(Sesh.workout_id==session['workout_in_progress_id']).order_by(Sesh.date_of_sesh.desc()).limit(2).all()
+    print('SESHS:')
+    print(seshs)
     if seshs is None or len(seshs) == 1:
         return None
     else:
@@ -862,21 +896,26 @@ def fetch_last_workout_sets_by_exercise(exercise_id):
     if exercise.exercise_type_id == 1:
         #find strength sets
         sets = Strength_Set.query.filter(Strength_Set.sesh_id==sesh.sesh_id, Strength_Set.wo_ex_id==wo_ex.wo_ex_id).all()
+
     else:
         #find cardio sets
         sets = Cardio_Set.query.filter(Cardio_Set.sesh_id==sesh.sesh_id, Cardio_Set.wo_ex_id==wo_ex.wo_ex_id).all()
+
     return sets
 
 #UPDATED, NEEDS TESTED
 def markExercises():
-    strength_sets = fetch_strength_sets_by_user()
-    cardio_sets = fetch_cardio_sets_by_user()
+    #use session['sesh_in_progress_id']
+    #to load session['exercises_with_sets']
+    #with the wo_ex_id : True if there is a
+    #set completed for the sesh in progress
+    sesh = Sesh.query.filter_by(sesh_id=session['sesh_in_progress_id']).first()
+    strength_sets = Strength_Set.query.filter_by(sesh_id=sesh.sesh_id).all()
+    cardio_sets = Cardio_Set.query.filter_by(sesh_id=sesh.sesh_id).all()
     for set in strength_sets:
-        if set.wo_ex_id in session['exercises_with_sets'].keys() and set.sesh_id == session['sesh_in_progress_id']:
-            session['exercises_with_sets'].update({set.wo_ex_id : True})
+        session['exercises_with_sets'].update({set.wo_ex_id : True})
     for set in cardio_sets:
-        if set.wo_ex_id in session['exercises_with_sets'].keys() and set.sesh_id == session['sesh_in_progress_id']:
-            session['exercises_with_sets'].update({set.wo_ex_id : True})
+        session['exercises_with_sets'].update({set.wo_ex_id : True})
 
 #UPDATED, NEEDS TESTED
 def submitStrengthSet(wo_ex_id, sesh_id, num_reps, weight_amount, weight_metric):
@@ -1042,8 +1081,8 @@ def delete_set(set_number, set_type, wo_ex_id):
 
 #UPDATED, NEEDS TESTED
 def fetch_users_workouts():
-    results = db.session.execute(db.select(Workout).filter(and_(Workout.user_id == session['user_id'], Workout.deleted == 0))).scalars()
-    return results
+    workouts = Workout.query.filter(Workout.user_id == session['user_id'], Workout.deleted == 0).all()
+    return workouts
 
 #UPDATED, NEEDS TESTED
 def fetch_all_user_workouts():
@@ -1092,12 +1131,12 @@ def get_exercises_by_workout(workout_id):
     results = Workout_Exercise.query.filter(Workout_Exercise.workout_id==workout_id).all()
     ex_ids = []
     for result in results:
-        if result.deleted is None or result.deleted is False:
+        if result.deleted is None or result.deleted == 0:
 
             ex_ids.append(result.exercise_id)
             if 'exercises_with_sets' in session.keys():
                 session['exercises_with_sets'].update({result.wo_ex_id: False})
-
+                #^this line loads 'exercises_with_sets' with the exercises to be done this workout.
     exercises = Exercise.query.filter(Exercise.exercise_id.in_(ex_ids)).all()
     return exercises
 

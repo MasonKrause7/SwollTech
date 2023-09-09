@@ -21,20 +21,21 @@
 </nav>
 
 
-    {% if graphJSON %}
+    {% if num_seshs %}
         <h2 class="mt-3 text-center mb-3">Welcome back to SwollTech {{ session['fname'] }}</h2>
         <div class="d-flex justify-content-center align-items-center">
-            <a type="button" class="mb-3 btn btn-primary btn-large" href="{{url_for('select_workout')}}">Start a Workout Sesh</a>
+            <a type="button" class="mb-3 btn btn-primary btn-large" href="{{url_for('select_workout')}}">START WORKOUT</a>
         </div>
-        <h3 class="text-center">Lets take a look at your best one rep max for each lift... </h3>
-        <div id="chart" class="container-fluid align-items-center justify-content-center "></div>
+        <h3 class="text-center">{{num_seshs}} workouts completed so far, keep it up!</h3>
+        <div id="chart" class="container-fluid align-items-center justify-content-center ">
+
+        </div>
     {% else %}
         <h2 class="mt-3 text-center mb-3">Welcome to SwollTech {{ session['fname'] }}</h2>
         <div class="border-end d-flex justify-content-center align-items-center">
-            <a type="button" class="btn btn-primary btn-large mt-2 mb-4" href="{{url_for('select_workout')}}">Start a Workout Sesh</a>
+            <a type="button" class="btn btn-primary btn-large mt-2 mb-4" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>
         </div>
-        <p><b>You haven't completed any strength exercises yet... once you complete a workout, you'll see a graph of your best one rep max for each exercise</b></p>
-
+        <p><b>Lets take your fitness to the next level. Build your workout using the CREATE WORKOUT tool, then use the START WORKOUT button to begin a workout sesh.</b></p>
     {% endif %}
 
 
