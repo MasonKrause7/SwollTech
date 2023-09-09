@@ -10,12 +10,13 @@ from plotly import utils
 import plotly.express as px
 from os import environ
 
-db = SQLAlchemy()
 
 application = Flask(__name__)
+db = SQLAlchemy()
+
 aws_uri=f"mysql://{environ.get('RDS_USERNAME')}:{environ.get('RDS_PASSWORD')}@{environ.get('RDS_HOSTNAME')}:{environ.get('RDS_PORT')}/{environ.get('RDS_DB_NAME')}"
 uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
-application.config['SQLALCHEMY_DATABASE_URI'] = uri
+application.config['SQLALCHEMY_DATABASE_URI'] = aws_uri
 application.config['SECRET_KEY'] = "as0k59r878lnkl"
 
 db.init_app(application)
