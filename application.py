@@ -8,12 +8,12 @@ import json
 import plotly
 from plotly import utils
 import plotly.express as px
-import os
+from os import environ
 
 db = SQLAlchemy()
 
 application = Flask(__name__)
-aws_uri=f"mysql://{'admin'}:{'SoccerPlayer7!'}@{'db-swolltech.cxkpf5rcmqhr.us-east-1.rds.amazonaws.com'}:3306/{'db-swolltech'}"
+aws_uri=f"mysql://{environ.get('RDS_USERNAME')}:{environ.get('RDS_PASSWORD')}@{environ.get('RDS_HOSTNAME')}:{environ.get('RDS_PORT')}/{environ.get('RDS_DB_NAME')}"
 uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
 application.config['SQLALCHEMY_DATABASE_URI'] = uri
 application.config['SECRET_KEY'] = "as0k59r878lnkl"
