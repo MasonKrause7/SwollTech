@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session, redirect, url_for
 from passlib.hash import pbkdf2_sha256
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_
+import pymysql
 import pandas as pd
 import numpy as np
 import json
@@ -14,18 +15,15 @@ from os import environ
 application = Flask(__name__)
 db = SQLAlchemy()
 
-aws_uri=f"mysql://{environ.get('RDS_USERNAME')}:{environ.get('RDS_PASSWORD')}@{environ.get('RDS_HOSTNAME')}:{environ.get('RDS_PORT')}/{environ.get('RDS_DB_NAME')}"
-uri = f"mysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
+aws_uri=f"mysql+pymysql://{'admin'}:{'Bond7007!'}@{'swolltech1.cxkpf5rcmqhr.us-east-1.rds.amazonaws.com'}:{3306}/{'swolltech1'}"
+uri = f"mysql+pymysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
 application.config['SQLALCHEMY_DATABASE_URI'] = aws_uri
 application.config['SECRET_KEY'] = "as0k59r878lnkl"
 
 db.init_app(application)
 
-if __name__ == "__main__":
-    application.run()
 
-class Users(db.Model):
-
+class users(db.Model):
     user_id = db.Column(db.Integer, primary_key=True)
     fname = db.Column(db.String(80), unique=False, nullable=False)
     lname = db.Column(db.String(80), unique=False, nullable=False)
@@ -33,56 +31,53 @@ class Users(db.Model):
     dob = db.Column(db.DateTime, unique=False, nullable=False)
     password = db.Column(db.String(200), unique=False, nullable=False)
 
-class Workout(db.Model):
+class workout(db.Model):
     workout_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(Users.user_id))
+    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id))
     workout_name = db.Column(db.String(100), unique=False, nullable=False)
     deleted = db.Column(db.Boolean)
 
-class Sesh(db.Model):
+class sesh(db.Model):
     sesh_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(Users.user_id))
-    workout_id = db.Column(db.Integer, db.ForeignKey(Workout.workout_id))
+    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id))
+    workout_id = db.Column(db.Integer, db.ForeignKey(workout.workout_id))
     date_of_sesh = db.Column(db.DateTime, default=db.func.current_timestamp())
-class Exercise_Type(db.Model):
-    __tablename__ = 'exercise_type'
+class exercise_type(db.Model):
     exercise_type_id = db.Column(db.Integer, primary_key=True)
     exercise_type_name = db.Column(db.String(25))
-class Exercise(db.Model):
+class exercise(db.Model):
     exercise_id = db.Column(db.Integer, primary_key=True)
     exercise_name = db.Column(db.String(80), nullable=False)
-    exercise_type_id = db.Column(db.Integer, db.ForeignKey(Exercise_Type.exercise_type_id))
-class Workout_Exercise(db.Model):
-    __tablename__ = 'workout_exercise'
+    exercise_type_id = db.Column(db.Integer, db.ForeignKey(exercise_type.exercise_type_id))
+class workout_exercise(db.Model):
     wo_ex_id = db.Column(db.Integer, primary_key=True )
-    workout_id = db.Column(db.Integer, db.ForeignKey(Workout.workout_id))
-    exercise_id = db.Column(db.Integer, db.ForeignKey(Exercise.exercise_id))
+    workout_id = db.Column(db.Integer, db.ForeignKey(workout.workout_id))
+    exercise_id = db.Column(db.Integer, db.ForeignKey(exercise.exercise_id))
     deleted = db.Column(db.Boolean)
 
-class Cardio_Set(db.Model):
-    __tablename__ = 'cardio_set'
+class cardio_set(db.Model):
     c_set_number = db.Column(db.Integer, primary_key=True)
-    wo_ex_id = db.Column(db.Integer, db.ForeignKey(Workout_Exercise.wo_ex_id))
-    sesh_id = db.Column(db.Integer, db.ForeignKey(Sesh.sesh_id))
+    wo_ex_id = db.Column(db.Integer, db.ForeignKey(workout_exercise.wo_ex_id))
+    sesh_id = db.Column(db.Integer, db.ForeignKey(sesh.sesh_id))
     duration_amount = db.Column(db.Float)
     duration_metric = db.Column(db.String(50))
     distance_amount = db.Column(db.Float)
     distance_metric = db.Column(db.String(50))
-class Strength_Set(db.Model):
-    __tablename__ = 'strength_set'
+class strength_set(db.Model):
     s_set_number = db.Column(db.Integer, primary_key=True)
-    wo_ex_id = db.Column(db.Integer, db.ForeignKey(Workout_Exercise.wo_ex_id))
-    sesh_id = db.Column(db.Integer, db.ForeignKey(Sesh.sesh_id))
+    wo_ex_id = db.Column(db.Integer, db.ForeignKey(workout_exercise.wo_ex_id))
+    sesh_id = db.Column(db.Integer, db.ForeignKey(sesh.sesh_id))
     number_of_reps = db.Column(db.Integer)
     weight_amount = db.Column(db.Float)
     weight_metric = db.Column(db.String(25))
 
-    def __init__(self, wo_ex_id, sesh_id, number_of_reps, weight_amount, weight_metric):
-        self.wo_ex_id=wo_ex_id
-        self.sesh_id=sesh_id
-        self.number_of_reps=number_of_reps
-        self.weight_amount=weight_amount
-        self.weight_metric=weight_metric
+
+
+if __name__ == "__main__":
+    print('inside main block')
+    with application.app_context():
+        db.create_all()
+    application.run(debug=True, port=80)
 @application.route('/')
 def index():
     if user_authenticated():
@@ -115,14 +110,14 @@ def post_signup():
         return render_template(url_for('get_signup'), message=message, messageCategory='danger', fname=fname, lname=lname, email=email, dob=dob, password=password)
     #check if user exists in db
 
-    user = db.session.execute(db.select(Users).where(Users.email == email)).scalar_one_or_none()
+    user = db.session.execute(db.select(users).where(users.email == email)).scalar_one_or_none()
     if user:  # if user already exists, render login
         message = "That email is already associated with an account, please log in instead"
         return render_template('login.html', message=message, messageCategory='danger')
     else: #valid new user, try adding to db
         try:
             hashword = pbkdf2_sha256.hash(password)
-            user = Users(fname=fname, lname=lname, email=email, dob=dob, password=hashword)
+            user = users(fname=fname, lname=lname, email=email, dob=dob, password=hashword)
             print(user.fname + " model created...")
             db.session.add(user)
             db.session.commit()
@@ -145,7 +140,7 @@ def login(user=None, message=""):
         username = request.form.get('username')
         password = request.form.get('loginpassword')
 
-        result = db.session.execute(db.select(Users).where(Users.email==username)).scalar_one_or_none()
+        result = db.session.execute(db.select(users).where(users.email==username)).scalar_one_or_none()
 
 
         if not result:
@@ -202,7 +197,7 @@ def change_email():
 
         password = request.form.get('password')
 
-        user = db.session.execute(db.select(Users).where(Users.user_id==session['user_id'])).scalar_one_or_none()
+        user = db.session.execute(db.select(users).where(users.user_id==session['user_id'])).scalar_one_or_none()
         existing_password = user.password
 
         if password:
@@ -226,7 +221,7 @@ def change_password():
         curr_password = request.form['curr_password']
         new_password = request.form['new_password']
         conf = request.form['conf_new_password']
-        user = db.session.execute(db.select(Users).where(Users.user_id==session['user_id'])).scalar_one_or_none()
+        user = db.session.execute(db.select(users).where(users.user_id==session['user_id'])).scalar_one_or_none()
         if pbkdf2_sha256.verify(curr_password, user.password):
             if new_password == conf:
                 update_user_password(new_password)
@@ -391,11 +386,9 @@ def add_existing_exercise():
     if user_authenticated():
         existing_exercises = fetch_users_exercises()
         if existing_exercises:
-
             return render_template('addexistingexercise.html', existingExercises=existing_exercises)
         else:
             return render_template('createworkout.html', message="You don't have any existing exercises, create new exercises to build your first workout", messageCategory='danger')
-
 
     else:
         message = "You must be logged in to create workouts"
@@ -416,7 +409,7 @@ def post_create_workout():
         if 'new_workout_name' not in session.keys():
             return render_template('createworkout.html', message='Must name workout to create it', messageCategory='danger')
         #make sure user doesnt have any other workouts with the same name
-        workouts = Workout.query.filter_by(user_id=session['user_id']).all()
+        workouts = Workout.query.filter(Workout.user_id==session['user_id'], Workout.deleted==0).all()
         workout_names = []
         for workout in workouts:
             workout_names.append(workout.workout_name)
@@ -436,43 +429,68 @@ def post_create_workout():
         #workout created, use workout_id to associate exercises to workout
         #build individual exercises
         existingExerciseNames = fetch_all_exercise_names()
-        if 'new_exercises' in session.keys():
+        if existingExerciseNames is None or len(existingExerciseNames)==0:
             for exName in session['new_exercises'].keys():
-                if exName in existingExerciseNames:
-                    #exercise with exName already exist, just associate it with the workout
-                    ex_id = get_exercise_id(exName)
-                    wo_ex = Workout_Exercise(
-                        workout_id=session['workout_in_progress_id'],
-                        exercise_id=ex_id,
-                        deleted=0
-                    )
-                    db.session.add(wo_ex)
-                    db.session.commit()
-
+                ex_type = session['new_exercises'].get(exName)
+                ex_type_id = 0
+                if ex_type == 'Strength':
+                    ex_type_id = 1
                 else:
-                    #exercise with exName is new and needs to be added to exercises
-                    ex_type = session['new_exercises'].get(exName)
-                    ex_type_id = 0
-                    if ex_type == 'Strength':
-                        ex_type_id = 1
-                    else:
-                        ex_type_id = 2
+                    ex_type_id = 2
 
-                    exercise = Exercise(
-                        exercise_name=exName,
-                        exercise_type_id=ex_type_id
-                    )
-                    db.session.add(exercise)
-                    db.session.commit()
-                    exercise = Exercise.query.filter(Exercise.exercise_name==exName, Exercise.exercise_type_id==ex_type_id).first()
-                    exercise_id = exercise.exercise_id
-                    workout_exercise = Workout_Exercise(
-                        workout_id=workout_id,
-                        exercise_id=exercise_id,
-                        deleted=0
-                    )
-                    db.session.add(workout_exercise)
-                    db.session.commit()
+                exercise = Exercise(
+                    exercise_name=exName,
+                    exercise_type_id=ex_type_id
+                )
+                db.session.add(exercise)
+                db.session.commit()
+                exercise = Exercise.query.filter(Exercise.exercise_name == exName, Exercise.exercise_type_id == ex_type_id).first()
+                exercise_id = exercise.exercise_id
+                workout_exercise = Workout_Exercise(
+                    workout_id=workout_id,
+                    exercise_id=exercise_id,
+                    deleted=0
+                )
+                db.session.add(workout_exercise)
+                db.session.commit()
+        else:
+            if 'new_exercises' in session.keys():
+                for exName in session['new_exercises'].keys():
+                    if exName in existingExerciseNames:
+                        #exercise with exName already exist, just associate it with the workout
+                        ex_id = get_exercise_id(exName)
+                        wo_ex = Workout_Exercise(
+                            workout_id=session['workout_in_progress_id'],
+                            exercise_id=ex_id,
+                            deleted=0
+                        )
+                        db.session.add(wo_ex)
+                        db.session.commit()
+
+                    else:
+                        #exercise with exName is new and needs to be added to exercises
+                        ex_type = session['new_exercises'].get(exName)
+                        ex_type_id = 0
+                        if ex_type == 'Strength':
+                            ex_type_id = 1
+                        else:
+                            ex_type_id = 2
+
+                        exercise = Exercise(
+                            exercise_name=exName,
+                            exercise_type_id=ex_type_id
+                        )
+                        db.session.add(exercise)
+                        db.session.commit()
+                        exercise = Exercise.query.filter(Exercise.exercise_name==exName, Exercise.exercise_type_id==ex_type_id).first()
+                        exercise_id = exercise.exercise_id
+                        workout_exercise = Workout_Exercise(
+                            workout_id=workout_id,
+                            exercise_id=exercise_id,
+                            deleted=0
+                        )
+                        db.session.add(workout_exercise)
+                        db.session.commit()
         if 'existing_exercises' in session.keys():
             for exName in session['existing_exercises']:
                 ex_id = get_exercise_id(exName)
@@ -973,14 +991,14 @@ def user_authenticated():
 
 #UPDATED, TESTED
 def update_user_email(new_email):
-    db.session.execute(db.update(Users).where(Users.user_id == session['user_id']).values(email=new_email))
+    db.session.execute(db.update(users).where(users.user_id == session['user_id']).values(email=new_email))
     db.session.commit()
     print('email updated')
 
 #UPDATED
 def update_user_password(new_password):
     hashword = pbkdf2_sha256.hash(new_password)
-    db.session.execute(db.update(Users).where(Users.user_id == session['user_id']).values(password=hashword))
+    db.session.execute(db.update(users).where(users.user_id == session['user_id']).values(password=hashword))
     db.session.commit()
     print('password upated')
 
@@ -1041,13 +1059,13 @@ def fetch_strength_sets_by_user():
 
 #UPDATED, NEEDS TESTED
 def delete_user():
-    db.session.delete(Users).where(Users.user_id==session['user_id'])
+    db.session.delete(users).where(users.user_id==session['user_id'])
     db.session.commit()
     session.clear()
 
 #UPDATED, NEEDS TESTED
 def delete_workout(workout_id):
-    workout = db.session.execute(db.select(Workout).where(Workout.workout_id==workout_id)).scalar_one_or_none()
+    workout = db.session.execute(db.select(workout).where(workout.workout_id==workout_id)).scalar_one_or_none()
     if not workout:
         print("Error, could not find the workout with that workout_id")
     workout.deleted = 1
@@ -1055,27 +1073,27 @@ def delete_workout(workout_id):
 
 #UPDATED, NEEDS TESTED
 def permanently_delete_workout(workout_id):
-    db.session.delete(Workout).where(Workout.workout_id==workout_id)
+    db.session.delete(workout).where(workout.workout_id==workout_id)
     db.session.commit()
 
 #UPDATED, NEEDS TESTED
 def delete_sesh(sesh_id):
-    db.session.delete(Sesh).where(Sesh.sesh_id==sesh_id)
+    db.session.delete(sesh).where(sesh.sesh_id==sesh_id)
     db.commit()
 
 #UPDATED, NEEDS TESTED
 def delete_wo_ex(wo_ex_id):
-    db.session.execute(db.session.delete(Workout_Exercise).where(Workout_Exercise.wo_ex_id==wo_ex_id))
+    db.session.execute(db.session.delete(workout_exercise).where(workout_exercise.wo_ex_id==wo_ex_id))
     db.session.commit()
 
 #UPDATED, NEEDS TESTED
 def delete_set(set_number, set_type, wo_ex_id):
 
     if set_type == 'Cardio':
-        db.session.execute(db.session.delete(Cardio_Set).filter(Cardio_Set.c_set_number == set_number, Cardio_Set.wo_ex_id==wo_ex_id))
+        db.session.execute(db.session.delete(cardio_set).filter(cardio_set.c_set_number == set_number, cardio_set.wo_ex_id==wo_ex_id))
         db.session.commit()
     elif set_type == 'Strength':
-        db.session.execute(db.session.delete(Strength_Set).filter(Strength_Set.s_set_number == set_number, Strength_Set.wo_ex_id==wo_ex_id))
+        db.session.execute(db.session.delete(strength_set).filter(strength_set.s_set_number == set_number, strength_set.wo_ex_id==wo_ex_id))
         db.session.commit()
     else:
         print('invalid set type')
