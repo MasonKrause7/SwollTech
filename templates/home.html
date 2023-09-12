@@ -32,23 +32,27 @@
         </div>
     {% else %}
         <h2 class="mt-3 text-center mb-3">Welcome to SwollTech {{ session['fname'] }}</h2>
+        {% if num_workouts == 0%}
         <div class="border-end d-flex justify-content-center align-items-center">
             <a type="button" class="btn btn-primary btn-large mt-2 mb-4" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>
         </div>
+        {% else %}
+        <div class="d-flex justify-content-center align-items-center">
+            <a type="button" class="mb-3 btn btn-primary btn-large" href="{{url_for('select_workout')}}">START WORKOUT</a>
+        </div>
+        {% endif %}
         <p><b>Lets take your fitness to the next level. Build your workout using the CREATE WORKOUT tool, then use the START WORKOUT button to begin a workout sesh.</b></p>
     {% endif %}
 
-
-
-
 <p>**Detailed exercise history visualization tools will be available soon. For now, be consistent entering in set data for your workouts. The more data you have, the better visualizations and insights you will be able to uncover.</p>
 
+<!--
 <script>
     var graphs = {{graphJSON | safe}};
     Plotly.newPlot('chart', graphs, {});
 </script>
 
-<!--
+
 <script type="text/javascript">
 
     TESTER = document.getElementById('chart');

@@ -43,17 +43,20 @@
 {% if completedSets %}
 <h3>Completed Sets: </h3>
 <ul>
-    {% for set in completedSets %}
-    {% if exercise.exercise_type_id == 1 %}
-    <li class="mt-2">
-        <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet({{set.s_set_number}})">Delete</button>{{set.number_of_reps}} reps - {{set.weight_amount}} {{set.weight_metric}}
-    </li>
-    {% elif exercise.exercise_type_id == 2 %}
-    <li class="mt-2">
-        <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet({{set.c_set_number}})">Delete</button>{{set.distance_amount}} {{set.distance_metric}} - {{set.duration_amount}} {{set.duration_metric}}
-    </li>
-    {% endif %}
+    {% if completed_strength_sets %}
+    {% for set in completed_strength_sets %}
+        <li class="mt-2">
+            <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet({{set.s_set_number}})">Delete</button>{{set.number_of_reps}} reps - {{set.weight_amount}} {{set.weight_metric}}
+        </li>
     {% endfor %}
+    {% endif %}
+    {% if completed_cardio_sets %}
+    {% for set in completed_cardio_sets %}
+        <li class="mt-2">
+            <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet({{set.c_set_number}})">Delete</button>{{set.distance_amount}} {{set.distance_metric}} - {{set.duration_amount}} {{set.duration_metric}}
+        </li>
+    {% endfor %}
+    {% endif %}
 </ul>
 <hr>
 {% endif %}

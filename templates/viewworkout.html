@@ -25,12 +25,14 @@
             <li>{{exercise.exercise_name}}</li>
         {% endfor%}
     </ul>
-{% else %}
-<h2>{{workout_name}}</h2>
-<h4>There are no exercises associated with this workout. Head over to <a href="{{url_for('select_edit_workout')}}">edit workout</a> to add exercises.</h4>
 {% endif %}
 <hr>
 {% if workout_name %}
+    {% if not exercises%}
+        <h2>{{workout_name}}</h2>
+        <h4>There are no exercises associated with this workout. Head over to <a href="{{url_for('select_edit_workout')}}">edit workout</a> to add exercises.</h4>
+<hr>
+    {% endif %}
     {% if strength_sets and cardio_sets %}
         <h2>Your previous sets from {{workout_name}}</h2>
         <h3>{{formatted_time}}</h3>
