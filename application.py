@@ -15,8 +15,8 @@ from os import environ
 application = Flask(__name__)
 db = SQLAlchemy()
 
-aws_uri=f"mysql+pymysql://{'admin'}:{'Bond7007!'}@{'swolltech1.cxkpf5rcmqhr.us-east-1.rds.amazonaws.com'}:{3306}/{'swolltech1'}"
-uri = f"mysql+pymysql://{'root'}:{'Bond7007!'}@{'localhost'}:3306/{'swolltech'}"
+aws_uri=f"mysql+pymysql://{'admin'}:{'SoccerPlayer7!'}@{'swolltech-db.cxkpf5rcmqhr.us-east-1.rds.amazonaws.com'}:{3306}/{'swolltech'}"
+uri = f"mysql+pymysql://{'root'}:{'SoccerPlayer7!'}@{'localhost'}:3306/{'swolltech'}"
 application.config['SQLALCHEMY_DATABASE_URI'] = aws_uri
 application.config['SECRET_KEY'] = "as0k59r878lnkl"
 
@@ -328,7 +328,6 @@ def create_workout():
     if user_authenticated():
         if 'wo_name' in request.args:
             session['new_workout_name'] = request.args.get('wo_name')
-            message = f'Workout named {session["new_workout_name"]} successfully'
         if 'new_exercise_name' in request.args:
             if 'new_exercises' in session.keys():
                 new_exercises = session['new_exercises']
