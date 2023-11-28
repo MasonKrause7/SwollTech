@@ -29,8 +29,10 @@ body {
 .navb {
     padding: 10px 0px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
     background-color: var(--primary-dark);
+
 }
 .navb a {
     text-decoration: none;
@@ -58,8 +60,36 @@ body {
 }
 .logo {
     font-size: 17pt;
+
 }
 /* END BASE TEMPLATE STYLES*/
+/* NAV SMALL STYLES */
+.navs {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    background-color: var(--primary-purple);
+}
+.navs ul {
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
+    display: flex;
+    justify-content: space-evenly;
+    width: 100%;
+}
+.navs ul a {
+    text-decoration: none;
+    margin: 0px;
+    padding: 10px;
+}
+.navs ul a li {
+    color: white;
+}
+.navs ul a:hover li{
+    color: var(--primary-green);
+}
+/* END NAV SMALL STYLES*/
 /* GENERIC STYLING CLASSES */
 .page-title {
     margin-top: 5px;
@@ -75,10 +105,28 @@ body {
     margin: 5px 2px;
     border-radius: 10px;
     border: 1px solid gray;
-    color: var(--primary-purple);
+
 }
 .form-input:focus {
-    box-shadow:0px 0px 3px 2px var(--primary-purple);
+    box-shadow:0px 0px 3px 2px var(--primary-green);
+}
+.submit-button {
+    margin-top: 10px;
+    padding: 5px 0px;
+    width: 33%;
+    color: white;
+    background-color: var(--primary-green);
+    border: 1px solid var(--primary-green);
+    border-radius: 30px;
+    text-decoration: none;
+    text-align: center;
+    margin-bottom: 25px;
+}
+.submit-button:hover {
+    border: 1px solid var(--secondary-green-dark);
+    background-color: var(--secondary-green-dark);
+    text-decoration: none;
+    color: var(--primary-light);
 }
 /* END GENERIC STYLING CLASSES */
 /* INDEX STYLES */
@@ -144,15 +192,15 @@ body {
     border: 1px solid var(--secondary-purple-dark);
 }
 /* END INDEX STYLES */
-/* SIGN UP STYLES */
-#signup-form {
+/* SIGN UP/ SIGN IN STYLES */
+.form {
     width: 100%;
     border: 1px solid var(--primary-dark);
     border-radius: 10px;
     display: flex;
     flex-direction: column;
 }
-#signup-form div {
+.form div {
     display: flex;
     justify-content: center;
 }
@@ -162,24 +210,43 @@ body {
 #email {
     width: 100%;
 }
-#signup-form label {
+.form label {
     margin: 7px 0px 0px 5px;
 }
-#submit-signup-button {
-    margin-top: 10px;
-    padding: 5px 0px;
-    width: 33%;
-    color: white;
-    background-color: var(--primary-green);
-    border: 1px solid var(--primary-green);
-    border-radius: 30px;
+
+
+/* END SIGN UP/ SIGN IN STYLES */
+/* HOME STYLES */
+#home-hero {
+    width: 100vw;
+    padding: 25px 0px;
+    background-color: var(--primary-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
-#submit-signup-button:hover {
-    border: 1px solid var(--secondary-green-dark);
-    background-color: var(--secondary-green-dark);
+#home-hero p, h3 {
+    color: var(--primary-light);
 }
-#signin-instead {
-    margin-left: 15px;
+#home-hero h2 strong {
+    color: var(--primary-green);
+    font-size: 110%;
+}
+#start-workout-button {
+    width: 200px;
+    padding: 7px 0px;
+    margin-top: 30px;
+    font-size: 110%;
+}
+#create-workout-secondary-button {
+    width: 170px;
+    background-color: var(--primary-purple);
+    border: 1px solid var(--primary-purple);
+    margin-top: -10px;
+}
+#create-workout-secondary-button:hover {
+    background-color: var(--secondary-purple-dark);
+    border: 1px solid var(--secondary-purple-dark);
 }
 
-/* END SIGN UP STYLES */
+/* END HOME STYLES*/

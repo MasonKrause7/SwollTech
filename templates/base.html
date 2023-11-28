@@ -31,10 +31,10 @@
         <a class="logo" href="{{url_for('index')}}">Logo</a>
         {% endif %}
         <ul class="nav-list">
-            <a href="{{url_for('about')}}"><li>About</li></a>
+            <a href="{{url_for('about')}}"><li>About Us</li></a>
 
             {% if 'user_id' in session.keys()%}
-            <a href="{{url_for('account')}}"><li>Account</li></a>
+            <a href="{{url_for('account')}}"><li>Your Account</li></a>
             <a href="{{url_for('logout')}}"><li>Log Out</li></a>
 
             {% endif %}
@@ -42,9 +42,12 @@
   </nav>
 
 
+
     <div class="base-container">
     {% block content%} {% endblock %}
     </div>
+
+
 
     {% if message%}
     <div class="mt-3 container-fluid">

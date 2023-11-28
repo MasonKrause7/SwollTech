@@ -16,9 +16,12 @@
     }
     /* END INDEX STYLES */
     /* SIGN UP STYLES */
-    #signup-form {
+    .form {
         margin: 10px 15px;
         padding: 15px;
+    }
+    #signin-instead, #signup-instead {
+        margin-left: 15px;
     }
     /* END SIGN UP */
 }

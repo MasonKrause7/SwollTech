@@ -24,12 +24,12 @@
     }
     /* END INDEX STYLES */
     /* SIGN UP STYLES */
-    #signup-form {
-        margin: 10px 150px;
+    .form {
+        margin: 10px 200px;
         padding: 15px;
     }
-    #signin-instead {
-        margin-left: 150px;
+    #signin-instead, #signup-instead {
+        margin-left: 200px;
     }
     /* END SIGN UP STYLES*/
 
