@@ -1,0 +1,33 @@
+@media(min-width:767px) and (max-width:1399px) {
+
+    #index-hero {
+        margin: 35px 0px;
+        padding: 0px;
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+    }
+
+    #index-title {
+        margin-left: 10px;
+        font-size: 55pt;
+    }
+
+    #bar {
+        margin: 5px 20px;
+        width: 2px;
+        height: 75px;
+        border: 3px solid white;
+    }
+
+    #index-subtitle {
+        font-size: 27pt;
+        margin-right: 5px;
+    }
+
+
+
+
+
+
+}
