@@ -62,12 +62,23 @@ body {
 /* END BASE TEMPLATE STYLES*/
 /* GENERIC STYLING CLASSES */
 .page-title {
+    margin-top: 5px;
     width: 100%;
     text-align: center;
-
+    font-size: 38pt;
 }
 .page-content {
     margin: 10px;
+}
+.form-input {
+    padding: 5px;
+    margin: 5px 2px;
+    border-radius: 10px;
+    border: 1px solid gray;
+    color: var(--primary-purple);
+}
+.form-input:focus {
+    box-shadow:0px 0px 3px 2px var(--primary-purple);
 }
 /* END GENERIC STYLING CLASSES */
 /* INDEX STYLES */
@@ -134,5 +145,41 @@ body {
 }
 /* END INDEX STYLES */
 /* SIGN UP STYLES */
+#signup-form {
+    width: 100%;
+    border: 1px solid var(--primary-dark);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+#signup-form div {
+    display: flex;
+    justify-content: center;
+}
+#fname, #lname, #pass, #confpass {
+    width: 50%;
+}
+#email {
+    width: 100%;
+}
+#signup-form label {
+    margin: 7px 0px 0px 5px;
+}
+#submit-signup-button {
+    margin-top: 10px;
+    padding: 5px 0px;
+    width: 33%;
+    color: white;
+    background-color: var(--primary-green);
+    border: 1px solid var(--primary-green);
+    border-radius: 30px;
+}
+#submit-signup-button:hover {
+    border: 1px solid var(--secondary-green-dark);
+    background-color: var(--secondary-green-dark);
+}
+#signin-instead {
+    margin-left: 15px;
+}
 
 /* END SIGN UP STYLES */

@@ -16,6 +16,9 @@
     }
     /* END INDEX STYLES */
     /* SIGN UP STYLES */
-
+    #signup-form {
+        margin: 10px 15px;
+        padding: 15px;
+    }
     /* END SIGN UP */
 }

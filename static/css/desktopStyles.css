@@ -23,7 +23,15 @@
         font-size: 32pt;
     }
     /* END INDEX STYLES */
-    /* SIGN UP*/
+    /* SIGN UP STYLES */
+    #signup-form {
+        margin: 10px 150px;
+        padding: 15px;
+    }
+    #signin-instead {
+        margin-left: 150px;
+    }
+    /* END SIGN UP STYLES*/
 
 
 
