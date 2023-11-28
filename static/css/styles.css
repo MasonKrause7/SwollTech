@@ -20,18 +20,18 @@ body {
     border: 0px;
     margin: 0px;
 }
+
+/* BASE TEMPLATE - base container and navbar */
 .base-container{
     display: flex;
     flex-wrap: wrap;
 }
-
 .navb {
     padding: 10px 0px;
     display: flex;
     align-items: center;
     background-color: var(--primary-dark);
 }
-
 .navb a {
     text-decoration: none;
     color: var(--primary-light);
@@ -51,7 +51,6 @@ body {
 .nav-list a li {
     color: var(--primary-light);
     margin: 0px 10px 0px 0px;
-
 }
 .nav-list a:hover li{
     text-decoration: none;
@@ -60,8 +59,8 @@ body {
 .logo {
     font-size: 17pt;
 }
-
-
+/* END BASE TEMPLATE STYLES*/
+/* GENERIC STYLING CLASSES */
 .page-title {
     width: 100%;
     text-align: center;
@@ -70,8 +69,8 @@ body {
 .page-content {
     margin: 10px;
 }
-
-/*index styling*/
+/* END GENERIC STYLING CLASSES */
+/* INDEX STYLES */
 #index-container {
     background-color: var(--primary-dark);
     margin: 0px;
@@ -87,7 +86,6 @@ body {
     flex-direction: column;
     text-align: center;
     align-items: center;
-
 }
 #signup-or-signin-box p {
     color: var(--primary-light);
@@ -98,11 +96,10 @@ body {
 .p2 {
     font-size: 18pt;
 }
-
 #index-subtitle strong {
         font-size: 130%;
         color: var(--primary-green);
-    }
+}
 .signuplink {
     padding: 8px 35px;
     color: white;
@@ -115,7 +112,6 @@ body {
     border-radius: 30px;
     background: var(--primary-green);
     margin-bottom: 30px;
-
 }
 #signin-button {
     padding: 6px 25px;
@@ -136,3 +132,7 @@ body {
     background:var(--secondary-purple-dark);
     border: 1px solid var(--secondary-purple-dark);
 }
+/* END INDEX STYLES */
+/* SIGN UP STYLES */
+
+/* END SIGN UP STYLES */

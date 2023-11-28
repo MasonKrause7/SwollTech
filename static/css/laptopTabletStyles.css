@@ -1,5 +1,5 @@
 @media(min-width:767px) and (max-width:1399px) {
-
+    /* INDEX STYLES */
     #index-hero {
         margin: 35px 0px;
         padding: 0px;
@@ -7,23 +7,24 @@
         justify-content: space-evenly;
         align-items: center;
     }
-
     #index-title {
         margin-left: 10px;
         font-size: 55pt;
     }
-
     #bar {
         margin: 5px 20px;
         width: 2px;
-        height: 75px;
+        height: 95px;
         border: 3px solid white;
     }
-
     #index-subtitle {
         font-size: 27pt;
         margin-right: 5px;
     }
+    /* END INDEX STYLES */
+    /* SIGN UP STYLES*/
+
+    /* END SIGN UP STYLES */
 
 
 

@@ -1,4 +1,6 @@
 @media(min-width: 1399px){
+
+    /* INDEX STYLES */
     #index-hero {
         margin: 40px 0px;
         padding: 0px;
@@ -11,14 +13,17 @@
         font-size: 70pt;
     }
     #bar {
+        margin: 0px 10px;
         width: 2px;
-        height: 90px;
+        height: 115px;
         border: 4px solid white;
     }
     #index-subtitle {
         margin: 0px 15px 0px 15px;
         font-size: 32pt;
     }
+    /* END INDEX STYLES */
+    /* SIGN UP*/
 
 
 
