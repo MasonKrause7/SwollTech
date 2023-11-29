@@ -3,43 +3,46 @@
 
 {% block content %}
 <script src="/static/js/script.js" type="text/javascript"></script>
-<h1>{% block title %}Create your workout {% endblock %}</h1>
-<ul>
-    <li><a id="name_workout_button" type="button" href="{{url_for('name_workout')}}">Name your workout</a></li>
-    <li><a id="add_existing_exercises_button" type="button" href="{{url_for('add_existing_exercise')}}">Add existing exercise</a></li>
-    <li><a id="create_new_exercise_button" type="button" href="{{url_for('create_exercise')}}">Add new exercise</a></li>
-</ul>
-{% if session['new_workout_name']%}
-<h2>Tentative workout: {{session['new_workout_name']}}</h2>
-{% endif %}
-{% if session['existing_exercises'] or session['new_exercises']%}
-<ul>
-    {% if session['existing_exercises']%}
-    {% for exercise in session['existing_exercises']%}
-        <li class="mt-3">
-            <form>
-                <input type="button" class="btn btn-danger btn-sm" name="{{exercise}}" onclick="removeExercise(name)" value="Remove"> - {{exercise}}
-            </form>
-        </li>
-    {% endfor %}
+<h1 class="page-title">{% block title %}Create your workout{% endblock %}</h1>
+<div id="create-workout-container">
+    <h2>Follow these steps to finish building your new workout:</h2>
+    <ol id="create-workout-steps-list">
+        <li><a id="name_workout_button" type="button" href="{{url_for('name_workout')}}">Name your workout</a> - Give your new workout a descriptive name, so you can find it later.</li>
+        <li><a id="add_existing_exercises_button" type="button" href="{{url_for('add_existing_exercise')}}">Add existing exercises</a> - Pull exercises from other workouts to be included in this one.</li>
+        <li><a id="create_new_exercise_button" type="button" href="{{url_for('create_exercise')}}">Add new exercises</a> - Create new exercises to be added to this workout.</li>
+    </ol>
+
+    {% if session['new_workout_name']%}
+    <div id="tentative-workout-container">
+    <h2>Tentative workout: {{session['new_workout_name']}}</h2>
     {% endif %}
-    {% if session['new_exercises']%}
-    {% for exercise in session['new_exercises'].keys()%}
+    {% if session['existing_exercises'] or session['new_exercises']%}
+    <ul>
+        {% if session['existing_exercises']%}
+        {% for exercise in session['existing_exercises']%}
+            <li class="mt-3">
+                <form>
+                    <input type="button" class="remove-button" name="{{exercise}}" onclick="removeExercise(name)" value="Remove"> - {{exercise}}
+                </form>
+            </li>
+        {% endfor %}
+        {% endif %}
+        {% if session['new_exercises']%}
+        {% for exercise in session['new_exercises'].keys()%}
 
-        <li class="mt-3">
-            <form>
-                <input type="button" class="btn btn-danger btn-sm" name="{{exercise}}" onclick="removeExercise(name)" value="Remove"> - {{exercise}}
-            </form>
-        </li>
-    {% endfor %}
+            <li class="mt-3">
+                <form>
+                    <input type="button" class="remove-button" name="{{exercise}}" onclick="removeExercise(name)" value="Remove"> - {{exercise}}
+                </form>
+            </li>
+        {% endfor %}
+        {% endif %}
+    </ul>
     {% endif %}
-</ul>
+    </div>
+    <h4>When you've finished adding exercises you may submit your new workout. Once you submit, this workout can be found in the View Workout menu. You can always add or delete exercises in the Edit Workout menu.</h4>
+    <button class="submit-button" onclick="postWorkout()">Submit New Workout</button>
+    <a type="button" class="back-to-home-button" href="{{url_for('home')}}">Back to Home</a>
+</div>
 
-
-{% endif %}
-
-
-
-<button class="btn btn-primary" onclick="postWorkout()">Create Workout</button>
-<a type="button" class="btn btn-primary" href="{{url_for('home')}}">Back to Home</a>
-{% endblock %}
+    {% endblock %}

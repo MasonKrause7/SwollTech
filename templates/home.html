@@ -1,19 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<nav class="navs">
-    <ul>
-        <a href="{{url_for('create_workout')}}"><li>Create Workout</li></a>
-        <a href="{{url_for('view_workouts')}}"><li>View Workout</li></a>
-        <a href="{{url_for('select_edit_workout')}}"><li>Edit Workout</li></a>
-        <a href="{{url_for('delete_workout')}}"><li>Delete Workout</li></a>
-    </ul>
-</nav>
+
 
 
 <div id="home-hero">
     {% if num_seshs %}
-        <h2 class="page-title">Welcome back {{ session['fname'] }}, let's get you <strong>Swoll</strong></h2>
+        <h2 class="page-title">Welcome back {{ session['fname'] }}, you're getting <strong>Swoll!</strong></h2>
 
         <a type="button" id="start-workout-button" class="submit-button" href="{{url_for('select_workout')}}">START WORKOUT</a>
         <a type="button" id="create-workout-secondary-button" class="submit-button" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>

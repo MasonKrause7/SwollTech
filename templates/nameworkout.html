@@ -2,14 +2,13 @@
 
 {% block content %}
 
-<h1>{% block title %}Name Workout{% endblock %}</h1>
+<h1 class="page-title">{% block title %}Name Workout{% endblock %}</h1>
 <hr>
-<form>
-    <div class="form-group">
-      <label for="workout_name">Workout name</label>
-      <input class="form-control w-25" type="text" name="workout_name" id="workout_name" required="required" placeholder="Leg Day">
-    </div>
-  <input class="btn btn-primary" onclick="nameWorkout()" type="button" value="Submit">
+<form class="form" id="name-workout-form">
+    <label for="workout_name">Workout name</label>
+    <input class="form-input" type="text" name="workout_name" id="workout_name" required="required">
+
+    <input class="submit-button" onclick="nameWorkout()" type="button" value="Submit">
 </form>
 
 {% endblock %}

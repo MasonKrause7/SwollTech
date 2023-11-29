@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 
 {%block content%}
-<h1 class="mb-3 text-center">{% block title %}Create exercise{% endblock %}</h1>
-<form method="POST">
-    <input id="new_exercise_name" name="new_exercise_name" type="text" placeholder="Exercise name" required="required">
-    <label for="exercise_type_input">Select Exercise Type:</label>
-    <select required="required" id="exercise_type_input">
+<h1 class="page-title">{% block title %}Create exercise{% endblock %}</h1>
+<form class="form" method="POST">
+    <label for="new_exercise_name">Exercise name</label>
+    <input class="form-input" id="new_exercise_name" name="new_exercise_name" type="text" required="required">
+    <label for="exercise_type_input">Exercise type</label>
+    <select class="form-input" required="required" id="exercise_type_input">
         <option>Strength</option>
         <option>Cardio</option>
     </select>
-    <hr>
-    <input type="button" value="Add exercise" class="btn btn-primary" onclick="createExercise()">
+    <input type="button" value="Add exercise" class="submit-button" onclick="createExercise()">
 </form>
 {% endblock%}

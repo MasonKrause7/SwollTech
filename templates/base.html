@@ -33,13 +33,24 @@
         <ul class="nav-list">
             <a href="{{url_for('about')}}"><li>About Us</li></a>
 
-            {% if 'user_id' in session.keys()%}
+            {% if 'user_id' in session.keys() %}
             <a href="{{url_for('account')}}"><li>Your Account</li></a>
             <a href="{{url_for('logout')}}"><li>Log Out</li></a>
 
             {% endif %}
         </ul>
   </nav>
+
+  {% if 'user_id' in session.keys() %}
+  <nav class="navs">
+    <ul>
+        <a href="{{url_for('create_workout')}}"><li>Create Workout</li></a>
+        <a href="{{url_for('view_workouts')}}"><li>View Workout</li></a>
+        <a href="{{url_for('select_edit_workout')}}"><li>Edit Workout</li></a>
+        <a href="{{url_for('delete_workout')}}"><li>Delete Workout</li></a>
+    </ul>
+</nav>
+  {% endif %}
 
 
 

@@ -1,6 +1,9 @@
 :root {
     --primary-dark: #000;
     --primary-light: #FFF;
+    --primary-red: #E02424;
+    --secondary-red-dark: #A60909;
+    --secondary-red-light: #FB5F5F;
     --primary-green: #44EB2A;
     --secondary-green-light: #67EF51;
     --secondary-green-dark: #1FE600;
@@ -11,6 +14,7 @@
     --secondary-purple-dark: #6212D1;
     --secondary-purple-lighter: #AF84EC;
     --secondary-purple-darker: #4A0AA3;
+
 }
 *{
     box-sizing: border-box;
@@ -100,6 +104,7 @@ body {
 .page-content {
     margin: 10px;
 }
+
 .form-input {
     padding: 5px;
     margin: 5px 2px;
@@ -113,7 +118,7 @@ body {
 .submit-button {
     margin-top: 10px;
     padding: 5px 0px;
-    width: 33%;
+    width: 200px;
     color: white;
     background-color: var(--primary-green);
     border: 1px solid var(--primary-green);
@@ -121,12 +126,59 @@ body {
     text-decoration: none;
     text-align: center;
     margin-bottom: 25px;
+    font-size: 110%;
 }
 .submit-button:hover {
     border: 1px solid var(--secondary-green-dark);
     background-color: var(--secondary-green-dark);
     text-decoration: none;
     color: var(--primary-light);
+}
+.back-to-home-button {
+    width: 150px;
+    background-color: var(--primary-purple);
+    border: 1px solid var(--primary-purple);
+    border-radius: 30px;
+    color: var(--primary-light);
+    text-align: center;
+    text-decoration: none;
+    margin-top: -15px;
+    padding: 5px;
+}
+.back-to-home-button:hover {
+    text-decoration: none;
+    color: var(--primary-light);
+    background-color: var(--secondary-purple-dark);
+    border: 1px solid var(--secondary-purple-dark);
+}
+.add-button {
+
+    border: 1px solid var(--primary-green);
+    background-color: var(--primary-green);
+    border-radius: 30px;
+    color: var(--primary-light);
+    text-decoration: none;
+    font-size: 80%;
+}
+.add-button:hover{
+    color:var(--primary-light);
+    text-decoration: none;
+    border: 1px solid var(--secondary-green-dark);
+    background-color: var(--secondary-green-dark);
+}
+.remove-button {
+    font-size: 75%;
+    color: var(--primary-light);
+    background-color: var(--primary-red);
+    border: 1px solid var(--primary-red);
+    border-radius: 30px;
+    text-decoration: none;
+}
+.remove-button:hover {
+    color:var(--primary-light);
+    text-decoration: none;
+    border: 1px solid var(--secondary-red-dark);
+    background-color: var(--secondary-red-dark);
 }
 /* END GENERIC STYLING CLASSES */
 /* INDEX STYLES */
@@ -250,3 +302,32 @@ body {
 }
 
 /* END HOME STYLES*/
+/* CREATE WORKOUT STYLES */
+#create-workout-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 35px;
+    align-items: center;
+}
+#create-workout-container h2, h3{
+    color: var(--primary-dark);
+}
+#create-workout-steps-list {
+    margin: 0px;
+    padding: 0px;
+}
+#create-workout-steps-list li{
+    margin: 3px 5px;
+}
+#tentative-workout-container {
+    margin: 20px 0px;
+    border-top: 1px solid var(--primary-purple);
+    border-bottom: 1px solid var(--primary-purple);
+}
+#existing-exercise-list-title {
+    color: var(--primary-dark);
+}
+
+
+/* END CREATE WORKOUT STYLES */

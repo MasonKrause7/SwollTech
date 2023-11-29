@@ -394,7 +394,19 @@ def add_existing_exercise():
     if user_authenticated():
         existing_exercises = fetch_users_exercises()
         if existing_exercises:
-            return render_template('addexistingexercise.html', existingExercises=existing_exercises)
+            user_exercises = {}
+
+            for exercise in existing_exercises:
+                thisType = Exercise_Type.query.filter_by(exercise_type_id = exercise.exercise_type_id).first()
+                thisTypeName = thisType.exercise_type_name
+                thisExercise = {}
+                thisExercise.update({'exercise_name': exercise.exercise_name})
+                thisExercise.update({'exercise_type_name': thisTypeName})
+
+                user_exercises.update({exercise.exercise_id: thisExercise})
+
+
+            return render_template('addexistingexercise.html', existingExercises=user_exercises)
         else:
             return render_template('createworkout.html', message="You don't have any existing exercises, create new exercises to build your first workout", messageCategory='danger')
 

@@ -2,23 +2,24 @@
 
 {% block  content%}
 
-<h1 class="mb-3 text-center">{% block title %} Add exercise to workout{% endblock %}</h1>
+<h1 class="page-title">{% block title %}Add Exercise{% endblock %}</h1>
 {% if existingExercises%}
-
+<div class="page-content">
+<h2 id="existing-exercise-list-title">Your Existing Exercises:</h2>
 <ul>
-{% for exercise in existingExercises %}
+{% for exerciseID in existingExercises.keys() %}
 
     <li class="mt-2 mb-1">
         <form>
-            <input type="button" name="{{exercise.exercise_name}}" onclick="addExercise(name)" class="btn btn-primary btn-sm" value="Add"> - {{exercise.exercise_name}} - {{exercise.exercise_type_name}} exercise from {{exercise.workout_name}}
+            <input type="button" name="{{existingExercises[exerciseID]['exercise_name']}}" onclick="addExercise(name)" class="add-button" value="Add"> - {{existingExercises[exerciseID]['exercise_name']}} - {{existingExercises[exerciseID]['exercise_type_name']}} exercise
         </form>
     </li>
 
     {% endfor %}
 </ul>
 {% else %}
-<h4>Hmmm, you don't have any exercises... head over to <a href="{{url_for('create_exercise')}}">create an exercise</a></h4>
+<h4>You don't have any exercises... head over to <a href="{{url_for('create_exercise')}}">create an exercise</a> to finish building your workout.</h4>
 {% endif%}
-<a type="button" class="mt-4 btn btn-primary btn-lg" href="{{url_for('home')}}">Back To Home</a>
-
+<a type="button" class="back-to-home-button" href="{{url_for('create_workout')}}">Back To Workout</a>
+</div>
 {% endblock %}
