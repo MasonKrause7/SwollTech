@@ -10,6 +10,9 @@
         <option>Strength</option>
         <option>Cardio</option>
     </select>
-    <input type="button" value="Add exercise" class="submit-button" onclick="createExercise()">
+    <div class="double-buttons">
+        <input type="button" value="Add exercise" class="submit-button" onclick="createExercise()">
+        <a type="button" class="back-to-home-button" href="{{url_for('create_workout')}}">Back To Workout</a>
+    </div>
 </form>
 {% endblock%}

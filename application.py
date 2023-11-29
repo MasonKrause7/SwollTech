@@ -422,6 +422,24 @@ def create_exercise():
         message='You must be logged in to create exercises'
         return render_template('index.html', message=message, messageCategory='danger')
 
+@application.route('/cleartentativeexercise.html')
+def clear_tentative_exercise():
+    if user_authenticated():
+        #delete tentative name, and exercises from session
+        if 'existing_exercises' in session.keys():
+            session.pop('existing_exercises')
+        if 'new_exercises' in session.keys():
+            session.pop('new_exercises')
+        if 'new_workout_name' in session.keys():
+            session.pop('new_workout_name')
+
+        message = 'Tentative workout cleared'
+        return render_template(url_for('create_workout'), message=message, messageCategory='success')
+
+    else:
+        message = 'You must be logged in to create workouts'
+        return render_template('index.html', message=message, messageCategory='danger')
+
 
 @application.route('/postworkout.html/')
 def post_create_workout():
@@ -529,7 +547,7 @@ def post_create_workout():
             session.pop('existing_exercises')
         message = 'Workout created successfully'
 
-        return render_template(url_for('home'), message=message, messageCategory='success')
+        return render_template('home.html', message=message, messageCategory='success')
     else:
         message = "You must be logged in to create workouts"
         return render_template(url_for('login.html'), message=message, messageCategory='danger')

@@ -8,24 +8,28 @@
     {% if num_seshs %}
         <h2 class="page-title">Welcome back {{ session['fname'] }}, you're getting <strong>Swoll!</strong></h2>
 
-        <a type="button" id="start-workout-button" class="submit-button" href="{{url_for('select_workout')}}">START WORKOUT</a>
-        <a type="button" id="create-workout-secondary-button" class="submit-button" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>
+        <div class="double-buttons">
+            <a type="button" id="start-workout-button" class="submit-button" href="{{url_for('select_workout')}}">START WORKOUT</a>
+            <a type="button" id="create-workout-secondary-button" class="submit-button" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>
+        </div>
         <h3>{{num_seshs}} workouts completed so far, keep it up!</h3>
         <div id="chart" class="container-fluid align-items-center justify-content-center ">
 
         </div>
     {% else %}
-        <h2 class="page-title">Welcome to SwollTech {{ session['fname'] }}</h2>
+        <h2 class="page-title">Welcome to SwollTech, {{ session['fname'] }}. Let's get <strong>shredded.</strong></h2>
         {% if num_workouts == 0%}
 
         <a type="button" id="create-workout-primary-button" class="submit-button" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>
 
-        {% else %}
-        <div>
+
+            {% else %}
+        <div class="double-buttons">
             <a type="button" class="submit-button" href="{{url_for('select_workout')}}">START WORKOUT</a>
+            <a type="button" id="create-workout-secondary-button" class="submit-button" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>
         </div>
         {% endif %}
-        <p><b>Lets take your fitness to the next level. Build your workout using the CREATE WORKOUT tool, then use the START WORKOUT button to begin a workout sesh.</b></p>
+
     {% endif %}
 </div>
 <p>**Detailed exercise history visualization tools will be available soon. For now, be consistent entering in set data for your workouts. The more data you have, the better visualizations and insights you will be able to uncover.</p>

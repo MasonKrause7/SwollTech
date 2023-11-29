@@ -96,7 +96,7 @@ body {
 /* END NAV SMALL STYLES*/
 /* GENERIC STYLING CLASSES */
 .page-title {
-    margin-top: 5px;
+    margin-top: 15px;
     width: 100%;
     text-align: center;
     font-size: 38pt;
@@ -125,7 +125,7 @@ body {
     border-radius: 30px;
     text-decoration: none;
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 10px;
     font-size: 110%;
 }
 .submit-button:hover {
@@ -142,7 +142,6 @@ body {
     color: var(--primary-light);
     text-align: center;
     text-decoration: none;
-    margin-top: -15px;
     padding: 5px;
 }
 .back-to-home-button:hover {
@@ -190,6 +189,10 @@ body {
 }
 #index-container h1, h2, span, a {
     color: var(--primary-light);
+}
+#index-container h1 strong {
+    color: var(--primary-green);
+    font-size: 105%;
 }
 #signup-or-signin-box {
     margin: 100px 50px;
@@ -271,7 +274,7 @@ body {
 /* HOME STYLES */
 #home-hero {
     width: 100vw;
-    padding: 25px 0px;
+    padding: 25px 4vw;
     background-color: var(--primary-dark);
     display: flex;
     flex-direction: column;
@@ -287,14 +290,15 @@ body {
 #start-workout-button {
     width: 200px;
     padding: 7px 0px;
-    margin-top: 30px;
+    margin-top: 105px;
     font-size: 110%;
 }
 #create-workout-secondary-button {
     width: 170px;
     background-color: var(--primary-purple);
     border: 1px solid var(--primary-purple);
-    margin-top: -10px;
+    margin-top: 0px;
+    margin-bottom: 0px;
 }
 #create-workout-secondary-button:hover {
     background-color: var(--secondary-purple-dark);
@@ -316,9 +320,19 @@ body {
 #create-workout-steps-list {
     margin: 0px;
     padding: 0px;
+    text-align: center;
+    list-style: none;
 }
 #create-workout-steps-list li{
     margin: 3px 5px;
+
+}
+.create-workout-step-button {
+    font-size: 115%;
+    color: var(--primary-purple);
+}
+.create-workout-step-button:hover {
+    color: var(--primary-green);
 }
 #tentative-workout-container {
     margin: 20px 0px;
@@ -328,6 +342,29 @@ body {
 #existing-exercise-list-title {
     color: var(--primary-dark);
 }
-
+#submit-new-workout-button {
+    width: 220px;
+}
+#clear-tentative-workout-button {
+    margin-bottom: 10px;
+    border-radius: 30px;
+    border: 1px solid var(--primary-red);
+    background-color: var(--primary-red);
+    color: var(--primary-light);
+    padding: 5px;
+    text-decoration: none;
+}
+#clear-tentative-workout-button:hover {
+    border: 1px solid var(--secondary-red-dark);
+    background-color: var(--secondary-red-dark);
+    text-decoration: none;
+    color: var(--primary-light);
+}
+.double-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
 
 /* END CREATE WORKOUT STYLES */

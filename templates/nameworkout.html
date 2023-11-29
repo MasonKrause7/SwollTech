@@ -8,7 +8,10 @@
     <label for="workout_name">Workout name</label>
     <input class="form-input" type="text" name="workout_name" id="workout_name" required="required">
 
-    <input class="submit-button" onclick="nameWorkout()" type="button" value="Submit">
+    <div class="double-buttons">
+        <input class="submit-button" onclick="nameWorkout()" type="button" value="Submit">
+        <a class="back-to-home-button" href="{{ url_for('create_workout') }}">Back to Workout</a>
+    </div>
 </form>
 
 {% endblock %}
