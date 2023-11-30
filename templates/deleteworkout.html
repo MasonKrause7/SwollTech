@@ -7,7 +7,7 @@
 <h2>Your workouts:</h2>
 <ul>
     {% for workout in workouts %}
-        <li class="mt-2"><button name="{{workout.workout_id}}" class="btn btn-danger btn-sm" onclick="deleteWorkout(name)">{{workout.workout_name}}</button></li>
+        <li class="mt-2"><form id="{{workout.workout_id}}" method="post"><input class="btn btn-danger btn-sm" name="{{workout.workout_id}}" onclick="setWorkoutToDelete(name)" type="button">{{workout.workout_name}}</input></form></li>
     {% endfor %}
 </ul>
 {% endif %}

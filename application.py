@@ -561,12 +561,14 @@ def delete_workout():
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-@application.route('/deleteworkout/')
+@application.post('/deleteworkout/')
 def post_delete_workout():
     if user_authenticated():
         workout_id = request.args.get('workout_id')
         delete_workout(workout_id)
-        return redirect(url_for('home'))
+        workout = Workout.query.filter_by(workout_id=workout_id).first()
+        message = workout.workout_name + " deleted"
+        return render_template('home.html', message=message, messageCategory='success')
     else:
         message = 'You are not logged in. Please log in or sign up to continue.'
         return render_template('index.html', message=message, messageCategory='danger')

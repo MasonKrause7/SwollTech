@@ -1,6 +1,16 @@
 
 var localaddress = "127.0.0.1:5000";
 
+
+function setWorkoutToDelete(workout_id){
+    console.log(`workout_id=${workout_id}`);
+    const deleteWorkoutForm = document.getElementById(workout_id);
+    console.log(`deleteWorkoutForm = ${deleteWorkoutForm}`);
+    const url = `/deleteworkout/?workout_id=${workout_id}`;
+    deleteWorkoutForm.setAttribute("action", url);
+    deleteWorkoutForm.requestSubmit();
+}
+
 function nameWorkout(){
     wo_name = document.getElementById('workout_name').value;
 

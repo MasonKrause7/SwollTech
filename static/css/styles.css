@@ -195,12 +195,13 @@ body {
     font-size: 105%;
 }
 #signup-or-signin-box {
-    margin: 100px 50px;
+    margin: 50px 50px;
     display: flex;
     flex-direction: column;
     text-align: center;
     align-items: center;
 }
+
 #signup-or-signin-box p {
     color: var(--primary-light);
 }
