@@ -36,7 +36,7 @@ body {
     justify-content: space-between;
     align-items: center;
     background-color: var(--primary-dark);
-
+    width: 100%;
 }
 .navb a {
     text-decoration: none;
@@ -50,13 +50,14 @@ body {
 .nav-list {
     display: flex;
     list-style: none;
+    justify-content: space-evenly;
     align-items: center;
-    margin: 0px;
+    margin: 0px 5px 0px 0px;
     padding: 0px;
 }
 .nav-list a li {
     color: var(--primary-light);
-    margin: 0px 10px 0px 0px;
+    margin: 0px 5px 0px 0px;
 }
 .nav-list a:hover li{
     text-decoration: none;
@@ -73,6 +74,7 @@ body {
     width: 100%;
     align-items: center;
     background-color: var(--primary-purple);
+
 }
 .navs ul {
     margin: 0px;
@@ -89,6 +91,8 @@ body {
 }
 .navs ul a li {
     color: white;
+    padding: 0px;
+    margin: 0px;
 }
 .navs ul a:hover li{
     color: var(--primary-green);
@@ -97,9 +101,22 @@ body {
 /* GENERIC STYLING CLASSES */
 .page-title {
     margin-top: 15px;
+    padding: 0px;
     width: 100%;
     text-align: center;
     font-size: 38pt;
+}
+.page-title-dark{
+    padding: 0px;
+    margin-top: 15px;
+    width: 100%;
+    text-align: center;
+    font-size: 38pt;
+    color: var(--primary-dark);
+}
+.page-title strong, .page-title-dark strong {
+    font-size: 105%;
+    color: var(--primary-green);
 }
 .page-content {
     margin: 10px;
@@ -129,8 +146,8 @@ body {
     font-size: 110%;
 }
 .submit-button:hover {
-    border: 1px solid var(--secondary-green-dark);
-    background-color: var(--secondary-green-dark);
+    border: 1px solid var(--secondary-green-darker);
+    background-color: var(--secondary-green-darker);
     text-decoration: none;
     color: var(--primary-light);
 }
@@ -162,8 +179,8 @@ body {
 .add-button:hover{
     color:var(--primary-light);
     text-decoration: none;
-    border: 1px solid var(--secondary-green-dark);
-    background-color: var(--secondary-green-dark);
+    border: 1px solid var(--secondary-green-darker);
+    background-color: var(--secondary-green-darker);
 }
 .remove-button {
     font-size: 75%;
@@ -179,13 +196,16 @@ body {
     border: 1px solid var(--secondary-red-dark);
     background-color: var(--secondary-red-dark);
 }
+
 /* END GENERIC STYLING CLASSES */
 /* INDEX STYLES */
 #index-container {
     background-color: var(--primary-dark);
     margin: 0px;
     padding: 0px;
-    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 #index-container h1, h2, span, a {
     color: var(--primary-light);
@@ -240,8 +260,8 @@ body {
     text-decoration: none;
 }
 #signup-button:hover {
-    background: var(--secondary-green-dark);
-    border:1px solid var(--secondary-green-dark);
+    background: var(--secondary-green-darker);
+    border:1px solid var(--secondary-green-darker);
 }
 #signin-button:hover {
     background:var(--secondary-purple-dark);
@@ -249,6 +269,7 @@ body {
 }
 /* END INDEX STYLES */
 /* SIGN UP/ SIGN IN STYLES */
+
 .form {
     width: 100%;
     border: 1px solid var(--primary-dark);
@@ -269,7 +290,12 @@ body {
 .form label {
     margin: 7px 0px 0px 5px;
 }
-
+#signin-instead a, #signup-instead a{
+        color: var(--primary-purple);
+}
+#signin-instead a:hover, #signup-instead a:hover{
+        color: var(--secondary-purple-darker);
+}
 
 /* END SIGN UP/ SIGN IN STYLES */
 /* HOME STYLES */
@@ -349,7 +375,7 @@ body {
 #submit-new-workout-button {
     width: 220px;
 }
-#clear-tentative-workout-button {
+.clear-tentative-workout-button {
     margin-bottom: 10px;
     border-radius: 30px;
     border: 1px solid var(--primary-red);
@@ -358,7 +384,7 @@ body {
     padding: 5px;
     text-decoration: none;
 }
-#clear-tentative-workout-button:hover {
+.clear-tentative-workout-button:hover {
     border: 1px solid var(--secondary-red-dark);
     background-color: var(--secondary-red-dark);
     text-decoration: none;
@@ -369,6 +395,53 @@ body {
     flex-direction: column;
     align-items: center;
     width: 100%;
+    margin-bottom: 15px;
 }
-
 /* END CREATE WORKOUT STYLES */
+/* VIEW WORKOUT STYLES */
+#viewWorkoutsContent {
+    width: 100%;
+}
+#viewWorkoutsContent h1, h2, h3, h4, h5, span, p {
+    color: var(--primary-dark);
+}
+#viewWorkoutsContent strong {
+    color: var(--primary-green);
+    font-size: 105%;
+}
+#selectedExerciseView{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 2vw;
+    text-align: center;
+
+}
+#selectedExerciseView ul{
+    text-align: center;
+    list-style: none;
+    padding: 0px;
+    margin: 0px;
+}
+#selectedExerciseView ul li{
+    margin: 0px;
+    padding: 0px;
+}
+#exercise-list {
+    margin-bottom: 15px;
+}
+#numberTimesWorkoutsBeenDone {
+    margin-top: 15px;
+}
+#users-workouts {
+    width: 100%;
+    margin: 15px 0px;
+    display: flex;
+    justify-content: center;
+}
+#users-workouts ul {
+    list-style: none;
+
+}
+/* END VIEW WORKOUT STYLES */

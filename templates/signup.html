@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
-
+{% block title %}SwollTech Registration{% endblock %}
 {% block content %}
 
-  <h1 class="page-title">{% block title %}SwollTech Sign Up{% endblock %}</h1>
+  <h1 class="page-title-dark"><strong>Swoll</strong>Tech Registration</h1>
   <form class="form" method="POST" action = "{{ url_for('post_signup') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>

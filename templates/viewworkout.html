@@ -1,41 +1,49 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1 class="text-center mb-3">{% block title%}View Workouts{% endblock%}</h1>
+<h1 class="page-title-dark">{% block title%}View Workouts{% endblock%}</h1>
 
+<div  id="viewWorkoutsContent">
 {% if users_workouts %}
-<h2>Your Workouts:</h2>
-    <ul>
-        {% for workout in users_workouts %}
-            <li class="mb-2">
-                <form>
-                    <input class="btn btn-secondary" type="button" name="{{workout.workout_id}},{{workout.workout_name}}" value="{{workout.workout_name}}" onclick="viewWorkout(name)">
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-<h4 class="mt-5">Hmmm, you don't have any workouts! Head over to <a href="{{url_for('create_workout')}}">Create Workout</a> to get started.</h4>
+<div id="users-workouts">
+    <h2>Your Workouts:</h2>
+        <ul>
+            {% for workout in users_workouts %}
+                <li class="mb-2">
+                    <form>
+                        <input class="add-button" type="button" name="{{workout.workout_id}},{{workout.workout_name}}" value="View" onclick="viewWorkout(name)"><span> - {{workout.workout_name}}</span>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+</div>
+    {% else %}
+    <h4 class="mt-5">Hmmm, you don't have any workouts! Head over to <a href="{{url_for('create_workout')}}">Create Workout</a> to get started.</h4>
+
 {%endif%}
-{% if exercises %}
-<hr>
-    <h2>{{workout_name}}</h2>
-    <ul>
-        {% for exercise in exercises %}
-            <li>{{exercise.exercise_name}}</li>
-        {% endfor%}
-    </ul>
+
+<div id="selectedExerciseView">
+
+    {% if exercises %}
+    <div id="exercise-list">
+        <h2>{{workout_name}} exercise list</h2>
+        <ul>
+            {% for exercise in exercises %}
+                <li>{{exercise.exercise_name}}</li>
+            {% endfor%}
+        </ul>
+    </div>
 {% endif %}
-<hr>
 {% if workout_name %}
+<div>
     {% if not exercises%}
         <h2>{{workout_name}}</h2>
         <h4>There are no exercises associated with this workout. Head over to <a href="{{url_for('select_edit_workout')}}">edit workout</a> to add exercises.</h4>
 <hr>
     {% endif %}
     {% if strength_sets and cardio_sets %}
-        <h2>Your previous sets from {{workout_name}}</h2>
-        <h3>{{formatted_time}}</h3>
+    <div class="lastSeshDisplay">
+        <h3>Here are the sets from your last {{workout_name}} <strong>sesh</strong> on {{formatted_time}}</h3>
         <ul>
             {% for set in strength_sets %}
                 <li>{{ss[set.s_set_number]}}: {{set.weight_amount}} {{set.weight_metric}} for {{set.number_of_reps}} reps</li>
@@ -44,36 +52,44 @@
                 <li>{{cs[set.c_set_number]}}: {{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
             {% endfor %}
             </ul>
-
+    </div>
     {% elif strength_sets %}
-        <h2>Your previous sets from {{workout_name}}</h2>
-        <h3>{{formatted_time}}</h3>
+    <div class="lastSeshDisplay">
+        <h3>Here are the sets from your last {{workout_name}} <strong>sesh</strong> on {{formatted_time}}</h3>
         <ul>
             {% for set in strength_sets %}
                 <li>{{ss[set.s_set_number]}}: {{set.weight_amount}} {{set.weight_metric}} for {{set.number_of_reps}} reps</li>
             {% endfor %}
         </ul>
+    </div>
     {% elif cardio_sets %}
-        <h2>Your previous sets from {{workout_name}}</h2>
-        <h3>{{formatted_time}}</h3>
+    <div class="lastSeshDisplay">
+        <h3>Here are the sets from your last {{workout_name}} <strong>sesh</strong> on {{formatted_time}}</h3>
+
         <ul>
             {% for set in cardio_sets %}
                 <li>{{cs[set.c_set_number]}}: {{set.distance_amount}} {{set.distance_metric}} in {{set.duration_amount}} {{set.duration_metric}}</li>
             {% endfor %}
         </ul>
+    </div>
     {% else %}
         <h3>You have not completed this workout before. Once you do this workout, you can view your most recent set data here.</h3>
     {% endif %}
     {% if dates%}
-    <hr>
-    <h3>You've done this workout {{num_times}} times:</h3>
+
+    <h3 id="numberTimesWorkoutsBeenDone">You've done this workout {{num_times}} times:</h3>
         {% for date in dates %}
             <h4>{{date}}</h4>
         {% endfor %}
     {% endif %}
+</div>
 {% endif %}
-<a type="button" class="mt-5 btn btn-primary btn-lg" href="{{url_for('home')}}">Back to Home</a>
-
+</div>
+    <div class="double-buttons">
+        <a type="button" class="clear-tentative-workout-button" href="{{url_for('view_workouts')}}">Clear Workout View</a>
+        <a type="button" class="back-to-home-button" href="{{url_for('home')}}">Back to Home</a>
+    </div>
+</div>
 
 
 {% endblock %}

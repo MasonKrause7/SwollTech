@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h1>{% block title%}Change Workout Name{% endblock %}</h1>
+<h1 class="page-title-dark">{% block title%}Change Workout Name{% endblock %}</h1>
 <h4>Current workout name: {{workout_name}}</h4>
 
 <form method="POST" action="{{url_for('post_change_workout_name')}}">

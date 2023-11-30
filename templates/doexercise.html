@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-
+{% block title %}{{exercise.exercise_name}}{% endblock %}
 {% block content%}
-<h1>{{session['workout_in_progress_name']}} - <b>{% block title %}{{exercise.exercise_name}}{% endblock %}</b></h1>
+<h1 class="page-title-dark">{{session['workout_in_progress_name']}} - <strong>{{exercise.exercise_name}}</strong></h1>
 
 {% if exercise.exercise_type_id == 1 %}
 <h3>Current Set:</h3>
