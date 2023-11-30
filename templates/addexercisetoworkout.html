@@ -1,30 +1,43 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1 class="text-center">{% block title %}Alter Exercise List{% endblock %}</h1>
-<h2>Workout: {{session['workout_name']}}</h2>
+<h1 class="page-title">{% block title %}Alter Exercise List{% endblock %}</h1>
+<h2>Workout: </h2>
 {% if workoutExercises %}
 <h4>Current exercise list: </h4>
 <ul>
     {% for exerciseID in workoutExercises.keys() %}
-    <li class="mt-2"><button class="btn btn-danger btn-sm" onclick="removeExerciseFromWorkout({{exerciseID}}, {{session['workout_under_edit']}})">Remove</button> {{workoutExercises.get(exerciseID)}}</li>
+    <li class="mt-2">
+        <form id="{{exerciseID}}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm"  onclick="removeExerciseFromWorkout('{{exerciseID}}', '{{session.workout_under_edit}}')">Remove</button>
+        </form>
+            {{workoutExercises.get(exerciseID)}}</li>
+
     {% endfor %}
 </ul>
 {% endif %}
 
 
 {% if userExercises %}
-<hr>
+
 <h4>Add existing exercises</h4>
 <ul>
     {% for exId in userExercises.keys() %}
-        <li class="mt-2"><button class="btn btn-primary btn-sm" onclick="editWorkoutAddExercise({{exId}})">Add to workout</button> {{userExercises.get(exId)}}</li>
+        <li class="mt-2">
+            <form method="post" id="{{userExercises.get(exId)}}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary btn-sm" onclick="editWorkoutAddExercise('{{exId}}', '{{userExercises.get(exId)}}')">Add to workout</button>
+            </form>
+            {{userExercises.get(exId)}}
+        </li>
     {% endfor %}
 </ul>
 {% endif %}
 <hr>
 <h4>Create new exercise</h4>
-<form>
+<form method="post" id="addNewExerciseToExistingWorkoutForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input id="new_exercise_name" name="new_exercise_name" type="text" placeholder="Exercise name" required="required">
     <label for="exercise_type_input">Select Exercise Type:</label>
     <select required="required" id="exercise_type_input" name="exercise_type_input">
@@ -36,5 +49,5 @@
     </div>
 </form>
 <hr>
-<a type="button" class="mt-4 btn btn-primary btn-large" href="{{url_for('home')}}">Back to Home</a>
+<a type="button" class="mt-4 btn btn-primary btn-large" href="{{url_for('select_edit_workout')}}">Back to Workouts</a>
 {% endblock %}

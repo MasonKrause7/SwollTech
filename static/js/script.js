@@ -28,9 +28,7 @@ function createExercise(){
 function removeExercise(exercise_name){
     window.location.href='/remove/?remove='+exercise_name;
 }
-function postWorkout(){
-    window.location.href = '/postworkout.html/';
-}
+
 function viewWorkout(name){
     console.log(name)
     delim = name.indexOf(',')
@@ -45,7 +43,10 @@ function editAccount(name){
     window.location.href = '/account.html/?action='+name;
 }
 function deleteAccount(user_id){
-    window.location.href = '/deleteaccount/?user_id='+user_id;
+    const action = '/deleteaccount/?user_id='+user_id;
+    const form = document.getElementById('deleteAccountForm');
+    form.setAttribute('action', action);
+    form.requestSubmit();
 }
 function deleteWorkout(workout_id){
     window.location.href = '/deleteworkout/?workout_id='+workout_id;
@@ -69,16 +70,25 @@ function postUpdatedName(workout_id){
     window.location.href = '/postworkoutname/?workout_id='+workout_id+'&new_name='+new_name;
 }
 function buildExerciseForWorkout(workout_id){
-    new_ex_name = document.getElementById('new_exercise_name').value;
-    new_ex_type = document.getElementById('exercise_type_input').value;
-    window.location.href = '/buildexforwo/?exercise_name='+new_ex_name+"&exercise_type="+new_ex_type;
-
+    const new_ex_name = document.getElementById('new_exercise_name').value;
+    const new_ex_type = document.getElementById('exercise_type_input').value;
+    const action = '/buildexforwo/?exercise_name='+new_ex_name+"&exercise_type="+new_ex_type;
+    const form = document.getElementById('addNewExerciseToExistingWorkoutForm');
+    form.action = action;
+    form.requestSubmit();
 }
-function editWorkoutAddExercise(ex_id){
-    window.location.href = '/editworkout_addexistingexercise/?ex_id='+ex_id;
+function editWorkoutAddExercise(ex_id, ex_name){
+    console.log(`ex_name = ${ex_name}`);
+    const action = '/editworkout_addexistingexercise/?ex_id='+ex_id;
+    const form = document.getElementById(ex_name);
+    form.action = action;
+    form.requestSubmit();
 }
 function removeExerciseFromWorkout(exercise_id, workout_id){
-    window.location.href = '/removeexercisefromworkout/?ex_id='+exercise_id+"&wo_id="+workout_id;
+    const action = '/removeexercisefromworkout/?ex_id='+exercise_id+"&wo_id="+workout_id;
+    const form = document.getElementById(exercise_id);
+    form.action = action;
+    form.requestSubmit();
 }
 function displaySelectedWorkout(workout_id){
     window.location.href = '/displayselectedworkout/?workout_id='+workout_id;
@@ -110,7 +120,12 @@ function backToWorkout(workout_id){
 function endWorkout(){
     window.location.href = '/endworkout/';
 }
-function deleteSet(set_id){
-    window.location.href = '/deleteset/?set_id='+set_id;
+function deleteSet(set_id, element_id){
+    console.log(`element_id=${element_id}`);
+    const action = '/deleteset/?set_id='+set_id;
+    const form = document.getElementById(element_id);
+    console.log(form);
+    form.action = action;
+    form.requestSubmit();
 }
 

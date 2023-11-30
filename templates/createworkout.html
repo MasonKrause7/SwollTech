@@ -42,7 +42,11 @@
     {% endif %}
     </div>
     <div class="double-buttons">
-        <button id="submit-new-workout-button" class="submit-button" onclick="postWorkout()">Submit New Workout</button>
+
+        <form method="POST" action="/postworkout.html/">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input id="submit-new-workout-button" class="submit-button" type="submit" value="Submit New Workout">
+        </form>
         <a type="button" id="clear-tentative-workout-button" href="{{url_for('clear_tentative_exercise')}}">Clear Tentative Workout</a>
         <a type="button" class="back-to-home-button" href="{{url_for('home')}}">Back to Home</a>
     </div>

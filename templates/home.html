@@ -6,18 +6,20 @@
 
 <div id="home-hero">
     {% if num_seshs %}
-        <h2 class="page-title">Welcome back {{ session['fname'] }}, you're getting <strong>Swoll!</strong></h2>
+        <h1 class="page-title">Welcome back <strong>{{ session['fname'] }}</strong>, you're getting <strong>Swoll!</strong></h1>
+
+        <h2 id="numWorkoutsDisplay">{{num_seshs}} workouts completed so far, keep it up!</h2>
 
         <div class="double-buttons">
             <a type="button" id="start-workout-button" class="submit-button" href="{{url_for('select_workout')}}">START WORKOUT</a>
             <a type="button" id="create-workout-secondary-button" class="submit-button" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>
         </div>
-        <h3>{{num_seshs}} workouts completed so far, keep it up!</h3>
+
         <div id="chart" class="container-fluid align-items-center justify-content-center ">
 
         </div>
     {% else %}
-        <h2 class="page-title">Welcome to SwollTech, {{ session['fname'] }}. Let's get <strong>shredded.</strong></h2>
+        <h1 class="page-title">Welcome to SwollTech, <strong>{{ session['fname'] }}</strong>. Let's get <strong>shredded.</strong></h1>
         {% if num_workouts == 0%}
 
         <a type="button" id="create-workout-primary-button" class="submit-button" href="{{url_for('create_workout')}}">CREATE WORKOUT</a>

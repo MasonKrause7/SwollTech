@@ -2,5 +2,8 @@
 
 {% block content%}
 <h1 class="text-center mb-3">{% block title %}Delete Account{% endblock%}</h1>
-<button class="btn btn-danger" name="{{session['user_id']}}" onclick="deleteAccount(name)">Permanently delete account</button>
-{% endblock %}
+<form id="deleteAccountForm" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-danger" name="{{session['user_id']}}" onclick="deleteAccount(name)">Permanently delete account</button>
+</form>
+    {% endblock %}

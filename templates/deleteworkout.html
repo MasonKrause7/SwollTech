@@ -4,10 +4,15 @@
 <h1 class="text-center mb-3">{%block title%}Delete Workout{% endblock %}</h1>
 
 {% if workouts%}
-<h2>Your workouts:</h2>
+<h2>Select a workout to be deleted:</h2>
 <ul>
     {% for workout in workouts %}
-        <li class="mt-2"><form id="{{workout.workout_id}}" method="post"><input class="btn btn-danger btn-sm" name="{{workout.workout_id}}" onclick="setWorkoutToDelete(name)" type="button">{{workout.workout_name}}</input></form></li>
+        <li class="mt-2">
+            <form id="{{workout.workout_id}}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input class="btn btn-danger btn-sm" name="{{workout.workout_id}}" onclick="setWorkoutToDelete(name)" type="button" value="{{workout.workout_name}}">
+            </form>
+        </li>
     {% endfor %}
 </ul>
 {% endif %}

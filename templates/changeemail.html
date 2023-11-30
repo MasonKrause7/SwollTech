@@ -6,6 +6,7 @@
 
 
 <form method="POST" action="{{url_for('change_email')}}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>
         <label>New Email</label>
         <input type="email" placeholder="New Email" id="new_email" name="new_email">

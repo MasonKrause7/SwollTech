@@ -3,10 +3,7 @@ from passlib.hash import pbkdf2_sha256
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_
 import pymysql
-import pandas as pd
-import numpy as np
-import json
-import plotly
+from flask_wtf.csrf import CSRFProtect
 from plotly import utils
 import plotly.express as px
 from os import environ
@@ -14,7 +11,7 @@ from os import environ
 
 application = Flask(__name__)
 db = SQLAlchemy()
-
+csrf = CSRFProtect(application)
 aws_uri=f"mysql+pymysql://{'admin'}:{'SoccerPlayer7!'}@{'swolltech-db.cxkpf5rcmqhr.us-east-1.rds.amazonaws.com'}:{3306}/{'swolltech'}"
 uri = f"mysql+pymysql://{'root'}:{'SoccerPlayer7!'}@{'localhost'}:3306/{'swolltech'}"
 application.config['SQLALCHEMY_DATABASE_URI'] = aws_uri
@@ -104,7 +101,8 @@ def get_signup():
 
 @application.post('/signup.html')
 def post_signup():
-    # NEED TO VALIDATE REGISTRATION DATA
+    #csrf protected
+    # NEED TO SANITIZE REGISTRATION DATA
     #collecting form data
     fname = request.form['fname']
     lname = request.form['lname']
@@ -133,7 +131,6 @@ def post_signup():
             return render_template(url_for('login'), message=message, messageCategory='success')
 
         except:
-            db.session.delete(user)
             message = "There was an error during the sign up process. Please try again."
             print('Error committing user to db')
             return render_template(url_for('get_signup'), message=message, messageCategory='danger')
@@ -141,6 +138,7 @@ def post_signup():
 
 @application.route('/login.html', methods=['GET', 'POST'])
 def login(user=None, message=""):
+    # csrf protected
     if request.method == 'GET':
         return render_template('login.html')
     else:
@@ -199,6 +197,7 @@ def edit_account():
         return render_template('index.html', message=message, messageCategory='danger')
 @application.post('/change_email/')
 def change_email():
+    # csrf protected
     if user_authenticated():
         new_email = request.form.get('new_email')
 
@@ -224,6 +223,7 @@ def change_email():
 
 @application.post('/change_password/')
 def change_password():
+    # csrf protected
     if user_authenticated():
         curr_password = request.form['curr_password']
         new_password = request.form['new_password']
@@ -243,8 +243,9 @@ def change_password():
         message = 'You are not logged in. Please log in or create an account'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@application.route('/deleteaccount/')
-def delete_account():
+@application.post('/deleteaccount/')
+def delete_account(): #NOT WORKING - NOT DELETING THE ACC FROM DB
+    # csrf protected
     if user_authenticated():
         user_id = request.args.get('user_id')
         delete_user_account(user_id)
@@ -260,7 +261,7 @@ def home(message=None):
         message = 'You must be logged in to access your home page'
         return render_template(url_for('login'), message=message, messageCategory='danger')
 
-    # NEED TO BUILD USEFUL GRAPH DISPLAY HERE
+
     #find total number of workouts completed
     sesh_objs = Sesh.query.filter_by(user_id=session['user_id']).all()
     num_seshs = len(sesh_objs)
@@ -441,8 +442,9 @@ def clear_tentative_exercise():
         return render_template('index.html', message=message, messageCategory='danger')
 
 
-@application.route('/postworkout.html/')
+@application.post('/postworkout.html/')
 def post_create_workout():
+    #csrf protected
     if user_authenticated():
         if 'new_workout_name' not in session.keys():
             return render_template('createworkout.html', message='Must name workout to create it', messageCategory='danger')
@@ -563,6 +565,7 @@ def delete_workout():
 
 @application.post('/deleteworkout/')
 def post_delete_workout():
+    #csrf protected
     if user_authenticated():
         workout_id = request.args.get('workout_id')
         delete_workout(workout_id)
@@ -610,6 +613,7 @@ def change_workout_name():
 
 @application.post('/postworkoutname/')
 def post_change_workout_name():
+    #csrf protected
     if user_authenticated():
         new_workout_name = request.form.get('new_workout_name')
         workout = Workout.query.filter_by(workout_id=session['workout_under_edit']).first()
@@ -628,10 +632,14 @@ def add_exercises_to_workout():
     session['workout_under_edit'] = workout_id
     workout_name = request.args.get('workout_name')
     build_workout_ex_list_and_showable_ex_list()
-
-    return render_template('addexercisetoworkout.html', workout_id=workout_id, workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'])
-@application.route('/editworkout_addexistingexercise/')
+    print(session['showable_exercises'][list(session['showable_exercises'].keys())[0]])
+    showable_names = []
+    for i in range(len(session['showable_exercises'].keys())):
+        showable_names.append(session['showable_exercises'][list(session['showable_exercises'].keys())[i]])
+    return render_template('addexercisetoworkout.html', workout_id=workout_id, workout_name=workout_name, workoutExercises=session['workout_exercises'], userExercises=session['showable_exercises'], showableNames = showable_names)
+@application.post('/editworkout_addexistingexercise/')
 def edit_workout_add_existing_exercises():
+    # csrf protected
     if user_authenticated():
         exercise_id = request.args.get('ex_id')
         workout = Workout.query.filter_by(workout_id=session['workout_under_edit']).first()
@@ -660,9 +668,9 @@ def edit_workout_add_existing_exercises():
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
 
-@application.route('/buildexforwo/')
+@application.post('/buildexforwo/')
 def build_exercise_for_workout():
-
+    # csrf protected
     if user_authenticated():
         exercise_name = request.args.get('exercise_name')
         exercise_type = request.args.get('exercise_type')
@@ -723,8 +731,9 @@ def build_exercise_for_workout():
         return render_template('index.html', message=message, messageCategory='danger')
 
 
-@application.route('/removeexercisefromworkout/')
+@application.post('/removeexercisefromworkout/')
 def remove_exercise_from_workout():
+    # csrf protected
     ex_id = request.args.get('ex_id')
     wo_id = request.args.get('wo_id')
 
@@ -813,6 +822,10 @@ def start_exercise():
         print(completed_strength_sets)
         completed_cardio_sets = Cardio_Set.query.filter(Cardio_Set.sesh_id==session['sesh_in_progress_id'], Cardio_Set.wo_ex_id==session['current_wo_ex_id']).all()
         completedSets = False
+        cardio_set_html_ids = {}
+        for set in completed_cardio_sets:
+            newId = "c" + str(set.c_set_number)
+            cardio_set_html_ids.update({set.c_set_number: newId})
         if len(completed_cardio_sets)>0 or len(completed_strength_sets)>0:
             completedSets = True
         #fetch sets from last workout
@@ -823,10 +836,10 @@ def start_exercise():
                 #these are sets that were completed during this workout, not last
                 sesh = Sesh.query.filter_by(sesh_id=sets[0].sesh_id).first()
                 if str(sesh.date_of_sesh) == session['sesh_in_progress_date']:
-                    return render_template('doexercise.html', completedSets=completedSets, sesh=sesh, exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+                    return render_template('doexercise.html', cardio_set_html_ids=cardio_set_html_ids,  completedSets=completedSets, numberOfCompletedSets=number,sesh=sesh, exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
                 #if there were no sets from a previous workout
-                return render_template('doexercise.html', completedSets=completedSets, sesh=sesh, exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
-            return render_template('doexercise.html', completedSets=completedSets, exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+                return render_template('doexercise.html', completedSets=completedSets,cardio_set_html_ids=cardio_set_html_ids, sesh=sesh, exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+            return render_template('doexercise.html', completedSets=completedSets,cardio_set_html_ids=cardio_set_html_ids, exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
 
         else:
             sets = fetch_last_workout_sets_by_exercise(exercise_id)
@@ -835,17 +848,18 @@ def start_exercise():
 
                 formatted_date_time = format_time(sesh.date_of_sesh)
 
-                return render_template('doexercise.html', completedSets=completedSets, exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets, formatted_time=formatted_date_time)
-            return render_template('doexercise.html', completedSets=completedSets, exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
+                return render_template('doexercise.html', completedSets=completedSets,cardio_set_html_ids=cardio_set_html_ids, exercise=exercise, last_workout_sets=sets, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets, formatted_time=formatted_date_time)
+            return render_template('doexercise.html', completedSets=completedSets,cardio_set_html_ids=cardio_set_html_ids, exercise=exercise, completed_cardio_sets=completed_cardio_sets, completed_strength_sets=completed_strength_sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
-@application.route('/submitstrengthset/')
+@application.post('/submitstrengthset/')
 def submit_strength_set():
+    #csrf protected
     if user_authenticated():
-        num_reps = request.args['numReps']
-        weight_amount = request.args['amntWeight']
-        weight_metric = request.args['weightMetric']
+        num_reps = request.form['numReps']
+        weight_amount = request.form['amntWeight']
+        weight_metric = request.form['weightMetric']
         wo_ex_id = session['current_wo_ex_id']
         submitStrengthSet(wo_ex_id, session['sesh_in_progress_id'], int(num_reps), float(weight_amount), str(weight_metric))
         # set is submitted, reload all the completed sets so far
@@ -859,39 +873,40 @@ def submit_strength_set():
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
-#UPDATED, NEEDS TESTING
-@application.route('/submitcardioset/')
+@application.post('/submitcardioset/')
 def submit_cardio_set():
+    #csrf protected
     if user_authenticated():
         wo_ex_id = session['current_wo_ex_id']
         sesh_id = session['sesh_in_progress_id']
-        duration_amnt = request.args['duration_amnt']
-        duration_metric = request.args['duration_metric']
-        distance_amnt = request.args['distanceAmnt']
-        distance_metric = request.args['distanceMetric']
+        duration_amnt = request.form['duration_amnt']
+        duration_metric = request.form['duration_metric']
+        distance_amnt = request.form['distanceAmnt']
+        distance_metric = request.form['distanceMetric']
         submitCardioSet(int(wo_ex_id), int(sesh_id), float(duration_amnt), str(duration_metric), float(distance_amnt), str(distance_metric))
         #set is submitted, reload all the completed sets so far
         workout_exercise = Workout_Exercise.query.filter(Workout_Exercise.wo_ex_id==wo_ex_id).first()
         exercise = Exercise.query.filter(Exercise.exercise_id==workout_exercise.exercise_id).first()
         completed_sets = Cardio_Set.query.filter(Cardio_Set.sesh_id==sesh_id, Cardio_Set.wo_ex_id==wo_ex_id).all()
+        cardio_set_html_ids = {} #needed distinct id's from strength sets for form submission with csrf tokens
+        for set in completed_sets:
+            newId = "c" + str(set.c_set_number)
+            print(f'newId for cardio set={newId}')
+            cardio_set_html_ids.update({set.c_set_number: newId})
         last_workout_sets = fetch_last_workout_sets_by_exercise(session['ex_in_progress'])
-        return render_template('doexercise.html', exercise=exercise, completedSets=True, completed_cardio_sets=completed_sets, last_workout_sets=last_workout_sets)
+        return render_template('doexercise.html', exercise=exercise, cardio_set_html_ids=cardio_set_html_ids, completedSets=True, completed_cardio_sets=completed_sets, last_workout_sets=last_workout_sets)
     else:
         message = "You are not logged in. Please log in or sign up to continue."
         return render_template('index.html', message=message, messageCategory='danger')
 
 
-@application.route('/deleteset/')
+@application.post('/deleteset/')
 def delete_set():
     set_id = request.args.get('set_id')
-    cardio_set = Cardio_Set.query.filter_by(c_set_number=set_id).first()
-    if cardio_set:
-        db.session.delete(cardio_set)
-        db.session.commit()
-    strength_set = Strength_Set.query.filter_by(s_set_number=set_id).first()
-    if strength_set:
-        db.session.delete(strength_set)
-        db.session.commit()
+    Cardio_Set.query.filter_by(c_set_number=set_id).delete()
+    db.session.commit()
+    strength_set = Strength_Set.query.filter_by(s_set_number=set_id).delete()
+    db.session.commit()
     return redirect(url_for('start_exercise'))
 
 @application.route('/endworkout/')
@@ -1047,6 +1062,7 @@ def update_user_password(new_password):
 
 #UPDATED, NEEDS TESTED
 def delete_user_account(user_id):
+    print(f"deleting user: {user_id}")
     cardio_sets = fetch_cardio_sets_by_user()
     if cardio_sets:
         for set in cardio_sets:
@@ -1102,8 +1118,7 @@ def fetch_strength_sets_by_user():
 
 #UPDATED, NEEDS TESTED
 def delete_user():
-    user = Users.query.filter_by(user_id=session['user_id']).first()
-    db.session.delete(user)
+    Users.query.filter_by(user_id=session['user_id']).delete()
     db.session.commit()
     session.clear()
 
@@ -1117,32 +1132,27 @@ def delete_workout(workout_id):
 
 #UPDATED, NEEDS TESTED
 def permanently_delete_workout(workout_id):
-    workout = Workout.query.filter_by(workout_id=workout_id).first()
-    db.session.delete(workout)
+    Workout.query.filter_by(workout_id=workout_id).delete()
     db.session.commit()
 
 #UPDATED, NEEDS TESTED
 def delete_sesh(sesh_id):
-    sesh = Sesh.query.filter_by(sesh_id=sesh_id).first
-    db.session.delete(sesh)
+    Sesh.query.filter_by(sesh_id=sesh_id).delete()
     db.commit()
 
 #UPDATED, NEEDS TESTED
 def delete_wo_ex(wo_ex_id):
-    wo_ex = Workout_Exercise.query.filter_by(wo_ex_id=wo_ex_id)
-    db.session.delete(wo_ex)
+    Workout_Exercise.query.filter_by(wo_ex_id=wo_ex_id).delete()
     db.session.commit()
 
 #UPDATED, NEEDS TESTED
 def delete_set(set_number, set_type, wo_ex_id):
 
     if set_type == 'Cardio':
-        cardio_set = Cardio_Set.query.filter(Cardio_Set.c_set_number == set_number, Cardio_Set.wo_ex_id==wo_ex_id).first()
-        db.session.execute(db.session.delete(cardio_set))
+        Cardio_Set.query.filter(Cardio_Set.c_set_number == set_number, Cardio_Set.wo_ex_id==wo_ex_id).delete()
         db.session.commit()
     elif set_type == 'Strength':
-        strength_set = Strength_Set.query.filter(Strength_Set.s_set_number==set_number, Strength_Set.wo_ex_id==wo_ex_id).first()
-        db.session.execute(db.session.delete(strength_set))
+        Strength_Set.query.filter(Strength_Set.s_set_number==set_number, Strength_Set.wo_ex_id==wo_ex_id).delete()
         db.session.commit()
     else:
         print('invalid set type')

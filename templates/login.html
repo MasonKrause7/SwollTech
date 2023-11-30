@@ -8,7 +8,7 @@
 
 
 <form class="form" method="POST" action="{{ url_for('login') }}">
-
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="username">Email</label>
     <input type="email" name="username" id="username" placeholder="Email" class="form-input">
 

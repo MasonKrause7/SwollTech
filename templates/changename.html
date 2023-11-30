@@ -6,6 +6,7 @@
 <h4>Current workout name: {{workout_name}}</h4>
 
 <form method="POST" action="{{url_for('post_change_workout_name')}}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="new_workout_name">New Workout Name</label>
     <input id="new_workout_name" name="new_workout_name" type="text" required="required">
     <div>
