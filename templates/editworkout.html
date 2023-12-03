@@ -3,31 +3,38 @@
 {% block content %}
 
 <h1 class="page-title-dark">{% block title %}Edit Workout{% endblock %}</h1>
-{% if users_workouts %}
-<h2>Your workouts:</h2>
-<ul>
-    {% for workout in users_workouts %}
-    <li class="mt-2"><button name="{{workout.workout_id}}" onclick="editWorkout(name)" class="btn btn-primary btn-sm">Edit</button> - {{workout.workout_name}}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-{% if exercises%}
-<hr>
-<h2>{{workout.workout_name}}</h2>
-<ul>
-    {% for exercise in exercises%}
-        <li>{{exercise.exercise_name}}</li>
-    {% endfor%}
-</ul>
-{% endif %}
-{% if workout %}
-<hr>
-    <h3>{{workout.workout_name}}</h3>
-    <button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout.workout_name}}', 'changename')" class="btn btn-secondary btn-sm">Change workout name</button>
-    <button name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout.workout_name}}', 'addexercise')" class="btn btn-secondary btn-sm">Add/Remove exercises</button>
-{% endif %}
-<div>
-    <a type="button" href="{{url_for('home')}}" class="mt-4 btn btn-primary btn-large">Back to Home</a>
-</div>
+<div id="edit-workout-container">
+    {% if users_workouts %}
+    <div id="edit-workouts-workout-selection">
+        <h2>Select the workout you'd like to edit</h2>
+        <ul class="standard-selection-list">
+            {% for uWorkout in users_workouts %}
+            {% if workout and workout.workout_name == uWorkout.workout_name %}
+            <li><button name="{{uWorkout.workout_id}}" onclick="editWorkout(name)" class="add-button">Edit</button><strong> - {{uWorkout.workout_name}}</strong></li>
+            {% else %}
+            <li><button name="{{uWorkout.workout_id}}" onclick="editWorkout(name)" class="add-button">Edit</button> - {{uWorkout.workout_name}}</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% if exercises%}
 
+    <h2>{{workout.workout_name}}</h2>
+    <ul>
+        {% for exercise in exercises%}
+            <li>{{exercise.exercise_name}}</li>
+        {% endfor%}
+    </ul>
+    {% endif %}
+    {% if workout %}
+
+        <h3>Choose how you'd like to edit this workout</h3>
+        <button id="change-workout-name-button" name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout.workout_name}}', 'changename')" class="submit-button">Change workout name</button>
+        <button id="add-remove-from-workout-button" name="{{workout_id}}" onclick="editWorkoutAction(name, '{{workout.workout_name}}', 'addexercise')" class="submit-button">Add/Remove exercises</button>
+    {% endif %}
+    <div>
+        <a type="button" href="{{url_for('home')}}" class="back-to-home-button">Back to Home</a>
+    </div>
+</div>
 {% endblock %}

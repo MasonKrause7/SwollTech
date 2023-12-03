@@ -6,14 +6,22 @@
 <div  id="viewWorkoutsContent">
 {% if users_workouts %}
 <div id="users-workouts">
-    <h2>Your Workouts:</h2>
-        <ul>
+    <h2>Select a workout to view details</h2>
+        <ul class="standard-selection-list">
             {% for workout in users_workouts %}
-                <li class="mb-2">
+            {% if workout_name and workout_name == workout.workout_name %}
+                <li>
+                    <form>
+                        <input class="add-button" type="button" name="{{workout.workout_id}},{{workout.workout_name}}" value="View" onclick="viewWorkout(name)"><span><strong> - {{workout.workout_name}}</strong></span>
+                    </form>
+                </li>
+            {% else %}
+                <li>
                     <form>
                         <input class="add-button" type="button" name="{{workout.workout_id}},{{workout.workout_name}}" value="View" onclick="viewWorkout(name)"><span> - {{workout.workout_name}}</span>
                     </form>
                 </li>
+            {% endif %}
             {% endfor %}
         </ul>
 </div>
@@ -26,7 +34,7 @@
 
     {% if exercises %}
     <div id="exercise-list">
-        <h2>{{workout_name}} exercise list</h2>
+        <h2><strong>{{workout_name}}</strong> exercise list</h2>
         <ul>
             {% for exercise in exercises %}
                 <li>{{exercise.exercise_name}}</li>
@@ -35,7 +43,7 @@
     </div>
 {% endif %}
 {% if workout_name %}
-<div>
+<div id="previous-sets-display">
     {% if not exercises%}
         <h2>{{workout_name}}</h2>
         <h4>There are no exercises associated with this workout. Head over to <a href="{{url_for('select_edit_workout')}}">edit workout</a> to add exercises.</h4>
@@ -73,21 +81,26 @@
         </ul>
     </div>
     {% else %}
-        <h3>You have not completed this workout before. Once you do this workout, you can view your most recent set data here.</h3>
+        <h3>You have no sets completed from this workout. Once you start this workout, be sure to enter data for each set you complete. Those completed sets will be shown here.</h3>
     {% endif %}
     {% if dates%}
 
     <h3 id="numberTimesWorkoutsBeenDone">You've done this workout {{num_times}} times:</h3>
+    <div id="previous-seshs-of-this-workout">
+        <ul>
+        <li><h5>Your most recent sesh detailed above</h5></li>
         {% for date in dates %}
-            <h4>{{date}}</h4>
+            <li><h5>{{date}}</h5></li>
         {% endfor %}
+        </ul>
+    </div>
     {% endif %}
 </div>
 {% endif %}
 </div>
     <div class="double-buttons">
         <a type="button" class="clear-tentative-workout-button" href="{{url_for('view_workouts')}}">Clear Workout View</a>
-        <a type="button" class="back-to-home-button" href="{{url_for('home')}}">Back to Home</a>
+        <a type="button" id="viewworkout-back-to-home-button" class="back-to-home-button" href="{{url_for('home')}}">Back to Home</a>
     </div>
 </div>
 

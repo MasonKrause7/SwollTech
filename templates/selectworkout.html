@@ -2,27 +2,35 @@
 
 {% block content %}
 
-<h1 class="page-title-dark">{% block title %}Select Workout to Start {% endblock %}</h1>
+<h1 class="page-title-dark">{% block title %}Start Workout{% endblock %}</h1>
+<div id="start-workout-selection-container">
 {% if workouts %}
-<ul>
+<h3>Select the workout you'd like to start</h3>
+<ul class="standard-selection-list">
     {% for workout in workouts %}
-    <li class="mt-2"><button class="btn btn-primary btn-sm" onclick="displaySelectedWorkout({{workout.workout_id}})">Start Workout</button> {{workout.workout_name}}</li>
+    <li><button class="add-button" onclick="displaySelectedWorkout('{{workout.workout_id}}')">Start</button> - {{workout.workout_name}}</li>
     {% endfor %}
 </ul>
 {% else %}
 <p><b>You don't have any workouts yet! Head over to <a href="{{url_for('create_workout')}}">create workout</a> to get started.</b></p>
 {% endif %}
 {% if wo_id %}
-    <hr>
-    <h3>{{wo_name}}</h3>
+<section>
+    <h3 id="start-workout-title"><strong>{{wo_name}}</strong></h3>
     {% if workout_exercises %}
-        <ul>
+        <ul class="standard-selection-list">
             {% for exercise in workout_exercises %}
-                <li>{{exercise.exercise_name}}</li>
+                {% if exercise.exercise_type_id == 1 %}
+                    <li>{{exercise.exercise_name}}</li>
+                {% endif %}
+                {% if exercise.exercise_type_id == 2 %}
+                    <li>{{exercise.exercise_name}}</li>
+                {% endif %}
             {% endfor %}
         </ul>
     {% endif %}
-<button class="btn btn-primary btn-large" onclick="startWorkout({{wo_id}})">START WORKOUT</button>
+<button class="submit-button" onclick="startWorkout('{{wo_id}}')">START WORKOUT</button>
+</section>
 {% endif %}
-
+</div>
 {% endblock %}

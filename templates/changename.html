@@ -3,19 +3,19 @@
 {% block content %}
 
 <h1 class="page-title-dark">{% block title%}Change Workout Name{% endblock %}</h1>
-<h4>Current workout name: {{workout_name}}</h4>
+<div id="change-workout-name-container">
+    <h2>Current workout name: {{workout_name}}</h2>
 
-<form method="POST" action="{{url_for('post_change_workout_name')}}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label for="new_workout_name">New Workout Name</label>
-    <input id="new_workout_name" name="new_workout_name" type="text" required="required">
+    <form method="POST" action="{{url_for('post_change_workout_name')}}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="new_workout_name">New Workout Name</label>
+        <input id="new_workout_name" class="form-input" name="new_workout_name" type="text" required="required">
+        <input id="update-workout-name-button" type="submit" class="submit-button" value="Update Workout Name">
+
+    </form>
+
     <div>
-        <input type="submit" class="mt-2 btn btn-primary btn-sm" value="Update Workout Name">
+        <a id="back-to-edit-button" type="button" class="back-to-home-button" href="{{url_for('redirect_to_edit_workout')}}">Back to Edit</a>
     </div>
-</form>
-
-<div>
-    <a type="button" class="mt-4 btn btn-primary btn-large" href="{{url_for('home')}}">Back to Home</a>
 </div>
-
 {% endblock %}

@@ -2,52 +2,56 @@
 
 {% block content %}
 <h1 class="page-title-dark">{% block title %}Alter Exercise List{% endblock %}</h1>
-<h2>Workout: </h2>
-{% if workoutExercises %}
-<h4>Current exercise list: </h4>
-<ul>
-    {% for exerciseID in workoutExercises.keys() %}
-    <li class="mt-2">
-        <form id="{{exerciseID}}" method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-danger btn-sm"  onclick="removeExerciseFromWorkout('{{exerciseID}}', '{{session.workout_under_edit}}')">Remove</button>
-        </form>
-            {{workoutExercises.get(exerciseID)}}</li>
-
-    {% endfor %}
-</ul>
-{% endif %}
-
-
-{% if userExercises %}
-
-<h4>Add existing exercises</h4>
-<ul>
-    {% for exId in userExercises.keys() %}
-        <li class="mt-2">
-            <form method="post" id="{{userExercises.get(exId)}}">
+<div id="alter-exercise-list-container">
+    <h2>Current Exercise List </h2>
+    {% if workoutExercises %}
+    <h4>Select exercises you'd like to remove from <strong>{{workout_name}}</strong></h4>
+    <ul class="standard-selection-list">
+        {% for exerciseID in workoutExercises.keys() %}
+        <li>
+            <form id="{{exerciseID}}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-primary btn-sm" onclick="editWorkoutAddExercise('{{exId}}', '{{userExercises.get(exId)}}')">Add to workout</button>
+                <button class="remove-button"  onclick="removeExerciseFromWorkout('{{exerciseID}}', '{{session.workout_under_edit}}')">Remove</button>
             </form>
-            {{userExercises.get(exId)}}
+            <span>- {{workoutExercises.get(exerciseID)}}</span>
         </li>
-    {% endfor %}
-</ul>
-{% endif %}
-<hr>
-<h4>Create new exercise</h4>
-<form method="post" id="addNewExerciseToExistingWorkoutForm">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input id="new_exercise_name" name="new_exercise_name" type="text" placeholder="Exercise name" required="required">
-    <label for="exercise_type_input">Select Exercise Type:</label>
-    <select required="required" id="exercise_type_input" name="exercise_type_input">
-        <option>Strength</option>
-        <option>Cardio</option>
-    </select>
-    <div>
-        <input type="button" value="Add exercise" class="mt-2 btn btn-primary btn-sm" onclick="buildExerciseForWorkout({{workout_id}})">
-    </div>
-</form>
-<hr>
-<a type="button" class="mt-4 btn btn-primary btn-large" href="{{url_for('select_edit_workout')}}">Back to Workouts</a>
-{% endblock %}
+
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+
+    {% if userExercises %}
+
+    <h4>Select exercises you'd like to borrow from other workouts</h4>
+    <ul class="standard-selection-list">
+        {% for exId in userExercises.keys() %}
+            <li>
+                <form method="post" id="{{userExercises.get(exId)}}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="add-button" onclick="editWorkoutAddExercise('{{exId}}', '{{userExercises.get(exId)}}')">Add</button>
+                </form>
+                <span>- {{userExercises.get(exId)}}</span>
+            </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+
+    <h4>Create a new exercise to add to <strong>{{workout_name}}</strong></h4>
+    <form method="post" class="form" id="addNewExerciseToExistingWorkoutForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input id="new_exercise_name" class="form-input" name="new_exercise_name" type="text" placeholder="Exercise name" required="required">
+        <label for="exercise_type_input">Select Exercise Type:</label>
+        <select required="required" class="form-input" id="exercise_type_input" name="exercise_type_input">
+            <option>Strength</option>
+            <option>Cardio</option>
+        </select>
+        <div>
+            <input type="button" value="Add exercise" class="submit-button" onclick="buildExerciseForWorkout('{{workout_id}}')">
+        </div>
+    </form>
+    <hr>
+    <a type="button" class="back-to-home-button" href="{{url_for('redirect_to_edit_workout')}}">Back to Edit</a>
+</div>
+    {% endblock %}

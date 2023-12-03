@@ -145,7 +145,7 @@ def login(user=None, message=""):
         username = request.form.get('username')
         password = request.form.get('loginpassword')
 
-        result = db.session.execute(db.select(Users).where(Users.email==username)).scalar_one_or_none()
+        result = Users.query.filter_by(Users.email==username).first()
 
 
         if not result:
@@ -203,7 +203,7 @@ def change_email():
 
         password = request.form.get('password')
 
-        user = db.session.execute(db.select(Users).where(Users.user_id==session['user_id'])).scalar_one_or_none()
+        user = Users.query.filter_by(Users.user_id==session['user_id']).first()
         existing_password = user.password
 
         if password:
@@ -228,7 +228,7 @@ def change_password():
         curr_password = request.form['curr_password']
         new_password = request.form['new_password']
         conf = request.form['conf_new_password']
-        user = db.session.execute(db.select(Users).where(Users.user_id==session['user_id'])).scalar_one_or_none()
+        user = Users.query.filter_by(user_id==session['user_id']).first()
         if pbkdf2_sha256.verify(curr_password, user.password):
             if new_password == conf:
                 update_user_password(new_password)
@@ -588,7 +588,10 @@ def select_edit_workout():
 @application.route('/editworkout/')
 def edit_workout():
     if user_authenticated():
-        workout_id = request.args.get('workout_id')
+        if 'workout_id' in request.args.keys():
+            workout_id = request.args.get('workout_id')
+        else:
+            workout_id = session['workout_under_edit']
         exercises = get_exercises_by_workout(workout_id)
         print(f"exercises = {exercises}")
         users_workouts = fetch_users_workouts()
@@ -599,6 +602,15 @@ def edit_workout():
     else:
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
+
+@application.route('/redirectbacktoeditworkout/')
+def redirect_to_edit_workout():
+    workout_id = session['workout_under_edit']
+    workout = Workout.query.filter_by(workout_id=workout_id).first()
+    users_workouts = fetch_users_workouts()
+    exercises = get_exercises_by_workout(workout_id)
+
+    return render_template('editworkout.html', exercises=exercises, users_workouts=users_workouts, workout=workout, workout_id=workout_id)
 
 @application.get('/changename/')
 def change_workout_name():
@@ -619,8 +631,10 @@ def post_change_workout_name():
         workout = Workout.query.filter_by(workout_id=session['workout_under_edit']).first()
         workout.workout_name = new_workout_name
         db.session.commit()
-        message = 'Workout name has been changed. You can find it in your workouts under the new name: '+new_workout_name
-        return render_template(url_for('home'), message=message, messageCategory='success')
+        exercises = get_exercises_by_workout(workout.workout_id)
+        users_workouts = fetch_users_workouts()
+        message = 'Workout name has been changed. New name: '+new_workout_name
+        return render_template('editworkout.html',exercises=exercises, users_workouts=users_workouts, workout=workout, workout_id=workout.workout_id, message=message, messageCategory='success')
     else:
         message = 'You are not logged in. Please sign up or log in to continue.'
         return render_template('index.html', message=message, messageCategory='danger')
@@ -738,11 +752,11 @@ def remove_exercise_from_workout():
     wo_id = request.args.get('wo_id')
 
     #mark wo_ex_id with deleted=1
-    wo_ex = db.session.execute(db.select(Workout_Exercise).filter(Workout_Exercise.workout_id==wo_id, Workout_Exercise.exercise_id==ex_id)).scalar_one_or_none()
+    wo_ex = Workout_Exercise.query.filter(Workout_Exercise.workout_id==wo_id, Workout_Exercise.exercise_id==ex_id).first()
     wo_ex.deleted=1
     db.session.commit()
 
-    workout_name = db.session.execute(db.select(Workout).where(Workout.workout_id==wo_id))
+    workout_name = Workout.query.filter_by(workout_id=wo_id).first().workout_name
     build_workout_ex_list_and_showable_ex_list()
     return render_template('addexercisetoworkout.html', workout_id=session['workout_under_edit'],
                            workout_name=workout_name, workoutExercises=session['workout_exercises'],
@@ -917,7 +931,6 @@ def end_workout():
         message = f"{workout_name} completed. Nice work!"
         return redirect(url_for('home'))
 
-
     else:
         message = "You are not logged in. Please login or create an account to continue."
         return render_template('index.html', message=message, messageCategory='danger')
@@ -1026,7 +1039,7 @@ def submitCardioSet(wo_ex_id, sesh_id, duration_amount, duration_metric, distanc
 
 #UPDATED, NEEDS TESTED
 def get_workout_name(workout_id):
-     workout = db.session.execute(db.select(Workout).where(Workout.workout_id == workout_id)).scalar_one_or_none()
+     workout = Workout.query.filter(Workout.workout_id==workout_id).first()
      return workout.workout_name
 
 # UPDATED, NEEDS TESTED
@@ -1049,14 +1062,16 @@ def user_authenticated():
 
 #UPDATED, TESTED
 def update_user_email(new_email):
-    db.session.execute(db.update(Users).where(Users.user_id == session['user_id']).values(email=new_email))
+    user = Users.query.filter_by(user_id == session['user_id']).first()
+    user.email = new_email
     db.session.commit()
     print('email updated')
 
 #UPDATED
 def update_user_password(new_password):
     hashword = pbkdf2_sha256.hash(new_password)
-    db.session.execute(db.update(Users).where(Users.user_id == session['user_id']).values(password=hashword))
+    user = Users.query.filter_by(user_id == session['user_id']).first()
+    user.password = hashword
     db.session.commit()
     print('password upated')
 

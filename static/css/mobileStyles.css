@@ -19,7 +19,7 @@
         font-size: 42pt;
     }
     #index-subtitle {
-        font-size: 18pt;
+        font-size: 20pt;
         margin-right: 5px;
         color: var(--primary-light);
     }
@@ -33,6 +33,14 @@
     #signup-or-signin-box p {
         font-size: 14pt;
     }
+    #signup-button {
+        font-size:16pt;
+        padding: 5px 15px;
+    }
+    #signin-button {
+        font-size: 14pt;
+        padding: 5px 12px;
+    }
     /* END INDEX STYLES */
     /* SIGN UP STYLES */
     .form {
@@ -45,12 +53,6 @@
 
     /* END SIGN UP */
     /* VIEW WORKOUT */
-    #users-workouts {
-        border: 1px solid red;
-        flex-direction: column;
-        align-items: center;
-        margin: 0px;
-        padding: 0px;
-    }
+
     /* END VIEW WORKOUT */
 }

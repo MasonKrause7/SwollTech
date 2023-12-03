@@ -2,72 +2,77 @@
 {% block title %}{{exercise.exercise_name}}{% endblock %}
 {% block content%}
 <h1 class="page-title-dark">{{session['workout_in_progress_name']}} - <strong>{{exercise.exercise_name}}</strong></h1>
+<div id="set-data-form">
+    {% if exercise.exercise_type_id == 1 %}
+    <h3>Record set data</h3>
+    <form method="POST" class="form" action="{{url_for('submit_strength_set')}}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input id="numReps" class="form-input" name="numReps" type="number" placeholder="Number of Reps">
+        <br>
+        <input class="form-input" id="amntWeight" name="amntWeight" type="number" placeholder="Amount of Weight">
+        <select id="weightMetric" class="form-input" name="weightMetric">
+            <option>lbs</option>
+            <option>kg</option>
+        </select>
+        <div>
+        <button type="submit" class="submit-button">Submit Set</button>
+        </div>
+    </form>
+    <hr>
+    {% elif exercise.exercise_type_id == 2 %}
+    <h3>Record set data</h3>
+    <form method="POST" class="form" action="{{url_for('submit_cardio_set')}}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" >
+        <input class="form-input" type="number" id="distanceAmn t" name="distanceAmnt" placeholder="Amount of Distance" required="required">
+        <select id="distanceMetric" class="form-input" name="distanceMetric" required="required">
+            <option>Miles</option>
+            <option>Kilometers</option>
+            <option>Meters</option>
+        </select>
+        <input type="number" class="form-input" id="duration_amnt" name="duration_amnt" placeholder="Amount of Time" required="required">
+        <select id="duration_metric" class="form-input" name="duration_metric" required="required">
+            <option>Minutes</option>
+            <option>Hours</option>
+            <option>Seconds</option>
+        </select>
+        <div>
+            <button type="submit" class="submit-button">Submit Set</button>
+        </div>
+    </form>
+    <hr>
+    {%endif%}
+</div>
 
-{% if exercise.exercise_type_id == 1 %}
-<h3>Current Set:</h3>
-<form method="POST" action="{{url_for('submit_strength_set')}}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input id="numReps" name="numReps" type="number" placeholder="Number of Reps">
-    <br>
-    <input class="mt-2 mb-2" id="amntWeight" name="amntWeight" type="number" placeholder="Amount of Weight">
-    <select id="weightMetric" name="weightMetric">
-        <option>lbs</option>
-        <option>kg</option>
-    </select>
-    <div>
-    <button type="submit" class="btn btn-primary btn-sm">Submit Set</button>
-    </div>
-</form>
-<hr>
-{% elif exercise.exercise_type_id == 2 %}
-<h3>Current Set:</h3>
-<form method="POST" action="{{url_for('submit_cardio_set')}}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" >
-    <input class="mb-1" type="number" id="distanceAmn t" name="distanceAmnt" placeholder="Amount of Distance" required="required">
-    <select id="distanceMetric" name="distanceMetric" required="required">
-        <option>Miles</option>
-        <option>Kilometers</option>
-        <option>Meters</option>
-    </select>
-    <input type="number" id="duration_amnt" name="duration_amnt" placeholder="Amount of Time" required="required">
-    <select id="duration_metric" name="duration_metric" required="required">
-        <option>Minutes</option>
-        <option>Hours</option>
-        <option>Seconds</option>
-    </select>
-    <div class="mt-2">
-        <button type="submit" class="btn btn-primary btn-sm">Submit Set</button>
-    </div>
-</form>
-<hr>
-{%endif%}
 {% if completedSets %}
+<div id="completed-sets-container">
 <h3>Completed Sets: </h3>
-<ul>
+<ul class="standard-selection-list">
     {% if completed_strength_sets %}
     {% for set in completed_strength_sets %}
-        <li class="mt-2">
+        <li>
             <form method="post" id="{{set.s_set_number}}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" >
-                <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet('{{set.s_set_number}}', '{{set.s_set_number}}')">Delete</button>{{set.number_of_reps}} reps - {{set.weight_amount}} {{set.weight_metric}}
+                <button class="remove-button" onclick="deleteSet('{{set.s_set_number}}', '{{set.s_set_number}}')">Delete</button> - {{set.number_of_reps}} reps - {{set.weight_amount}} {{set.weight_metric}}
             </form>
         </li>
     {% endfor %}
     {% endif %}
     {% if completed_cardio_sets %}
     {% for set in completed_cardio_sets %}
-        <li class="mt-2">
+        <li>
             <form id="{{cardio_set_html_ids.get(set.c_set_number)}}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" >
-                <button class="btn btn-danger btn-sm mr-1" onclick="deleteSet('{{set.c_set_number}}', '{{cardio_set_html_ids.get(set.c_set_number)}}')">Delete</button>{{set.distance_amount}} {{set.distance_metric}} - {{set.duration_amount}} {{set.duration_metric}}
+                <button class="remove-button" onclick="deleteSet('{{set.c_set_number}}', '{{cardio_set_html_ids.get(set.c_set_number)}}')">Delete</button> - {{set.distance_amount}} {{set.distance_metric}} - {{set.duration_amount}} {{set.duration_metric}}
             </form>
         </li>
     {% endfor %}
     {% endif %}
 </ul>
-<hr>
+</div>
 {% endif %}
+
 {% if last_workout_sets %}
+<div class="last-workout-sets">
     <h4>Last time you did {{session['workout_in_progress_name']}}</h4>
     <h5>{{last_workout_sets[0].date_of_sesh}}</h5>
     <ol>
@@ -80,10 +85,14 @@
             {% endif %}
         {% endfor %}
     </ol>
+</div>
 {% else %}
-<h4>No previous workout data for this exercise</h4>
-<h5>After you complete this workout, your past set data will display here</h5>
+<div class="last-workout-sets">
+    <h4>No previous workout data for this exercise</h4>
+    <h5>After you complete this workout, your past set data will display here</h5>
+</div>
 {% endif %}
-
-<button onclick="backToWorkout({{session['workout_in_progress_id']}})" class="btn btn-secondary btn-large">Back to Workout</button>
+<div class="double-buttons">
+<button onclick="backToWorkout({{session['workout_in_progress_id']}})" class="back-to-home-button">Back to Workout</button>
 {% endblock %}
+</div>

@@ -55,9 +55,14 @@ body {
     margin: 0px 5px 0px 0px;
     padding: 0px;
 }
+.nav-list:last-child{
+    padding-right: 5px;
+}
 .nav-list a li {
     color: var(--primary-light);
-    margin: 0px 5px 0px 0px;
+    margin: 0px 0px 0px 0px;
+    padding: 0px 5px 0px 0px;
+    text-align: center;
 }
 .nav-list a:hover li{
     text-decoration: none;
@@ -142,7 +147,7 @@ body {
     border-radius: 30px;
     text-decoration: none;
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     font-size: 110%;
 }
 .submit-button:hover {
@@ -160,6 +165,7 @@ body {
     text-align: center;
     text-decoration: none;
     padding: 5px;
+    margin: 0px 0px 5px 0px;
 }
 .back-to-home-button:hover {
     text-decoration: none;
@@ -175,6 +181,7 @@ body {
     color: var(--primary-light);
     text-decoration: none;
     font-size: 80%;
+    padding: 1px 10px;
 }
 .add-button:hover{
     color:var(--primary-light);
@@ -183,7 +190,8 @@ body {
     background-color: var(--secondary-green-darker);
 }
 .remove-button {
-    font-size: 75%;
+    padding: 1px 8px;
+    font-size: 80%;
     color: var(--primary-light);
     background-color: var(--primary-red);
     border: 1px solid var(--primary-red);
@@ -196,6 +204,13 @@ body {
     border: 1px solid var(--secondary-red-dark);
     background-color: var(--secondary-red-dark);
 }
+.standard-selection-list {
+    list-style: none;
+    padding: 0px;
+}
+.standard-selection-list li {
+    margin-top: 4px;
+}
 
 /* END GENERIC STYLING CLASSES */
 /* INDEX STYLES */
@@ -206,6 +221,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
 }
 #index-container h1, h2, span, a {
     color: var(--primary-light);
@@ -234,6 +250,9 @@ body {
 #index-subtitle strong {
         font-size: 130%;
         color: var(--primary-green);
+}
+#numWorkoutsDisplay {
+    text-align: center;
 }
 .signuplink {
     padding: 8px 35px;
@@ -374,9 +393,10 @@ body {
 }
 #submit-new-workout-button {
     width: 220px;
+    margin-bottom: 5px;
 }
 .clear-tentative-workout-button {
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     border-radius: 30px;
     border: 1px solid var(--primary-red);
     background-color: var(--primary-red);
@@ -423,6 +443,7 @@ body {
     list-style: none;
     padding: 0px;
     margin: 0px;
+
 }
 #selectedExerciseView ul li{
     margin: 0px;
@@ -431,6 +452,19 @@ body {
 #exercise-list {
     margin-bottom: 15px;
 }
+#exercise-list ul {
+    padding: 0px;
+    text-align: center;
+}
+#previous-sets-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+#exercise-list h2 strong {
+    color: var(--primary-purple);
+}
 #numberTimesWorkoutsBeenDone {
     margin-top: 15px;
 }
@@ -438,10 +472,166 @@ body {
     width: 100%;
     margin: 15px 0px;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
 }
 #users-workouts ul {
     list-style: none;
+}
+#users-workouts strong {
+    color: var(--primary-purple);
+}
+#viewworkout-back-to-home-button {
+    margin-top: -3px;
+}
+#previous-seshs-of-this-workout h5 {
+    text-align: left;
+}
+
+
+/* END VIEW WORKOUT STYLES */
+/* EDIT WORKOUT STYLES */
+#edit-workout-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+#edit-workout-container h2,h3 {
+    text-align: center;
+}
+#edit-workout-container strong {
+    color: var(--primary-green);
+}
+#edit-workouts-workout-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 
 }
-/* END VIEW WORKOUT STYLES */
+#change-workout-name-button {
+    margin-top: 3px;
+    margin-bottom: 0px;
+    width: 300px;
+}
+#add-remove-from-workout-button {
+    margin-top: 2px;
+    margin-bottom: 15px;
+    width: 300px;
+}
+#change-workout-name-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#change-workout-name-container h2, h3 {
+    text-align: center;
+}
+#change-workout-name-container form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#new_workout_name {
+    width: 300px;
+}
+#change-workout-name-container form label {
+    font-size: 16pt;
+}
+#update-workout-name-button {
+    width: 250px;
+}
+#back-to-edit-button {
+    margin-top: -3px;
+}
+#alter-exercise-list-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#alter-exercise-list-container strong {
+    color: var(--primary-purple);
+}
+#alter-exercise-list-container h2, h3, h4 {
+    text-align: center;
+}
+#alter-exercise-list-container ul li {
+    display: flex;
+    margin: 4px 0px;
+}
+#alter-exercise-list-container span {
+    margin-left: 2px;
+}
+#addNewExerciseToExistingWorkoutForm {
+    width: 85vw;
+}
+/* EDIT WORKOUT STYLES */
+/* DELETE WOROKOUT STYLES */
+#delete-workout-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#delete-workout-container h2 {
+    text-align: center;
+}
+/* END DELETE WORKOUT STYLES */
+/* START WORKOUT SELECTION STYLES */
+#start-workout-selection-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#start-workout-selection-container strong {
+    color: var(--primary-purple);
+}
+#start-workout-selection-container section {
+    margin: 5px 0px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#start-workout-title {
+    font-size: 26pt;
+}
+#start-workout-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#start-workout-container ul {
+    list-style: none;
+}
+#start-workout-container ul li {
+    margin-bottom: 2px;
+    font-size: 14pt;
+}
+#end-workout-button {
+    width: 150px;
+}
+#set-data-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#set-data-form form {
+    width: 50%;
+}
+#completed-sets-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+.last-workout-sets {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+}
+/* END START WORKOUT SELECTION STYLES */

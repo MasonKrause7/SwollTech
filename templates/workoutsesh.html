@@ -2,18 +2,21 @@
 
 {% block content %}
 <h1 class="page-title-dark">{% block title %}{{session['workout_in_progress_name']}}{% endblock %}</h1>
-<h2 class="mb-4">{{formatted_date_time}}</h2>
+<div id="start-workout-container">
+<h2>{{formatted_date_time}}</h2>
 {% if exercises %}
-    <ul class="mt-2">
+    <ul class="standard-selection-list">
         {% for exercise in exercises %}
             {% if session['exercises_with_sets'].get(wo_ex_to_ex[exercise.exercise_name]) == False %}
-                <li class="mt-2"><button class="btn btn-primary btn-sm" onclick="startExercise({{exercise.exercise_id}})">Start exercise</button> {{exercise.exercise_name}}</li>
+                <li><button class="add-button" onclick="startExercise('{{exercise.exercise_id}}')">Start</button> {{exercise.exercise_name}}</li>
             {% else%}
-                <li class="mt-2"><button class="btn btn-secondary btn-sm" onclick="startExercise({{exercise.exercise_id}})">Continue Exercise</button> {{exercise.exercise_name}}</li>
+                <li><button class="add-button" style="background-color: #925AE2; border: 1px solid #925AE2" onmouseover="this.style.backgroundColor='#6212D1'" onmouseout="this.style.backgroundColor='#925AE2'" onclick="startExercise('{{exercise.exercise_id}}')">Continue</button> {{exercise.exercise_name}}</li>
             {% endif %}
         {% endfor %}
     </ul>
 {% endif %}
 
-<button class="mt-3 btn btn-danger" onclick="endWorkout()">End Workout</button>
+
+<button id="end-workout-button" class="clear-tentative-workout-button" onclick="endWorkout()">End Workout</button>
+</div>
 {% endblock %}

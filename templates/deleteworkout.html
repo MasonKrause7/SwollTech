@@ -4,18 +4,24 @@
 <h1 class="page-title-dark">{%block title%}Delete Workout{% endblock %}</h1>
 
 {% if workouts%}
-<h2>Select a workout to be deleted:</h2>
-<ul>
-    {% for workout in workouts %}
-        <li class="mt-2">
-            <form id="{{workout.workout_id}}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input class="btn btn-danger btn-sm" name="{{workout.workout_id}}" onclick="setWorkoutToDelete(name)" type="button" value="{{workout.workout_name}}">
-            </form>
-        </li>
-    {% endfor %}
-</ul>
-{% endif %}
-<a type="button" class="mt-4 btn btn-primary btn-lg" href="{{url_for('home')}}">Back To Home</a>
+<div id="delete-workout-container">
+    <h2>Select the workout you'd like to delete</h2>
 
+    <ul class="standard-selection-list">
+        {% for workout in workouts %}
+            <li>
+                <form id="{{workout.workout_id}}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input class="remove-button" name="{{workout.workout_id}}" onclick="setWorkoutToDelete(name)" type="button" value="Delete"><span> - {{workout.workout_name}}</span>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<h2>You don't have any workouts to delete... head over to <a href="{{url_for('create_workout')}}">create workout</a> to build your workouts.</h2>
+{% endif %}
+<div class="double-buttons">
+    <a type="button" class="back-to-home-button" href="{{url_for('home')}}">Back To Home</a>
+</div>
 {% endblock %}
