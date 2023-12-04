@@ -1,12 +1,8 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from passlib.hash import pbkdf2_sha256
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import and_
-import pymysql
 from flask_wtf.csrf import CSRFProtect
-from plotly import utils
-import plotly.express as px
-from os import environ
+
 
 
 application = Flask(__name__)
@@ -143,10 +139,11 @@ def login(user=None, message=""):
         return render_template('login.html')
     else:
         username = request.form.get('username')
+        print(f"username entered = {username}")
         password = request.form.get('loginpassword')
 
-        result = Users.query.filter_by(Users.email==username).first()
-
+        result = db.session.query(Users).filter(Users.email==username).first()
+        print(f"results username = {result.email}")
 
         if not result:
             message = "No user exists with that email, please try again"
