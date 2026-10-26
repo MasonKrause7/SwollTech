@@ -26,7 +26,7 @@ export interface AuthValue {
   requestReset: (email: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
   devSignIn: (email: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: (scope?: "local" | "global") => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthValue | null>(null);
@@ -83,14 +83,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signOut = useCallback(async () => {
-    devToken.current = null;
-    writeDevToken(null);
-    if (supabase) await supabase.auth.signOut().catch(() => undefined);
-    setSignedIn(false);
-    setEmail(null);
-    setRecovering(false);
-    queryClient.clear();
+  const signingOut = useRef<Promise<void> | null>(null);
+  const signOut = useCallback((scope: "local" | "global" = "global") => {
+    // Several requests can fail with 401 at once. Sign out once, not once per request.
+    if (signingOut.current) return signingOut.current;
+    signingOut.current = (async () => {
+      devToken.current = null;
+      writeDevToken(null);
+      if (supabase) await supabase.auth.signOut({ scope }).catch(() => undefined);
+      setSignedIn(false);
+      setEmail(null);
+      setRecovering(false);
+      queryClient.clear();
+    })().finally(() => {
+      signingOut.current = null;
+    });
+    return signingOut.current;
   }, [queryClient]);
 
   const signOutRef = useRef(signOut);
@@ -107,7 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return data.session?.access_token ?? null;
         },
         onUnauthorized: () => {
-          void signOutRef.current();
+          // The API rejected the token: drop this browser's session only.
+          void signOutRef.current("local");
         },
       }),
     [],
