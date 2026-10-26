@@ -1,3 +1,4 @@
+import logging
 import time
 from uuid import UUID
 
@@ -9,6 +10,7 @@ from jwt import PyJWKClient
 from swolltech.config import Settings, get_settings
 from swolltech.errors import DomainError
 
+logger = logging.getLogger("swolltech.auth")
 bearer = HTTPBearer(auto_error=False)
 _jwks_clients: dict[str, PyJWKClient] = {}
 DECODE_OPTIONS = {"require": ["exp", "sub"]}
@@ -20,6 +22,7 @@ def decode_token(token: str, settings: Settings) -> dict:
     algorithm = header.get("alg")
     if algorithm == "HS256":
         if not settings.supabase_jwt_secret:
+            logger.warning("Rejected HS256 token: SUPABASE_JWT_SECRET is not set (kid=%s)", header.get("kid"))
             raise DomainError(401, "Invalid token")
         return jwt.decode(
             token,
@@ -33,6 +36,7 @@ def decode_token(token: str, settings: Settings) -> dict:
         f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json" if settings.supabase_url else ""
     )
     if not jwks_url:
+        logger.warning("Rejected %s token: no JWKS URL configured", algorithm)
         raise DomainError(401, "Invalid token")
     client = _jwks_clients.get(jwks_url)
     if client is None:
@@ -75,6 +79,14 @@ async def current_user_id(
     except DomainError:
         raise
     except jwt.PyJWTError as exc:
+        alg = kid = None
+        try:
+            header = jwt.get_unverified_header(creds.credentials)
+            alg, kid = header.get("alg"), header.get("kid")
+        except jwt.PyJWTError:
+            pass
+        # Never log the token itself, only why it failed.
+        logger.warning("Rejected token: %s: %s (alg=%s kid=%s)", type(exc).__name__, exc, alg, kid)
         raise DomainError(401, "Invalid token") from exc
     subject = payload.get("sub")
     if not subject:
