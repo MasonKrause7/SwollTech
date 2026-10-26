@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "SwollTech",
+    "slug": "swolltech",
+    "scheme": "swolltech",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#1B2027",
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-secure-store",
+      "expo-font",
+      ["expo-notifications", { "color": "#F2C230" }],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "SwollTech uses the camera so you can film a set and check your form.",
+          "microphonePermission": "SwollTech records audio with set videos.",
+          "photosPermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.swolltech.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "SwollTech uses the camera so you can film a set and check your form.",
+        "NSMicrophoneUsageDescription": "SwollTech records audio with set videos.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.swolltech.app",
+      "permissions": ["CAMERA", "RECORD_AUDIO", "POST_NOTIFICATIONS"]
+    }
+  }
+}

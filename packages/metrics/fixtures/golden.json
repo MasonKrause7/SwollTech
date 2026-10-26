@@ -1,0 +1,22 @@
+{
+  "lb_to_kg": "0.45359237",
+  "cases": [
+    {"name": "225 lb x 5 working", "weight": 225, "unit": "lb", "reps": 5, "kind": "working", "kg": 102.058283, "e1rm": 119.067997},
+    {"name": "100 kg x 1 working", "weight": 100, "unit": "kg", "reps": 1, "kind": "working", "kg": 100.0, "e1rm": 100.0},
+    {"name": "60 kg x 10 working", "weight": 60, "unit": "kg", "reps": 10, "kind": "working", "kg": 60.0, "e1rm": 80.0},
+    {"name": "135 lb x 8 warmup", "weight": 135, "unit": "lb", "reps": 8, "kind": "warmup", "kg": 61.23497, "e1rm": null},
+    {"name": "0 reps invalid", "weight": 100, "unit": "kg", "reps": 0, "kind": "working", "kg": 100.0, "e1rm": null}
+  ],
+  "session": {
+    "reference_kg": 150,
+    "sets": [
+      {"weight": 135, "unit": "lb", "reps": 8, "kind": "warmup"},
+      {"weight": 225, "unit": "lb", "reps": 5, "kind": "working"},
+      {"weight": 100, "unit": "kg", "reps": 3, "kind": "working"}
+    ],
+    "best_e1rm_kg": 119.067997,
+    "volume_kg": 810.291415,
+    "top_set_weight_kg": 102.058283,
+    "top_set_percent": 68.038855
+  }
+}

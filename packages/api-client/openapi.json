@@ -1,0 +1,4725 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "SwollTech",
+  "version": "0.1.0"
+ },
+ "paths": {
+  "/health": {
+   "get": {
+    "summary": "Health",
+    "operationId": "health_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health/ready": {
+   "get": {
+    "summary": "Ready",
+    "operationId": "ready_health_ready_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/me": {
+   "get": {
+    "summary": "Get Me",
+    "operationId": "get_me_v1_me_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProfileOut"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "delete": {
+    "summary": "Delete Me",
+    "operationId": "delete_me_v1_me_delete",
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "patch": {
+    "summary": "Patch Me",
+    "operationId": "patch_me_v1_me_patch",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProfilePatch"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProfileOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/v1/dev/token": {
+   "post": {
+    "summary": "Dev Token",
+    "operationId": "dev_token_v1_dev_token_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DevTokenIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DevTokenOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/catalog": {
+   "get": {
+    "summary": "Get Catalog",
+    "operationId": "get_catalog_v1_catalog_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogOut"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/v1/exercises": {
+   "get": {
+    "summary": "Get Exercises",
+    "operationId": "get_exercises_v1_exercises_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Q"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ExerciseOut"
+         },
+         "title": "Response Get Exercises V1 Exercises Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "summary": "Post Exercise",
+    "operationId": "post_exercise_v1_exercises_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ExerciseIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExerciseOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/exercises/{exercise_id}": {
+   "patch": {
+    "summary": "Patch Exercise",
+    "operationId": "patch_exercise_v1_exercises__exercise_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "exercise_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Exercise Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ExercisePatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExerciseOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Exercise",
+    "operationId": "remove_exercise_v1_exercises__exercise_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "exercise_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Exercise Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/exercises/{exercise_id}/reference": {
+   "get": {
+    "summary": "Get Reference",
+    "operationId": "get_reference_v1_exercises__exercise_id__reference_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "exercise_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Exercise Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReferenceOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "summary": "Put Reference",
+    "operationId": "put_reference_v1_exercises__exercise_id__reference_put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "exercise_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Exercise Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReferenceIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReferenceOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Reference",
+    "operationId": "remove_reference_v1_exercises__exercise_id__reference_delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "exercise_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Exercise Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/exercises/{exercise_id}/progress": {
+   "get": {
+    "summary": "Get Progress",
+    "operationId": "get_progress_v1_exercises__exercise_id__progress_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "exercise_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Exercise Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProgressOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/workouts": {
+   "get": {
+    "summary": "Get Workouts",
+    "operationId": "get_workouts_v1_workouts_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/WorkoutSummary"
+         },
+         "type": "array",
+         "title": "Response Get Workouts V1 Workouts Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "post": {
+    "summary": "Post Workout",
+    "operationId": "post_workout_v1_workouts_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WorkoutIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutSummary"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/v1/workouts/{workout_id}": {
+   "get": {
+    "summary": "Get Workout",
+    "operationId": "get_workout_v1_workouts__workout_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "workout_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Workout Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "summary": "Patch Workout",
+    "operationId": "patch_workout_v1_workouts__workout_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "workout_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Workout Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WorkoutPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Workout",
+    "operationId": "remove_workout_v1_workouts__workout_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "workout_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Workout Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/workouts/{workout_id}/exercises": {
+   "post": {
+    "summary": "Post Workout Exercise",
+    "operationId": "post_workout_exercise_v1_workouts__workout_id__exercises_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "workout_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Workout Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WorkoutExerciseIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/workouts/{workout_id}/reorder": {
+   "post": {
+    "summary": "Reorder Workout",
+    "operationId": "reorder_workout_v1_workouts__workout_id__reorder_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "workout_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Workout Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReorderIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/workout-exercises/{item_id}": {
+   "patch": {
+    "summary": "Patch Workout Exercise",
+    "operationId": "patch_workout_exercise_v1_workout_exercises__item_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WorkoutExercisePatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutExercisePatch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Workout Exercise",
+    "operationId": "remove_workout_exercise_v1_workout_exercises__item_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/workout-exercises/{item_id}/sets": {
+   "post": {
+    "summary": "Post Workout Set",
+    "operationId": "post_workout_set_v1_workout_exercises__item_id__sets_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WorkoutSetIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutSetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/workout-exercises/{item_id}/reorder-sets": {
+   "post": {
+    "summary": "Reorder Sets",
+    "operationId": "reorder_sets_v1_workout_exercises__item_id__reorder_sets_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReorderIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/workout-sets/{set_id}": {
+   "patch": {
+    "summary": "Patch Workout Set",
+    "operationId": "patch_workout_set_v1_workout_sets__set_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WorkoutSetPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkoutSetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Workout Set",
+    "operationId": "remove_workout_set_v1_workout_sets__set_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/sessions": {
+   "get": {
+    "summary": "Get Sessions",
+    "operationId": "get_sessions_v1_sessions_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/SessionStatus"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/SessionSummary"
+         },
+         "title": "Response Get Sessions V1 Sessions Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "summary": "Post Session",
+    "operationId": "post_session_v1_sessions_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SessionIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/sessions/{session_id}": {
+   "get": {
+    "summary": "Get Session",
+    "operationId": "get_session_v1_sessions__session_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Session Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "summary": "Patch Session",
+    "operationId": "patch_session_v1_sessions__session_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Session Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SessionPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Session",
+    "operationId": "remove_session_v1_sessions__session_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Session Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/sessions/{session_id}/summary": {
+   "get": {
+    "summary": "Get Session Summary",
+    "operationId": "get_session_summary_v1_sessions__session_id__summary_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Session Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionSummaryOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/stats/overview": {
+   "get": {
+    "summary": "Get Overview",
+    "operationId": "get_overview_v1_stats_overview_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "tz",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Tz"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OverviewOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/sessions/{session_id}/exercises": {
+   "post": {
+    "summary": "Post Session Exercise",
+    "operationId": "post_session_exercise_v1_sessions__session_id__exercises_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Session Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SessionExerciseIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/session-exercises/{item_id}": {
+   "patch": {
+    "summary": "Patch Session Exercise",
+    "operationId": "patch_session_exercise_v1_session_exercises__item_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SessionExercisePatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionExercisePatch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Session Exercise",
+    "operationId": "remove_session_exercise_v1_session_exercises__item_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/session-exercises/{item_id}/sets": {
+   "post": {
+    "summary": "Post Session Set",
+    "operationId": "post_session_set_v1_session_exercises__item_id__sets_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SessionSetIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionSetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/session-sets/{set_id}": {
+   "patch": {
+    "summary": "Patch Session Set",
+    "operationId": "patch_session_set_v1_session_sets__set_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SessionSetPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionSetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Session Set",
+    "operationId": "remove_session_set_v1_session_sets__set_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/session-sets/{set_id}/media/upload-url": {
+   "post": {
+    "summary": "Upload Url",
+    "operationId": "upload_url_v1_session_sets__set_id__media_upload_url_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MediaUploadIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MediaUploadOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/session-sets/{set_id}/media/confirm": {
+   "post": {
+    "summary": "Confirm Media",
+    "operationId": "confirm_media_v1_session_sets__set_id__media_confirm_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MediaConfirmIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MediaOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/session-sets/{set_id}/media": {
+   "get": {
+    "summary": "Get Media",
+    "operationId": "get_media_v1_session_sets__set_id__media_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MediaOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Media",
+    "operationId": "remove_media_v1_session_sets__set_id__media_delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/sync": {
+   "post": {
+    "summary": "Post Sync",
+    "operationId": "post_sync_v1_sync_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SyncIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SyncOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "CalendarDay": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "sessions": {
+      "type": "integer",
+      "title": "Sessions"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "sessions"
+    ],
+    "title": "CalendarDay"
+   },
+   "CatalogOut": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "exercises": {
+      "items": {
+       "$ref": "#/components/schemas/ExerciseOut"
+      },
+      "type": "array",
+      "title": "Exercises"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "exercises"
+    ],
+    "title": "CatalogOut"
+   },
+   "ChangeOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "entity": {
+      "type": "string",
+      "title": "Entity"
+     },
+     "entity_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Entity Id"
+     },
+     "op": {
+      "type": "string",
+      "title": "Op"
+     },
+     "row": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Row"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "entity",
+     "entity_id",
+     "op"
+    ],
+    "title": "ChangeOut"
+   },
+   "DevTokenIn": {
+    "properties": {
+     "email": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 3,
+      "title": "Email"
+     },
+     "display_name": {
+      "type": "string",
+      "title": "Display Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "email"
+    ],
+    "title": "DevTokenIn"
+   },
+   "DevTokenOut": {
+    "properties": {
+     "access_token": {
+      "type": "string",
+      "title": "Access Token"
+     },
+     "token_type": {
+      "type": "string",
+      "title": "Token Type",
+      "default": "bearer"
+     },
+     "user_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "User Id"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     }
+    },
+    "type": "object",
+    "required": [
+     "access_token",
+     "user_id",
+     "email"
+    ],
+    "title": "DevTokenOut"
+   },
+   "ExerciseIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "primary_muscle": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Primary Muscle",
+      "default": ""
+     },
+     "equipment": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Equipment",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "ExerciseIn"
+   },
+   "ExerciseOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "primary_muscle": {
+      "type": "string",
+      "title": "Primary Muscle"
+     },
+     "equipment": {
+      "type": "string",
+      "title": "Equipment"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "owner_id",
+     "name",
+     "primary_muscle",
+     "equipment",
+     "updated_at"
+    ],
+    "title": "ExerciseOut"
+   },
+   "ExercisePatch": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "primary_muscle": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Primary Muscle"
+     },
+     "equipment": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Equipment"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "ExercisePatch"
+   },
+   "ExerciseStat": {
+    "properties": {
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "exercise_name": {
+      "type": "string",
+      "title": "Exercise Name"
+     },
+     "muscle": {
+      "type": "string",
+      "title": "Muscle"
+     },
+     "sessions": {
+      "type": "integer",
+      "title": "Sessions"
+     },
+     "best_e1rm_kg": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Best E1Rm Kg"
+     },
+     "last_performed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Performed At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "exercise_id",
+     "exercise_name",
+     "muscle",
+     "sessions",
+     "best_e1rm_kg",
+     "last_performed_at"
+    ],
+    "title": "ExerciseStat"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "MediaConfirmIn": {
+    "properties": {
+     "duration_seconds": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Seconds"
+     }
+    },
+    "type": "object",
+    "title": "MediaConfirmIn"
+   },
+   "MediaOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "session_set_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Session Set Id"
+     },
+     "content_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Content Type"
+     },
+     "byte_size": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Byte Size"
+     },
+     "duration_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Seconds"
+     },
+     "status": {
+      "$ref": "#/components/schemas/MediaStatus"
+     },
+     "playback_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Playback Url"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "session_set_id",
+     "content_type",
+     "byte_size",
+     "duration_seconds",
+     "status",
+     "updated_at"
+    ],
+    "title": "MediaOut"
+   },
+   "MediaStatus": {
+    "type": "string",
+    "enum": [
+     "local",
+     "uploading",
+     "ready",
+     "failed"
+    ],
+    "title": "MediaStatus"
+   },
+   "MediaUploadIn": {
+    "properties": {
+     "content_type": {
+      "type": "string",
+      "title": "Content Type"
+     },
+     "byte_size": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Byte Size"
+     },
+     "duration_seconds": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Seconds"
+     }
+    },
+    "type": "object",
+    "required": [
+     "content_type",
+     "byte_size"
+    ],
+    "title": "MediaUploadIn"
+   },
+   "MediaUploadOut": {
+    "properties": {
+     "media_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Media Id"
+     },
+     "upload_url": {
+      "type": "string",
+      "title": "Upload Url"
+     },
+     "storage_key": {
+      "type": "string",
+      "title": "Storage Key"
+     },
+     "headers": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Headers"
+     }
+    },
+    "type": "object",
+    "required": [
+     "media_id",
+     "upload_url",
+     "storage_key",
+     "headers"
+    ],
+    "title": "MediaUploadOut"
+   },
+   "MuscleStat": {
+    "properties": {
+     "muscle": {
+      "type": "string",
+      "title": "Muscle"
+     },
+     "sets": {
+      "type": "integer",
+      "title": "Sets"
+     },
+     "volume_kg": {
+      "type": "number",
+      "title": "Volume Kg"
+     }
+    },
+    "type": "object",
+    "required": [
+     "muscle",
+     "sets",
+     "volume_kg"
+    ],
+    "title": "MuscleStat"
+   },
+   "MutationIn": {
+    "properties": {
+     "client_mutation_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Client Mutation Id"
+     },
+     "entity": {
+      "type": "string",
+      "title": "Entity"
+     },
+     "op": {
+      "type": "string",
+      "title": "Op"
+     },
+     "entity_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Entity Id"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     },
+     "payload": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Payload"
+     }
+    },
+    "type": "object",
+    "required": [
+     "client_mutation_id",
+     "entity",
+     "op",
+     "entity_id"
+    ],
+    "title": "MutationIn"
+   },
+   "MutationResult": {
+    "properties": {
+     "client_mutation_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Client Mutation Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "detail": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Detail"
+     },
+     "server_row": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Server Row"
+     }
+    },
+    "type": "object",
+    "required": [
+     "client_mutation_id",
+     "status"
+    ],
+    "title": "MutationResult"
+   },
+   "OverviewOut": {
+    "properties": {
+     "totals": {
+      "$ref": "#/components/schemas/StatsTotals"
+     },
+     "weekly": {
+      "items": {
+       "$ref": "#/components/schemas/WeeklyStat"
+      },
+      "type": "array",
+      "title": "Weekly"
+     },
+     "calendar": {
+      "items": {
+       "$ref": "#/components/schemas/CalendarDay"
+      },
+      "type": "array",
+      "title": "Calendar"
+     },
+     "muscle_split": {
+      "items": {
+       "$ref": "#/components/schemas/MuscleStat"
+      },
+      "type": "array",
+      "title": "Muscle Split"
+     },
+     "recent_records": {
+      "items": {
+       "$ref": "#/components/schemas/RecordOut"
+      },
+      "type": "array",
+      "title": "Recent Records"
+     },
+     "exercises": {
+      "items": {
+       "$ref": "#/components/schemas/ExerciseStat"
+      },
+      "type": "array",
+      "title": "Exercises"
+     }
+    },
+    "type": "object",
+    "required": [
+     "totals",
+     "weekly",
+     "calendar",
+     "muscle_split",
+     "recent_records",
+     "exercises"
+    ],
+    "title": "OverviewOut"
+   },
+   "ProfileOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "display_name": {
+      "type": "string",
+      "title": "Display Name"
+     },
+     "unit_preference": {
+      "$ref": "#/components/schemas/WeightUnit"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "display_name",
+     "unit_preference",
+     "updated_at"
+    ],
+    "title": "ProfileOut"
+   },
+   "ProfilePatch": {
+    "properties": {
+     "display_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Display Name"
+     },
+     "unit_preference": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "ProfilePatch"
+   },
+   "ProgressOut": {
+    "properties": {
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "reference_kg": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reference Kg"
+     },
+     "reference_source": {
+      "type": "string",
+      "title": "Reference Source"
+     },
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/ProgressPoint"
+      },
+      "type": "array",
+      "title": "Points"
+     }
+    },
+    "type": "object",
+    "required": [
+     "exercise_id",
+     "reference_kg",
+     "reference_source",
+     "points"
+    ],
+    "title": "ProgressOut"
+   },
+   "ProgressPoint": {
+    "properties": {
+     "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Session Id"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     },
+     "best_e1rm_kg": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Best E1Rm Kg"
+     },
+     "volume_kg": {
+      "type": "number",
+      "title": "Volume Kg"
+     },
+     "top_set_weight_kg": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Set Weight Kg"
+     },
+     "top_set_percent": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Set Percent"
+     }
+    },
+    "type": "object",
+    "required": [
+     "session_id",
+     "started_at",
+     "best_e1rm_kg",
+     "volume_kg",
+     "top_set_weight_kg",
+     "top_set_percent"
+    ],
+    "title": "ProgressPoint"
+   },
+   "RecordOut": {
+    "properties": {
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "exercise_name": {
+      "type": "string",
+      "title": "Exercise Name"
+     },
+     "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Session Id"
+     },
+     "achieved_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Achieved At"
+     },
+     "e1rm_kg": {
+      "type": "number",
+      "title": "E1Rm Kg"
+     },
+     "previous_e1rm_kg": {
+      "type": "number",
+      "title": "Previous E1Rm Kg"
+     },
+     "weight_kg": {
+      "type": "number",
+      "title": "Weight Kg"
+     },
+     "reps": {
+      "type": "integer",
+      "title": "Reps"
+     }
+    },
+    "type": "object",
+    "required": [
+     "exercise_id",
+     "exercise_name",
+     "session_id",
+     "achieved_at",
+     "e1rm_kg",
+     "previous_e1rm_kg",
+     "weight_kg",
+     "reps"
+    ],
+    "title": "RecordOut"
+   },
+   "ReferenceIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "weight": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Weight"
+     },
+     "unit": {
+      "$ref": "#/components/schemas/WeightUnit"
+     },
+     "noted_on": {
+      "type": "string",
+      "format": "date",
+      "title": "Noted On"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "weight",
+     "unit",
+     "noted_on"
+    ],
+    "title": "ReferenceIn"
+   },
+   "ReferenceOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "weight": {
+      "type": "number",
+      "title": "Weight"
+     },
+     "unit": {
+      "$ref": "#/components/schemas/WeightUnit"
+     },
+     "weight_kg": {
+      "type": "number",
+      "title": "Weight Kg"
+     },
+     "noted_on": {
+      "type": "string",
+      "format": "date",
+      "title": "Noted On"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "exercise_id",
+     "weight",
+     "unit",
+     "weight_kg",
+     "noted_on",
+     "updated_at"
+    ],
+    "title": "ReferenceOut"
+   },
+   "ReorderIn": {
+    "properties": {
+     "ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "title": "Ids"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ids"
+    ],
+    "title": "ReorderIn"
+   },
+   "SessionExerciseIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     },
+     "position": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Position"
+     }
+    },
+    "type": "object",
+    "required": [
+     "exercise_id"
+    ],
+    "title": "SessionExerciseIn"
+   },
+   "SessionExerciseOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "exercise_name": {
+      "type": "string",
+      "title": "Exercise Name"
+     },
+     "position": {
+      "type": "integer",
+      "title": "Position"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "sets": {
+      "items": {
+       "$ref": "#/components/schemas/SessionSetOut"
+      },
+      "type": "array",
+      "title": "Sets"
+     },
+     "previous_sets": {
+      "items": {
+       "$ref": "#/components/schemas/SessionSetOut"
+      },
+      "type": "array",
+      "title": "Previous Sets",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "exercise_id",
+     "exercise_name",
+     "position",
+     "notes",
+     "updated_at",
+     "sets"
+    ],
+    "title": "SessionExerciseOut"
+   },
+   "SessionExercisePatch": {
+    "properties": {
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "SessionExercisePatch"
+   },
+   "SessionIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "workout_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Workout Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "started_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Started At"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "SessionIn"
+   },
+   "SessionOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "workout_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Workout Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "status": {
+      "$ref": "#/components/schemas/SessionStatus"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     },
+     "ended_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ended At"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "exercises": {
+      "items": {
+       "$ref": "#/components/schemas/SessionExerciseOut"
+      },
+      "type": "array",
+      "title": "Exercises",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "workout_id",
+     "name",
+     "status",
+     "started_at",
+     "ended_at",
+     "notes",
+     "updated_at"
+    ],
+    "title": "SessionOut"
+   },
+   "SessionPatch": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SessionStatus"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "ended_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ended At"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "SessionPatch"
+   },
+   "SessionSetIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/SetKind",
+      "default": "working"
+     },
+     "target_reps": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Reps"
+     },
+     "target_weight": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Weight"
+     },
+     "target_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "target_percent": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 120.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Percent"
+     },
+     "target_rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Rpe"
+     },
+     "rest_seconds": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Rest Seconds",
+      "default": 120
+     },
+     "actual_reps": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Reps"
+     },
+     "actual_weight": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Weight"
+     },
+     "actual_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rpe"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     },
+     "skipped": {
+      "type": "boolean",
+      "title": "Skipped",
+      "default": false
+     },
+     "completed": {
+      "type": "boolean",
+      "title": "Completed",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "SessionSetIn"
+   },
+   "SessionSetOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "position": {
+      "type": "integer",
+      "title": "Position"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/SetKind"
+     },
+     "target_reps": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Reps"
+     },
+     "target_weight": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Weight"
+     },
+     "target_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "target_percent": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Percent"
+     },
+     "target_rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Rpe"
+     },
+     "rest_seconds": {
+      "type": "integer",
+      "title": "Rest Seconds"
+     },
+     "actual_reps": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Reps"
+     },
+     "actual_weight": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Weight"
+     },
+     "actual_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "weight_kg": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Weight Kg"
+     },
+     "rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rpe"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "skipped": {
+      "type": "boolean",
+      "title": "Skipped"
+     },
+     "completed_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Completed At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "position",
+     "kind",
+     "target_reps",
+     "target_weight",
+     "target_unit",
+     "target_percent",
+     "target_rpe",
+     "rest_seconds",
+     "actual_reps",
+     "actual_weight",
+     "actual_unit",
+     "weight_kg",
+     "rpe",
+     "notes",
+     "skipped",
+     "completed_at",
+     "updated_at"
+    ],
+    "title": "SessionSetOut"
+   },
+   "SessionSetPatch": {
+    "properties": {
+     "kind": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SetKind"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "actual_reps": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Reps"
+     },
+     "actual_weight": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Weight"
+     },
+     "actual_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rpe"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "skipped": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Skipped"
+     },
+     "completed": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Completed"
+     },
+     "rest_seconds": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rest Seconds"
+     },
+     "clear_actuals": {
+      "type": "boolean",
+      "title": "Clear Actuals",
+      "default": false
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "SessionSetPatch"
+   },
+   "SessionStatus": {
+    "type": "string",
+    "enum": [
+     "in_progress",
+     "completed",
+     "abandoned"
+    ],
+    "title": "SessionStatus"
+   },
+   "SessionSummary": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "workout_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Workout Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "status": {
+      "$ref": "#/components/schemas/SessionStatus"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     },
+     "ended_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ended At"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "workout_id",
+     "name",
+     "status",
+     "started_at",
+     "ended_at",
+     "notes",
+     "updated_at"
+    ],
+    "title": "SessionSummary"
+   },
+   "SessionSummaryOut": {
+    "properties": {
+     "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Session Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     },
+     "ended_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ended At"
+     },
+     "duration_seconds": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Seconds"
+     },
+     "sets": {
+      "type": "integer",
+      "title": "Sets"
+     },
+     "volume_kg": {
+      "type": "number",
+      "title": "Volume Kg"
+     },
+     "exercises": {
+      "items": {
+       "$ref": "#/components/schemas/SummaryExercise"
+      },
+      "type": "array",
+      "title": "Exercises"
+     },
+     "records": {
+      "items": {
+       "$ref": "#/components/schemas/RecordOut"
+      },
+      "type": "array",
+      "title": "Records"
+     }
+    },
+    "type": "object",
+    "required": [
+     "session_id",
+     "name",
+     "started_at",
+     "ended_at",
+     "duration_seconds",
+     "sets",
+     "volume_kg",
+     "exercises",
+     "records"
+    ],
+    "title": "SessionSummaryOut"
+   },
+   "SetKind": {
+    "type": "string",
+    "enum": [
+     "warmup",
+     "working"
+    ],
+    "title": "SetKind"
+   },
+   "StatsTotals": {
+    "properties": {
+     "sessions": {
+      "type": "integer",
+      "title": "Sessions"
+     },
+     "sets": {
+      "type": "integer",
+      "title": "Sets"
+     },
+     "volume_kg": {
+      "type": "number",
+      "title": "Volume Kg"
+     },
+     "this_week_sessions": {
+      "type": "integer",
+      "title": "This Week Sessions"
+     },
+     "this_week_volume_kg": {
+      "type": "number",
+      "title": "This Week Volume Kg"
+     },
+     "last_week_volume_kg": {
+      "type": "number",
+      "title": "Last Week Volume Kg"
+     },
+     "current_streak_weeks": {
+      "type": "integer",
+      "title": "Current Streak Weeks"
+     },
+     "longest_streak_weeks": {
+      "type": "integer",
+      "title": "Longest Streak Weeks"
+     },
+     "records": {
+      "type": "integer",
+      "title": "Records"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sessions",
+     "sets",
+     "volume_kg",
+     "this_week_sessions",
+     "this_week_volume_kg",
+     "last_week_volume_kg",
+     "current_streak_weeks",
+     "longest_streak_weeks",
+     "records"
+    ],
+    "title": "StatsTotals"
+   },
+   "SummaryExercise": {
+    "properties": {
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "exercise_name": {
+      "type": "string",
+      "title": "Exercise Name"
+     },
+     "sets": {
+      "type": "integer",
+      "title": "Sets"
+     },
+     "best_e1rm_kg": {
+      "type": "number",
+      "title": "Best E1Rm Kg"
+     },
+     "top_weight_kg": {
+      "type": "number",
+      "title": "Top Weight Kg"
+     },
+     "top_reps": {
+      "type": "integer",
+      "title": "Top Reps"
+     }
+    },
+    "type": "object",
+    "required": [
+     "exercise_id",
+     "exercise_name",
+     "sets",
+     "best_e1rm_kg",
+     "top_weight_kg",
+     "top_reps"
+    ],
+    "title": "SummaryExercise"
+   },
+   "SyncIn": {
+    "properties": {
+     "cursor": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Cursor",
+      "default": 0
+     },
+     "mutations": {
+      "items": {
+       "$ref": "#/components/schemas/MutationIn"
+      },
+      "type": "array",
+      "maxItems": 200,
+      "title": "Mutations"
+     }
+    },
+    "type": "object",
+    "title": "SyncIn"
+   },
+   "SyncOut": {
+    "properties": {
+     "cursor": {
+      "type": "integer",
+      "title": "Cursor"
+     },
+     "applied": {
+      "items": {
+       "$ref": "#/components/schemas/MutationResult"
+      },
+      "type": "array",
+      "title": "Applied"
+     },
+     "changes": {
+      "items": {
+       "$ref": "#/components/schemas/ChangeOut"
+      },
+      "type": "array",
+      "title": "Changes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "cursor",
+     "applied",
+     "changes"
+    ],
+    "title": "SyncOut"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   },
+   "WeeklyStat": {
+    "properties": {
+     "week_start": {
+      "type": "string",
+      "format": "date",
+      "title": "Week Start"
+     },
+     "sessions": {
+      "type": "integer",
+      "title": "Sessions"
+     },
+     "sets": {
+      "type": "integer",
+      "title": "Sets"
+     },
+     "volume_kg": {
+      "type": "number",
+      "title": "Volume Kg"
+     }
+    },
+    "type": "object",
+    "required": [
+     "week_start",
+     "sessions",
+     "sets",
+     "volume_kg"
+    ],
+    "title": "WeeklyStat"
+   },
+   "WeightUnit": {
+    "type": "string",
+    "enum": [
+     "lb",
+     "kg"
+    ],
+    "title": "WeightUnit"
+   },
+   "WorkoutExerciseIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     },
+     "position": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Position"
+     }
+    },
+    "type": "object",
+    "required": [
+     "exercise_id"
+    ],
+    "title": "WorkoutExerciseIn"
+   },
+   "WorkoutExerciseOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "exercise_name": {
+      "type": "string",
+      "title": "Exercise Name"
+     },
+     "position": {
+      "type": "integer",
+      "title": "Position"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "sets": {
+      "items": {
+       "$ref": "#/components/schemas/WorkoutSetOut"
+      },
+      "type": "array",
+      "title": "Sets"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "exercise_id",
+     "exercise_name",
+     "position",
+     "notes",
+     "updated_at",
+     "sets"
+    ],
+    "title": "WorkoutExerciseOut"
+   },
+   "WorkoutExercisePatch": {
+    "properties": {
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "WorkoutExercisePatch"
+   },
+   "WorkoutIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "WorkoutIn"
+   },
+   "WorkoutOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "archived_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Archived At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "exercises": {
+      "items": {
+       "$ref": "#/components/schemas/WorkoutExerciseOut"
+      },
+      "type": "array",
+      "title": "Exercises",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "notes",
+     "archived_at",
+     "updated_at"
+    ],
+    "title": "WorkoutOut"
+   },
+   "WorkoutPatch": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "archived": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Archived"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "WorkoutPatch"
+   },
+   "WorkoutSetIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/SetKind",
+      "default": "working"
+     },
+     "target_reps": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Reps"
+     },
+     "target_weight": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Weight"
+     },
+     "target_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "target_percent": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 120.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Percent"
+     },
+     "target_rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Rpe"
+     },
+     "rest_seconds": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Rest Seconds",
+      "default": 120
+     }
+    },
+    "type": "object",
+    "title": "WorkoutSetIn"
+   },
+   "WorkoutSetOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "position": {
+      "type": "integer",
+      "title": "Position"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/SetKind"
+     },
+     "target_reps": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Reps"
+     },
+     "target_weight": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Weight"
+     },
+     "target_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "target_percent": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Percent"
+     },
+     "target_rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Rpe"
+     },
+     "rest_seconds": {
+      "type": "integer",
+      "title": "Rest Seconds"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "position",
+     "kind",
+     "target_reps",
+     "target_weight",
+     "target_unit",
+     "target_percent",
+     "target_rpe",
+     "rest_seconds",
+     "updated_at"
+    ],
+    "title": "WorkoutSetOut"
+   },
+   "WorkoutSetPatch": {
+    "properties": {
+     "kind": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SetKind"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "target_reps": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Reps"
+     },
+     "target_weight": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Weight"
+     },
+     "target_unit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WeightUnit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "target_percent": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 120.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Percent"
+     },
+     "target_rpe": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Rpe"
+     },
+     "rest_seconds": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rest Seconds"
+     },
+     "clear_weight": {
+      "type": "boolean",
+      "title": "Clear Weight",
+      "default": false
+     },
+     "clear_percent": {
+      "type": "boolean",
+      "title": "Clear Percent",
+      "default": false
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "WorkoutSetPatch"
+   },
+   "WorkoutSummary": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "archived_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Archived At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "notes",
+     "archived_at",
+     "updated_at"
+    ],
+    "title": "WorkoutSummary"
+   }
+  },
+  "securitySchemes": {
+   "HTTPBearer": {
+    "type": "http",
+    "scheme": "bearer"
+   }
+  }
+ }
+}

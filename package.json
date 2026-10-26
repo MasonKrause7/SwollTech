@@ -1,0 +1,24 @@
+{
+  "name": "swolltech",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/mobile",
+    "packages/api-client",
+    "packages/metrics",
+    "packages/sync"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @swolltech/web",
+    "dev:mobile": "npm run start -w @swolltech/mobile",
+    "db:up": "docker compose up -d --wait test-db",
+    "db:down": "docker compose down",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test:js && npm run test:api",
+    "test:js": "npm run test -w @swolltech/metrics -w @swolltech/sync -w @swolltech/api-client -w @swolltech/web -w @swolltech/mobile",
+    "test:api": "uv run --directory apps/api pytest -q",
+    "test:e2e": "npm run e2e -w @swolltech/web",
+    "test:all": "npm run typecheck && npm test && npm run test:e2e",
+    "seed:demo": "uv run --directory apps/api python scripts/seed_demo.py"
+  }
+}

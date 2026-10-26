@@ -1,0 +1,18 @@
+# Disposable Postgres for tests and the end-to-end suite. Never holds real data.
+#   docker compose up -d test-db
+services:
+  test-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: swolltech_test
+    ports:
+      - "54329:5432"
+    volumes:
+      - ./supabase/test-db-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

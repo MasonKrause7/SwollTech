@@ -1,0 +1,418 @@
+{
+  "note": "Shared by apps/api/tests/test_stats.py and packages/metrics/src/stats.test.ts. Time zone is UTC.",
+  "now": "2026-10-22T12:00:00+00:00",
+  "sessions": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "started_at": "2026-08-24T17:00:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "started_at": "2026-08-31T17:00:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "started_at": "2026-09-14T17:00:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000004",
+      "started_at": "2026-09-21T17:00:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000005",
+      "started_at": "2026-09-24T17:00:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000006",
+      "started_at": "2026-10-01T17:00:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000007",
+      "started_at": "2026-10-08T17:00:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000008",
+      "started_at": "2026-10-15T23:30:00+00:00"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000009",
+      "started_at": "2026-10-20T06:15:00+00:00"
+    }
+  ],
+  "sets": [
+    {
+      "session_id": "00000000-0000-0000-0000-000000000001",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 100,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000001",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 100,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000001",
+      "exercise_id": "df00b70c-0d32-5048-8e57-2e8af0f85e22",
+      "exercise_name": "Back Squat",
+      "muscle": "quads",
+      "weight_kg": 140,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000002",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 102.5,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000002",
+      "exercise_id": "df00b70c-0d32-5048-8e57-2e8af0f85e22",
+      "exercise_name": "Back Squat",
+      "muscle": "quads",
+      "weight_kg": 145,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000002",
+      "exercise_id": "df00b70c-0d32-5048-8e57-2e8af0f85e22",
+      "exercise_name": "Back Squat",
+      "muscle": "quads",
+      "weight_kg": 145,
+      "reps": 4
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000003",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 97.5,
+      "reps": 6
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000003",
+      "exercise_id": "a0ce1f6e-ee09-5dd7-92d2-a99309b7f346",
+      "exercise_name": "Barbell Row",
+      "muscle": "back",
+      "weight_kg": 80,
+      "reps": 8
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000004",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 105,
+      "reps": 3
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000004",
+      "exercise_id": "df00b70c-0d32-5048-8e57-2e8af0f85e22",
+      "exercise_name": "Back Squat",
+      "muscle": "quads",
+      "weight_kg": 150,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000004",
+      "exercise_id": "a0ce1f6e-ee09-5dd7-92d2-a99309b7f346",
+      "exercise_name": "Barbell Row",
+      "muscle": "back",
+      "weight_kg": 82.5,
+      "reps": 8
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000005",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 100,
+      "reps": 8
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000006",
+      "exercise_id": "df00b70c-0d32-5048-8e57-2e8af0f85e22",
+      "exercise_name": "Back Squat",
+      "muscle": "quads",
+      "weight_kg": 155,
+      "reps": 3
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000006",
+      "exercise_id": "a0ce1f6e-ee09-5dd7-92d2-a99309b7f346",
+      "exercise_name": "Barbell Row",
+      "muscle": "back",
+      "weight_kg": 85,
+      "reps": 8
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000006",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 90,
+      "reps": 10
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000007",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 107.5,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000007",
+      "exercise_id": "df00b70c-0d32-5048-8e57-2e8af0f85e22",
+      "exercise_name": "Back Squat",
+      "muscle": "quads",
+      "weight_kg": 152.5,
+      "reps": 5
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000008",
+      "exercise_id": "a0ce1f6e-ee09-5dd7-92d2-a99309b7f346",
+      "exercise_name": "Barbell Row",
+      "muscle": "back",
+      "weight_kg": 90,
+      "reps": 6
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000008",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 72.5,
+      "reps": 12
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000009",
+      "exercise_id": "945588d5-76e8-50ff-9b08-5a61982e1c0e",
+      "exercise_name": "Bench Press",
+      "muscle": "chest",
+      "weight_kg": 110,
+      "reps": 4
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000009",
+      "exercise_id": "df00b70c-0d32-5048-8e57-2e8af0f85e22",
+      "exercise_name": "Back Squat",
+      "muscle": "quads",
+      "weight_kg": 160,
+      "reps": 3
+    },
+    {
+      "session_id": "00000000-0000-0000-0000-000000000009",
+      "exercise_id": "a0ce1f6e-ee09-5dd7-92d2-a99309b7f346",
+      "exercise_name": "Barbell Row",
+      "muscle": "back",
+      "weight_kg": 90,
+      "reps": 8
+    }
+  ],
+  "expected": {
+    "totals": {
+      "sessions": 9,
+      "sets": 22,
+      "volume_kg": 13662.5,
+      "this_week_sessions": 1,
+      "this_week_volume_kg": 1640.0,
+      "last_week_volume_kg": 1410.0,
+      "current_streak_weeks": 6,
+      "longest_streak_weeks": 6,
+      "records": 9
+    },
+    "weekly": [
+      {
+        "week_start": "2026-08-03",
+        "sessions": 0,
+        "sets": 0,
+        "volume_kg": 0.0
+      },
+      {
+        "week_start": "2026-08-10",
+        "sessions": 0,
+        "sets": 0,
+        "volume_kg": 0.0
+      },
+      {
+        "week_start": "2026-08-17",
+        "sessions": 0,
+        "sets": 0,
+        "volume_kg": 0.0
+      },
+      {
+        "week_start": "2026-08-24",
+        "sessions": 1,
+        "sets": 3,
+        "volume_kg": 1700.0
+      },
+      {
+        "week_start": "2026-08-31",
+        "sessions": 1,
+        "sets": 3,
+        "volume_kg": 1817.5
+      },
+      {
+        "week_start": "2026-09-07",
+        "sessions": 0,
+        "sets": 0,
+        "volume_kg": 0.0
+      },
+      {
+        "week_start": "2026-09-14",
+        "sessions": 1,
+        "sets": 2,
+        "volume_kg": 1225.0
+      },
+      {
+        "week_start": "2026-09-21",
+        "sessions": 2,
+        "sets": 4,
+        "volume_kg": 2525.0
+      },
+      {
+        "week_start": "2026-09-28",
+        "sessions": 1,
+        "sets": 3,
+        "volume_kg": 2045.0
+      },
+      {
+        "week_start": "2026-10-05",
+        "sessions": 1,
+        "sets": 2,
+        "volume_kg": 1300.0
+      },
+      {
+        "week_start": "2026-10-12",
+        "sessions": 1,
+        "sets": 2,
+        "volume_kg": 1410.0
+      },
+      {
+        "week_start": "2026-10-19",
+        "sessions": 1,
+        "sets": 3,
+        "volume_kg": 1640.0
+      }
+    ],
+    "calendar": [
+      {
+        "day": "2026-08-24",
+        "sessions": 1
+      },
+      {
+        "day": "2026-08-31",
+        "sessions": 1
+      },
+      {
+        "day": "2026-09-14",
+        "sessions": 1
+      },
+      {
+        "day": "2026-09-21",
+        "sessions": 1
+      },
+      {
+        "day": "2026-09-24",
+        "sessions": 1
+      },
+      {
+        "day": "2026-10-01",
+        "sessions": 1
+      },
+      {
+        "day": "2026-10-08",
+        "sessions": 1
+      },
+      {
+        "day": "2026-10-15",
+        "sessions": 1
+      },
+      {
+        "day": "2026-10-20",
+        "sessions": 1
+      }
+    ],
+    "muscle_split": [
+      {
+        "muscle": "chest",
+        "sets": 4,
+        "volume_kg": 2747.5
+      },
+      {
+        "muscle": "back",
+        "sets": 3,
+        "volume_kg": 1940.0
+      },
+      {
+        "muscle": "quads",
+        "sets": 3,
+        "volume_kg": 1707.5
+      }
+    ],
+    "recent_records": [
+      {
+        "exercise_name": "Barbell Row",
+        "e1rm_kg": 114.0,
+        "previous_e1rm_kg": 108.0,
+        "session_id": "00000000-0000-0000-0000-000000000009"
+      },
+      {
+        "exercise_name": "Barbell Row",
+        "e1rm_kg": 108.0,
+        "previous_e1rm_kg": 107.666667,
+        "session_id": "00000000-0000-0000-0000-000000000008"
+      },
+      {
+        "exercise_name": "Back Squat",
+        "e1rm_kg": 177.916667,
+        "previous_e1rm_kg": 175.0,
+        "session_id": "00000000-0000-0000-0000-000000000007"
+      },
+      {
+        "exercise_name": "Barbell Row",
+        "e1rm_kg": 107.666667,
+        "previous_e1rm_kg": 104.5,
+        "session_id": "00000000-0000-0000-0000-000000000006"
+      },
+      {
+        "exercise_name": "Bench Press",
+        "e1rm_kg": 126.666667,
+        "previous_e1rm_kg": 119.583333,
+        "session_id": "00000000-0000-0000-0000-000000000005"
+      },
+      {
+        "exercise_name": "Barbell Row",
+        "e1rm_kg": 104.5,
+        "previous_e1rm_kg": 101.333333,
+        "session_id": "00000000-0000-0000-0000-000000000004"
+      },
+      {
+        "exercise_name": "Back Squat",
+        "e1rm_kg": 175.0,
+        "previous_e1rm_kg": 169.166667,
+        "session_id": "00000000-0000-0000-0000-000000000004"
+      },
+      {
+        "exercise_name": "Bench Press",
+        "e1rm_kg": 119.583333,
+        "previous_e1rm_kg": 116.666667,
+        "session_id": "00000000-0000-0000-0000-000000000002"
+      },
+      {
+        "exercise_name": "Back Squat",
+        "e1rm_kg": 169.166667,
+        "previous_e1rm_kg": 163.333333,
+        "session_id": "00000000-0000-0000-0000-000000000002"
+      }
+    ]
+  }
+}
