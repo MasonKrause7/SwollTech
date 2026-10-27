@@ -202,7 +202,7 @@ export function SessionPage() {
                 Discard
               </button>
               <button
-                className="btn primary"
+                className={tally.done >= tally.total ? "btn primary" : "btn"}
                 data-testid="finish-session"
                 onClick={() => (tally.done < tally.total ? setConfirming("finish") : finish.mutate())}
                 disabled={finish.isPending}
@@ -555,7 +555,7 @@ function RestTimer({ until, onChange }: { until: number; onChange: (value: numbe
     <div className="rest" role="timer" aria-live="polite" data-testid="rest-timer">
       <div className="rest-card">
         <div style={{ flex: 1 }}>
-          <div className="small" style={{ color: "#a9b2bb" }}>
+          <div className="small" style={{ color: "var(--muted)" }}>
             {remaining > 0 ? "Rest" : "Rest done. Next set."}
           </div>
           <div className="clock">{formatClock(remaining)}</div>

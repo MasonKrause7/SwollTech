@@ -8,7 +8,7 @@ import { duration, volume, weight } from "../../src/format";
 import { statLog } from "../../src/logic/localStats";
 import { live } from "../../src/logic/rows";
 import { useNotebook } from "../../src/notebook";
-import { fonts, plate, space, useTheme } from "../../src/theme";
+import { fonts, space, useTheme } from "../../src/theme";
 
 export default function Summary() {
   const theme = useTheme();
@@ -49,14 +49,14 @@ export default function Summary() {
       </Card>
 
       {records > 0 ? (
-        <View style={{ backgroundColor: theme.accent, borderRadius: 18, padding: space.lg, gap: space.sm }}>
-          <Text style={{ fontFamily: fonts.display, fontSize: 30, color: theme.accentInk }}>
+        <View style={{ backgroundColor: theme.highlight, borderRadius: 14, padding: space.lg, gap: space.sm }}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 30, color: theme.highlightInk }}>
             {records === 1 ? "New personal record" : `${records} new personal records`}
           </Text>
           {report.records.map((record) => (
             <View key={record.exerciseId} style={{ gap: 2 }}>
-              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 17, color: theme.accentInk }}>{record.exerciseName}</Text>
-              <Text style={{ fontFamily: fonts.body, fontSize: 15, color: theme.accentInk }}>
+              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 17, color: theme.highlightInk }}>{record.exerciseName}</Text>
+              <Text style={{ fontFamily: fonts.body, fontSize: 15, color: theme.highlightInk }}>
                 {weight(record.weightKg, unit)} × {record.reps}. Estimated max {weight(record.e1rmKg, unit)}, up {weight(record.e1rmKg - record.previousE1rmKg, unit)}.
               </Text>
             </View>
@@ -72,7 +72,7 @@ export default function Summary() {
             <T variant="heading" style={{ flex: 1 }}>
               {item.exerciseName}
             </T>
-            {report.records.some((record) => record.exerciseId === item.exerciseId) ? <T variant="small" style={{ color: plate.yellow }}>Record</T> : null}
+            {report.records.some((record) => record.exerciseId === item.exerciseId) ? <T variant="small" style={{ color: theme.highlight }}>Record</T> : null}
           </Row>
           <T variant="muted">
             Best set {weight(item.topWeightKg, unit)} × {item.topReps}. {item.sets} working set{item.sets === 1 ? "" : "s"}.

@@ -1,5 +1,8 @@
 import { useColorScheme } from "react-native";
 
+/* "Chalk and iron". Matches the tokens in apps/web/src/styles.css; see DESIGN.md. */
+
+/** Competition plate colours. Only for drawing real plates, never for UI. */
 export const plate = {
   red: "#D7263D",
   blue: "#1F6FD1",
@@ -8,29 +11,35 @@ export const plate = {
 };
 
 const dark = {
-  bg: "#1B2027",
-  raised: "#252B33",
-  line: "#343B45",
-  text: "#EEF0EA",
-  muted: "#8C96A0",
-  accent: plate.yellow,
-  accentInk: "#1B2027",
-  danger: plate.red,
-  ok: plate.green,
-  track: "#2E353E",
+  bg: "#0F1011",
+  raised: "#17181A",
+  line: "#26282B",
+  text: "#F4F4F2",
+  muted: "#8E9196",
+  /** Primary actions and selection: chalk on iron. */
+  accent: "#F4F4F2",
+  accentInk: "#0F1011",
+  /** Records, streaks, progress and the active tab. Use sparingly. */
+  highlight: "#FF5A1F",
+  highlightInk: "#0F1011",
+  danger: "#F0524F",
+  ok: "#3CCB7F",
+  track: "#232427",
 };
 
 const light = {
-  bg: "#F2F4F6",
+  bg: "#F4F4F2",
   raised: "#FFFFFF",
-  line: "#D9DEE3",
-  text: "#1B2027",
-  muted: "#5B6570",
-  accent: plate.yellow,
-  accentInk: "#1B2027",
-  danger: plate.red,
-  ok: plate.green,
-  track: "#E4E8EC",
+  line: "#DEDED9",
+  text: "#0F1011",
+  muted: "#5E6166",
+  accent: "#0F1011",
+  accentInk: "#F4F4F2",
+  highlight: "#E4480E",
+  highlightInk: "#FFFFFF",
+  danger: "#C62F2F",
+  ok: "#1F8A52",
+  track: "#E6E6E2",
 };
 
 export type Palette = typeof dark;
@@ -44,7 +53,7 @@ export const fonts = {
 };
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
-export const radius = { sm: 8, md: 12, lg: 18, pill: 999 };
+export const radius = { sm: 6, md: 10, lg: 14, pill: 999 };
 export const touch = 52;
 
 /** The palette for the current system appearance. Dark is the default in a gym. */
@@ -53,4 +62,5 @@ export function useTheme(): Palette {
   return scheme === "light" ? light : dark;
 }
 
-export const dataColors = [plate.blue, plate.yellow, plate.green, plate.red, "#8C96A0", "#B58BD6"];
+/** Data series in order of use: orange leads, the rest stay quiet. */
+export const dataColors = ["#FF5A1F", "#F4F4F2", "#7F9FBF", "#C9B08A", "#6E7176", "#6F9A82"];

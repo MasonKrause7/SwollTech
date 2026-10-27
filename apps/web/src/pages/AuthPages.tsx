@@ -1,26 +1,22 @@
 import { FormEvent, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { devLoginEnabled, useAuth } from "../auth";
-import { PlateBar } from "../components/PlateBar";
 import { errorMessage } from "../format";
-import { Logo } from "../Shell";
 
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="auth">
       <section className="auth-art" aria-hidden="true">
-        <div className="row">
-          <Logo size={34} />
-          <span className="num" style={{ fontSize: "1.6rem" }}>
-            SwollTech
-          </span>
-        </div>
-        <div className="stack-lg">
-          <h1>Write it down. Lift it. Beat it next week.</h1>
-          <p>The notebook you already keep at the gym, with the math done for you. Plan a workout, follow it set by set, and see every lift trend up.</p>
-        </div>
-        <div className="art-bar" style={{ maxWidth: 460, filter: "saturate(1.05)" }}>
-          <PlateBar weight={315} unit="lb" caption={false} />
+        <div className="brand">SwollTech</div>
+        <div className="auth-hero">
+          <div className="stack-lg">
+            <span className="eyebrow">Training notebook</span>
+            <h1>
+              Write it down. Lift it. <em>Beat it next week.</em>
+            </h1>
+            <p>The notebook you already keep at the gym, with the math done for you. Plan a workout, follow it set by set, and see every lift trend up.</p>
+          </div>
+          <div className="hero-art" data-label="Mascot art" />
         </div>
       </section>
       <main className="auth-form">{children}</main>

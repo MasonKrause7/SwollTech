@@ -33,11 +33,6 @@ export default function SignIn() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Screen edges={["top", "bottom"]} contentStyle={{ paddingTop: 72, gap: space.lg }}>
-        <View style={{ flexDirection: "row", gap: 6, marginBottom: space.sm }}>
-          {[theme.danger, "#1F6FD1", theme.accent, theme.ok].map((color) => (
-            <View key={color} style={{ width: 10, height: 44, borderRadius: 3, backgroundColor: color }} />
-          ))}
-        </View>
         <T variant="title">SwollTech</T>
         <T variant="muted">Your training notebook. Log every set at the gym, even with no signal.</T>
         <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />

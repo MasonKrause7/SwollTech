@@ -11,7 +11,7 @@ import { Heatmap } from "../components/Heatmap";
 import { bigWeightFromKg, convert, errorMessage, formatDay, formatShortDate, plural, timeZone, trimNumber, weightFromKg } from "../format";
 import { keys, useExercises, useOverview, useUnit } from "../hooks";
 
-const SPLIT_COLORS = ["var(--plate-blue)", "var(--plate-yellow)", "var(--plate-green)", "var(--plate-red)", "var(--muted)", "#b58bd6"];
+const SPLIT_COLORS = ["var(--data-1)", "var(--data-2)", "var(--data-3)", "var(--data-4)", "var(--data-5)", "var(--data-6)"];
 
 export function ProgressPage() {
   const overview = useOverview();
@@ -82,14 +82,14 @@ export function ProgressPage() {
             <h2>Weekly volume</h2>
             <span className="small muted">{unit}, last 12 weeks</span>
           </div>
-          <BarSeries data={weekly} x="label" y="volume" name={`Volume (${unit})`} color="var(--plate-blue)" format={(value) => trimNumber(value, 0)} label="Weekly volume for the last 12 weeks" />
+          <BarSeries data={weekly} x="label" y="volume" name={`Volume (${unit})`} color="var(--data-2)" format={(value) => trimNumber(value, 0)} label="Weekly volume for the last 12 weeks" />
         </section>
         <section className="panel stack">
           <div className="section-head">
             <h2>Sessions per week</h2>
             <span className="small muted">last 12 weeks</span>
           </div>
-          <BarSeries data={weekly} x="label" y="sessions" name="Sessions" color="var(--plate-green)" label="Sessions per week for the last 12 weeks" />
+          <BarSeries data={weekly} x="label" y="sessions" name="Sessions" color="var(--data-2)" label="Sessions per week for the last 12 weeks" />
         </section>
       </div>
 
@@ -129,7 +129,7 @@ export function ProgressPage() {
             {data.recent_records.map((record) => (
               <Link key={`${record.session_id}-${record.exercise_id}`} to={`/progress/${record.exercise_id}`} className="list-row">
                 <div className="row" style={{ gap: 14 }}>
-                  <Trophy size={20} color="var(--plate-yellow)" aria-hidden="true" />
+                  <Trophy size={20} color="var(--accent)" aria-hidden="true" />
                   <div>
                     <div className="title">{record.exercise_name}</div>
                     <div className="small muted">
@@ -250,16 +250,16 @@ export function ExerciseProgressPage() {
               <h2>Estimated max</h2>
               <span className="small muted">{unit}, best set each session</span>
             </div>
-            <LineSeries data={points} x="label" y="e1rm" name={`Estimated max (${unit})`} color="var(--plate-red)" format={(value) => trimNumber(value, 0)} label="Estimated one rep max by session" />
+            <LineSeries data={points} x="label" y="e1rm" name={`Estimated max (${unit})`} color="var(--data-1)" format={(value) => trimNumber(value, 0)} label="Estimated one rep max by session" />
           </section>
           <div className="grid-2">
             <section className="panel stack">
               <h2>Volume per session</h2>
-              <BarSeries data={points} x="label" y="volume" name={`Volume (${unit})`} color="var(--plate-blue)" format={(value) => trimNumber(value, 0)} label="Volume by session" />
+              <BarSeries data={points} x="label" y="volume" name={`Volume (${unit})`} color="var(--data-2)" format={(value) => trimNumber(value, 0)} label="Volume by session" />
             </section>
             <section className="panel stack">
               <h2>Top set</h2>
-              <LineSeries data={points} x="label" y="top" name={`Top set (${unit})`} color="var(--plate-green)" format={(value) => trimNumber(value, 0)} label="Heaviest working set by session" />
+              <LineSeries data={points} x="label" y="top" name={`Top set (${unit})`} color="var(--data-2)" format={(value) => trimNumber(value, 0)} label="Heaviest working set by session" />
             </section>
           </div>
           {points.some((point) => point.percent != null) && (
@@ -268,7 +268,7 @@ export function ExerciseProgressPage() {
                 <h2>Top set as % of max</h2>
                 <span className="small muted">against your {data.reference_source === "training_max" ? "training max" : "best estimate"}</span>
               </div>
-              <LineSeries data={points} x="label" y="percent" name="% of max" color="var(--plate-yellow)" format={(value) => `${trimNumber(value, 0)}%`} label="Top set as a percent of your max" />
+              <LineSeries data={points} x="label" y="percent" name="% of max" color="var(--data-3)" format={(value) => `${trimNumber(value, 0)}%`} label="Top set as a percent of your max" />
             </section>
           )}
         </>

@@ -25,7 +25,7 @@ export function SummaryPage() {
     <div className="page">
       <section className="summary-hero" aria-labelledby="summary-title">
         <div className="stack">
-          <p style={{ color: "#a9b2bb" }}>
+          <p style={{ color: "var(--muted)" }}>
             {data.name}, {formatWhen(data.started_at)}
           </p>
           <h1 id="summary-title" data-testid="summary-headline">

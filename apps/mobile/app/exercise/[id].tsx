@@ -10,7 +10,7 @@ import { exerciseProgress } from "../../src/logic/localStats";
 import { live } from "../../src/logic/rows";
 import { exerciseName } from "../../src/logic/session";
 import { useNotebook } from "../../src/notebook";
-import { plate, space, useTheme } from "../../src/theme";
+import { space, useTheme } from "../../src/theme";
 import { parseAmount } from "@swolltech/metrics";
 
 export default function ExerciseDetail() {
@@ -51,7 +51,7 @@ export default function ExerciseDetail() {
         <>
           <Card>
             <Row gap={space.lg}>
-              <Stat value={weight(best, unit, 0)} label="Best estimated max" accent={plate.yellow} />
+              <Stat value={weight(best, unit, 0)} label="Best estimated max" accent={theme.highlight} />
               <Stat value={first != null && latest != null ? `${latest >= first ? "+" : ""}${trim(fromKilograms(latest - first, unit), 1)}` : "0"} label={`Change since first (${unit})`} />
               <Stat value={String(points.length)} label="Sessions" />
             </Row>

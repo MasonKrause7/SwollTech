@@ -2,7 +2,7 @@ import { addDays, weekStart } from "@swolltech/metrics";
 import { useState } from "react";
 import { View, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from "react-native-svg";
-import { fonts, plate, radius, space, useTheme } from "../theme";
+import { fonts, radius, space, useTheme } from "../theme";
 import { T } from "./ui";
 
 function useWidth(initial = 320) {
@@ -33,8 +33,9 @@ export interface BarDatum {
 }
 
 /** Vertical bars, oldest to newest. The newest bar is highlighted. */
-export function BarChart({ data, height = 160, color = plate.blue, format = compact, accessibilityLabel }: { data: BarDatum[]; height?: number; color?: string; format?: (value: number) => string; accessibilityLabel: string }) {
+export function BarChart({ data, height = 160, color: colorProp, format = compact, accessibilityLabel }: { data: BarDatum[]; height?: number; color?: string; format?: (value: number) => string; accessibilityLabel: string }) {
   const theme = useTheme();
+  const color = colorProp ?? theme.muted;
   const { width, onLayout } = useWidth();
   const top = niceMax(Math.max(0, ...data.map((item) => item.value)));
   const axis = 34;
@@ -60,7 +61,7 @@ export function BarChart({ data, height = 160, color = plate.blue, format = comp
           const last = index === data.length - 1;
           const showLabel = data.length <= 8 || index % 3 === (data.length - 1) % 3;
           return [
-            <Rect key={`b${index}`} x={x} y={8 + plot - h} width={barWidth} height={Math.max(h, item.value > 0 ? 2 : 0)} rx={3} fill={last ? theme.accent : color} opacity={last ? 1 : 0.85} />,
+            <Rect key={`b${index}`} x={x} y={8 + plot - h} width={barWidth} height={Math.max(h, item.value > 0 ? 2 : 0)} rx={3} fill={last ? theme.highlight : color} opacity={last ? 1 : 0.85} />,
             showLabel ? (
               <SvgText key={`x${index}`} x={x + barWidth / 2} y={height - 4} fontSize={10} fill={theme.muted} textAnchor="middle" fontFamily={fonts.displaySemi}>
                 {item.label}
@@ -79,8 +80,9 @@ export interface LinePoint {
 }
 
 /** A trend line with dots. Gaps in the data are skipped, not drawn as zero. */
-export function LineChart({ data, height = 180, color = plate.yellow, format = compact, accessibilityLabel }: { data: LinePoint[]; height?: number; color?: string; format?: (value: number) => string; accessibilityLabel: string }) {
+export function LineChart({ data, height = 180, color: colorProp, format = compact, accessibilityLabel }: { data: LinePoint[]; height?: number; color?: string; format?: (value: number) => string; accessibilityLabel: string }) {
   const theme = useTheme();
+  const color = colorProp ?? theme.highlight;
   const { width, onLayout } = useWidth();
   const values = data.map((item) => item.value).filter((value): value is number => value != null);
   if (!values.length) return null;
@@ -159,7 +161,7 @@ export function Heatmap({ days, today, weeks = 16 }: { days: { day: string; sess
                 width={cell}
                 height={cell}
                 rx={3}
-                fill={count > 0 ? plate.green : theme.track}
+                fill={count > 0 ? theme.highlight : theme.track}
                 opacity={count > 1 ? 1 : count === 1 ? 0.85 : 1}
               />
             );
@@ -200,7 +202,7 @@ export function ProgressBar({ fraction }: { fraction: number }) {
       accessibilityValue={{ min: 0, max: 100, now: Math.round(fraction * 100) }}
       style={{ height: 6, borderRadius: radius.pill, backgroundColor: theme.track, overflow: "hidden" }}
     >
-      <View style={{ width: `${Math.min(1, Math.max(0, fraction)) * 100}%`, height: "100%", backgroundColor: theme.accent }} />
+      <View style={{ width: `${Math.min(1, Math.max(0, fraction)) * 100}%`, height: "100%", backgroundColor: theme.highlight }} />
     </View>
   );
 }

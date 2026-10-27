@@ -8,7 +8,7 @@ import { shortDate, volume, weight } from "../../src/format";
 import { statLog } from "../../src/logic/localStats";
 import { useNotebook } from "../../src/notebook";
 import { syncNow, useSyncState } from "../../src/sync";
-import { dataColors, plate, space, useTheme } from "../../src/theme";
+import { dataColors, space, useTheme } from "../../src/theme";
 
 function weekTick(day: string) {
   return `${Number(day.slice(5, 7))}/${Number(day.slice(8, 10))}`;
@@ -43,9 +43,9 @@ export default function Progress() {
       <T variant="title">Progress</T>
       <Card>
         <Row gap={space.lg}>
-          <Stat value={String(totals.currentStreakWeeks)} label="Week streak" accent={totals.currentStreakWeeks ? plate.green : undefined} />
+          <Stat value={String(totals.currentStreakWeeks)} label="Week streak" accent={totals.currentStreakWeeks ? theme.highlight : undefined} />
           <Stat value={String(totals.longestStreakWeeks)} label="Longest streak" />
-          <Stat value={String(totals.records)} label="Records set" accent={totals.records ? plate.yellow : undefined} />
+          <Stat value={String(totals.records)} label="Records set" accent={totals.records ? theme.highlight : undefined} />
         </Row>
         <T variant="small">
           {totals.sessions} sessions and {volume(totals.volumeKg, unit)} lifted in total.
@@ -65,7 +65,7 @@ export default function Progress() {
         <T variant="heading">Sessions per week</T>
         <BarChart
           accessibilityLabel={`Sessions per week. This week ${totals.thisWeekSessions}`}
-          color={plate.green}
+          color={theme.text}
           format={(value) => String(Math.round(value * 10) / 10)}
           data={overview.weekly.map((row) => ({ label: weekTick(row.weekStart), value: row.sessions }))}
           height={130}
@@ -99,7 +99,7 @@ export default function Progress() {
                   {weight(record.weightKg, unit)} × {record.reps} on {shortDate(record.achievedAt)}
                 </T>
               </View>
-              <T variant="number" style={{ fontSize: 20, color: plate.yellow }}>
+              <T variant="number" style={{ fontSize: 20, color: theme.highlight }}>
                 +{weight(record.e1rmKg - record.previousE1rmKg, unit)}
               </T>
             </Row>

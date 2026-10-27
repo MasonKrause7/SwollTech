@@ -69,7 +69,7 @@ export function HomePage() {
             </div>
             <div>Started {formatWhen(session.started_at)}</div>
           </div>
-          <span className="btn" style={{ background: "#1b2027", color: "#eef0ea", borderColor: "transparent" }}>
+          <span className="btn primary">
             Open
           </span>
         </Link>
@@ -124,7 +124,7 @@ export function HomePage() {
                     <div className="title">{workout.name}</div>
                     <div className="small muted">{last ? `Last done ${formatDay(last)}` : workout.notes || "Not done yet"}</div>
                   </Link>
-                  <button className="btn primary" data-testid={`start-${workout.name}`} onClick={() => start.mutate(workout.id)} disabled={start.isPending}>
+                  <button className="btn" data-testid={`start-${workout.name}`} onClick={() => start.mutate(workout.id)} disabled={start.isPending}>
                     <Play size={16} aria-hidden="true" />
                     Start
                   </button>
@@ -139,7 +139,7 @@ export function HomePage() {
         <section className="section">
           <h2>Latest record</h2>
           <Link to={`/progress/${latestRecord.exercise_id}`} className="panel row" style={{ textDecoration: "none", gap: 16 }}>
-            <Trophy size={28} color="var(--plate-yellow)" aria-hidden="true" />
+            <Trophy size={28} color="var(--accent)" aria-hidden="true" />
             <div style={{ flex: 1 }}>
               <div className="title" style={{ fontWeight: 600 }}>
                 {latestRecord.exercise_name}

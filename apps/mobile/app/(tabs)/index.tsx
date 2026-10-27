@@ -9,7 +9,7 @@ import { live } from "../../src/logic/rows";
 import { statLog } from "../../src/logic/localStats";
 import { useNotebook } from "../../src/notebook";
 import { syncNow, useSyncState } from "../../src/sync";
-import { plate, space, useTheme } from "../../src/theme";
+import { space, useTheme } from "../../src/theme";
 
 export default function Today() {
   const theme = useTheme();
@@ -67,7 +67,7 @@ export default function Today() {
       </View>
 
       {active.map((session) => (
-        <Card key={session.id} onPress={() => router.push({ pathname: "/session/[id]", params: { id: session.id } })} style={{ borderColor: theme.accent, borderWidth: 2 }}>
+        <Card key={session.id} onPress={() => router.push({ pathname: "/session/[id]", params: { id: session.id } })} style={{ borderColor: theme.highlight, borderWidth: 2 }}>
           <T variant="heading">Resume {session.name}</T>
           <T variant="muted">Started {shortDate(session.started_at)}. Your sets are saved on this phone.</T>
         </Card>
@@ -78,7 +78,7 @@ export default function Today() {
           <Row gap={space.lg}>
             <Stat value={String(totals.thisWeekSessions)} label="Sessions this week" />
             <Stat value={volume(totals.thisWeekVolumeKg, unit)} label="Volume this week" />
-            <Stat value={String(totals.currentStreakWeeks)} label={totals.currentStreakWeeks === 1 ? "Week in a row" : "Weeks in a row"} accent={totals.currentStreakWeeks > 0 ? plate.green : undefined} />
+            <Stat value={String(totals.currentStreakWeeks)} label={totals.currentStreakWeeks === 1 ? "Week in a row" : "Weeks in a row"} accent={totals.currentStreakWeeks > 0 ? theme.highlight : undefined} />
           </Row>
           {totals.lastWeekVolumeKg > 0 ? (
             <T variant="small">

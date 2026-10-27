@@ -27,7 +27,7 @@ import type { SessionSetRow, Unit } from "../../src/logic/rows";
 import { assembleSession, logSet, skipSet, validateSet, type SessionExerciseView } from "../../src/logic/session";
 import { useNotebook } from "../../src/notebook";
 import { cancelRest, startRest } from "../../src/timer";
-import { fonts, plate, radius, space, useTheme } from "../../src/theme";
+import { fonts, radius, space, useTheme } from "../../src/theme";
 
 const RPE = [6, 7, 8, 9, 10];
 
@@ -296,7 +296,7 @@ export default function SessionScreen() {
                 }}
               >
                 <Text style={{ color: theme.text, fontFamily: fonts.bodySemi, fontSize: 14 }}>{item.exercise_name}</Text>
-                <Text style={{ color: p.total > 0 && p.done === p.total ? plate.green : theme.muted, fontFamily: fonts.displaySemi, fontSize: 13 }}>
+                <Text style={{ color: p.total > 0 && p.done === p.total ? theme.highlight : theme.muted, fontFamily: fonts.displaySemi, fontSize: 13 }}>
                   {p.done}/{p.total}
                 </Text>
               </Pressable>
@@ -329,7 +329,7 @@ export default function SessionScreen() {
                     <T variant="heading" style={{ color: current.kind === "warmup" ? theme.muted : theme.accent }}>
                       {setLabel(exercise, position!.setIndex)}
                     </T>
-                    {current.completed_at ? <T variant="small" style={{ color: plate.green }}>Logged</T> : null}
+                    {current.completed_at ? <T variant="small" style={{ color: theme.ok }}>Logged</T> : null}
                     {current.skipped ? <T variant="small">Skipped</T> : null}
                   </Row>
                 ) : (

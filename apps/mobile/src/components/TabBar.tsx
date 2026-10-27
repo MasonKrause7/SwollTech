@@ -65,7 +65,7 @@ export function TabBar({ state, navigateToTab, insets }: BottomTabBarProps) {
             onPress={() => navigateToTab(route.key)}
             style={{ flex: 1, alignItems: "center", gap: 3, minHeight: 52, justifyContent: "center" }}
           >
-            <View style={{ height: 3, width: 22, borderRadius: 2, backgroundColor: focused ? theme.accent : "transparent", marginBottom: 2 }} />
+            <View style={{ height: 3, width: 22, borderRadius: 2, backgroundColor: focused ? theme.highlight : "transparent", marginBottom: 2 }} />
             <Icon name={route.name} color={color} />
             <Text style={{ color, fontFamily: focused ? fonts.bodySemi : fonts.bodyMedium, fontSize: 12 }}>{label}</Text>
           </Pressable>
