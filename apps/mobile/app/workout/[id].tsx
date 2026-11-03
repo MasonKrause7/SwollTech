@@ -1,14 +1,24 @@
 import { parseAmount } from "@swolltech/metrics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { ExercisePicker } from "../../src/components/ExercisePicker";
-import { Button, Card, Chip, Field, Row, Screen, Sheet, T } from "../../src/components/ui";
+import { Button, Card, Chip, Divider, Field, Row, Screen, Sheet, T } from "../../src/components/ui";
 import { deleteRow, newId, saveRow, saveRows } from "../../src/db";
 import { byPosition, live, type SetKind, type Unit, type WorkoutRow } from "../../src/logic/rows";
 import { exerciseName } from "../../src/logic/session";
-import { describePlannedSet, moveRow, newPlannedSet, newWorkout, newWorkoutExercise, validatePlannedSet, validateWorkoutName } from "../../src/logic/workouts";
+import {
+  describePlannedSet,
+  moveRow,
+  newPlannedSet,
+  newWorkout,
+  newWorkoutExercise,
+  validatePlannedSet,
+  validateSetCount,
+  validateWorkoutName,
+} from "../../src/logic/workouts";
 import { useNotebook } from "../../src/notebook";
+import { syncNow } from "../../src/sync";
 import { space, useTheme } from "../../src/theme";
 
 export default function WorkoutEditor() {
@@ -46,12 +56,23 @@ export default function WorkoutEditor() {
   }
 
   async function saveDetails() {
-    if (!db || !data || !workout) return;
-    if (name.trim() === workout.name && notes === workout.notes) return;
+    if (!db || !data || !workout) return false;
+    if (name.trim() === workout.name && notes === workout.notes) return true;
     const problem = validateWorkoutName(name, data.workouts, workout.id);
-    if (problem) return setError(problem);
+    if (problem) {
+      setError(problem);
+      return false;
+    }
     setError(null);
     await saveRow(db, "workouts", { ...workout, name: name.trim(), notes });
+    return true;
+  }
+
+  async function saveAndClose() {
+    if (await saveDetails()) {
+      void syncNow();
+      router.back();
+    }
   }
 
   async function setArchived(row: WorkoutRow, archived: boolean) {
@@ -119,7 +140,7 @@ export default function WorkoutEditor() {
                   {describePlannedSet(set)}
                 </T>
                 <Row gap={4}>
-                  <T variant="small">{set.rest_seconds}s rest</T>
+                  {set.rest_seconds > 0 ? <T variant="small">{set.rest_seconds}s rest</T> : null}
                   <Button label="Remove" kind="ghost" compact onPress={() => void deleteRow(db, "workout_sets", set.id)} />
                 </Row>
               </Row>
@@ -138,12 +159,23 @@ export default function WorkoutEditor() {
         );
       })}
 
-      <Button label="Add exercise" onPress={() => setPicking(true)} />
-      <Row style={{ marginTop: space.lg }}>
-        <Button label={workout.archived_at ? "Restore" : "Archive"} kind="secondary" onPress={() => void setArchived(workout, !workout.archived_at)} style={{ flex: 1 }} />
-        <Button label="Delete" kind="danger" onPress={confirmDelete} style={{ flex: 1 }} />
-      </Row>
-      {workout.archived_at ? <T variant="small" style={{ color: theme.muted }}>Archived workouts are hidden from Today.</T> : null}
+      <Button label="Add exercise" kind="secondary" onPress={() => setPicking(true)} />
+      <Button label="Save workout" onPress={() => void saveAndClose()} testID="save-workout" />
+      <T variant="small">Changes save as you go. This takes you back to your workouts.</T>
+
+      <View style={{ marginTop: space.xl, gap: space.sm }}>
+        <Divider />
+        <T variant="label">Manage</T>
+        <T variant="small" style={{ color: theme.muted }}>
+          {workout.archived_at
+            ? "This workout is archived, so it is hidden from your lists and calendar. Restore it to use it again."
+            : "Archive hides this workout from your lists without deleting its history."}
+        </T>
+        <Row>
+          <Button label={workout.archived_at ? "Restore" : "Archive"} kind="ghost" compact onPress={() => void setArchived(workout, !workout.archived_at)} style={{ flex: 1 }} />
+          <Button label="Delete" kind="danger" compact onPress={confirmDelete} style={{ flex: 1 }} />
+        </Row>
+      </View>
 
       <ExercisePicker
         visible={picking}
@@ -190,12 +222,15 @@ function PlanSetSheet({
   const theme = useTheme();
   const [kind, setKind] = useState<SetKind>("working");
   const [count, setCount] = useState(3);
+  const [more, setMore] = useState(false);
+  const [countText, setCountText] = useState("6");
   const [reps, setReps] = useState("5");
   const [weight, setWeight] = useState("");
   const [percent, setPercent] = useState("");
   const [setUnit, setSetUnit] = useState<Unit>(unit);
-  const [rest, setRest] = useState("120");
+  const [rest, setRest] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const sets = more ? parseAmount(countText) : count;
 
   async function save() {
     const input = {
@@ -204,37 +239,48 @@ function PlanSetSheet({
       weight: parseAmount(weight),
       percent: parseAmount(percent),
       unit: setUnit,
-      restSeconds: parseAmount(rest) ?? 120,
+      restSeconds: parseAmount(rest) ?? 0,
     };
-    const problem = validatePlannedSet(input);
+    const problem = validateSetCount(sets) ?? validatePlannedSet(input);
     if (problem) return setError(problem);
     setError(null);
-    await onSave(input, count);
+    await onSave(input, sets!);
     setWeight("");
     setPercent("");
   }
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Plan sets">
-      <View style={{ padding: space.lg, gap: space.md }}>
+      <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <Row>
           <Chip label="Working" selected={kind === "working"} onPress={() => setKind("working")} />
           <Chip label="Warmup" selected={kind === "warmup"} onPress={() => setKind("warmup")} />
         </Row>
         <T variant="label">How many sets</T>
-        <Row>
+        <Row style={{ flexWrap: "wrap" }}>
           {[1, 2, 3, 4, 5].map((value) => (
-            <Chip key={value} label={String(value)} selected={count === value} onPress={() => setCount(value)} />
+            <Chip
+              key={value}
+              label={String(value)}
+              selected={!more && count === value}
+              onPress={() => {
+                setMore(false);
+                setCount(value);
+              }}
+            />
           ))}
+          <Chip label="More" selected={more} onPress={() => setMore(true)} testID="more-sets" />
         </Row>
+        {more ? <Field label="Number of sets" value={countText} onChangeText={setCountText} keyboardType="number-pad" placeholder="6" autoFocus /> : null}
         <Row gap={space.md}>
           <View style={{ flex: 1 }}>
             <Field label="Reps" value={reps} onChangeText={setReps} keyboardType="number-pad" />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="Rest (seconds)" value={rest} onChangeText={setRest} keyboardType="number-pad" />
+            <Field label="Rest (seconds)" value={rest} onChangeText={setRest} keyboardType="number-pad" placeholder="Optional" />
           </View>
         </Row>
+        <T variant="small">Leave rest blank to skip the rest timer between these sets.</T>
         <Row gap={space.md}>
           <View style={{ flex: 1 }}>
             <Field label={`Weight (${setUnit})`} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="Optional" />
@@ -249,8 +295,8 @@ function PlanSetSheet({
         </Row>
         <T variant="small">Percent targets use your training max, or your best estimate if you have not set one.</T>
         {error ? <T style={{ color: theme.danger }}>{error}</T> : null}
-        <Button label={count === 1 ? "Add set" : `Add ${count} sets`} onPress={() => void save()} />
-      </View>
+        <Button label={sets === 1 ? "Add set" : sets != null && sets > 0 ? `Add ${sets} sets` : "Add sets"} onPress={() => void save()} />
+      </ScrollView>
     </Sheet>
   );
 }

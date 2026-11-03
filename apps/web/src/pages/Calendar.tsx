@@ -5,7 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Play, Trash2 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApi } from "../auth";
-import { LoadError, Loading } from "../components/Feedback";
+import { BrandEmpty, LoadError, Loading } from "../components/Feedback";
 import { errorMessage, formatDay, timeZone } from "../format";
 import { keys } from "../hooks";
 
@@ -261,12 +261,12 @@ export function CalendarPage() {
           )}
 
           {ready.length === 0 ? (
-            <div className="empty">
+            <BrandEmpty>
               <p>Write a workout first, then plan it here.</p>
               <Link to="/workouts/new" className="btn">
                 New workout
               </Link>
-            </div>
+            </BrandEmpty>
           ) : (
             <form className="stack" onSubmit={submit} key={selected}>
               <h3>Plan a workout</h3>

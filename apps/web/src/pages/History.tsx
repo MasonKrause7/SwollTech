@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { weekStart, localDay } from "@swolltech/metrics";
 import { useApi } from "../auth";
-import { LoadError, Loading } from "../components/Feedback";
+import { BrandEmpty, LoadError, Loading } from "../components/Feedback";
 import { formatDay, formatShortDate, timeZone } from "../format";
 import { keys } from "../hooks";
 
@@ -29,12 +29,12 @@ export function HistoryPage() {
         </div>
       </header>
       {sessions.data.length === 0 && (
-        <div className="empty">
+        <BrandEmpty>
           <p>Finished workouts show up here. Start one from Today.</p>
           <Link className="btn primary" to="/">
             Go to Today
           </Link>
-        </div>
+        </BrandEmpty>
       )}
       {[...groups.entries()].map(([week, items]) => (
         <section key={week} className="section" aria-label={`Week of ${week}`}>

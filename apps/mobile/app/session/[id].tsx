@@ -1,6 +1,9 @@
 import {
+  exerciseDone,
   formatClock,
+  isDone,
   matchingPrevious,
+  nextAfter,
   nextInExercise,
   nextPosition,
   nextSetTemplate,
@@ -68,12 +71,15 @@ export default function SessionScreen() {
   const [repsText, setRepsText] = useState("");
   const [setUnit, setSetUnit] = useState<Unit>(unit);
   const [rpe, setRpe] = useState<number | null>(null);
+  const [rpeHelp, setRpeHelp] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const [rest, setRest] = useState<Rest | null>(null);
   const [now, setNow] = useState(Date.now());
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
-  const pendingAdvance = useRef<"next" | { exerciseId: string } | null>(null);
+  const pendingAdvance = useRef<{ exerciseId: string } | null>(null);
 
   // Pick the first open set when the session loads.
   useEffect(() => {
@@ -81,19 +87,21 @@ export default function SessionScreen() {
     setPosition(nextPosition(view.exercises) ?? (view.exercises.length ? { exerciseIndex: 0, setIndex: 0 } : null));
   }, [view, position]);
 
-  // After a write lands, move to where the lifter should go next.
+  // A set or exercise was added: jump to it once its row lands.
   useEffect(() => {
     if (!view || !pendingAdvance.current) return;
-    const target = pendingAdvance.current;
+    const index = view.exercises.findIndex((row) => row.id === pendingAdvance.current!.exerciseId);
+    if (index < 0) return;
     pendingAdvance.current = null;
-    if (target === "next") {
-      const next = nextPosition(view.exercises);
-      if (next) setPosition(next);
-      return;
-    }
-    const index = view.exercises.findIndex((row) => row.id === target.exerciseId);
-    if (index >= 0) setPosition({ exerciseIndex: index, setIndex: Math.max(0, view.exercises[index].sets.length - 1) });
+    setPosition({ exerciseIndex: index, setIndex: Math.max(0, view.exercises[index].sets.length - 1) });
+    setEditing(false);
   }, [view]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   const exercise = position ? exercises[position.exerciseIndex] : undefined;
   const current = exercise && position ? exercise.sets[position.setIndex] : undefined;
@@ -134,12 +142,37 @@ export default function SessionScreen() {
   const { session } = view;
   const done = session.status !== "in_progress";
   const overall = progress(exercises);
+  const allLogged = overall.total > 0 && overall.done === overall.total;
   const last = exercise && position ? matchingPrevious(exercise, position.setIndex) : null;
   const target = current ? targetText(current) : null;
   const weightValue = parseAmount(weightText);
+  const exerciseFinished = exercise ? exerciseDone(exercise) : false;
+  const showForm = Boolean(current) && (!exerciseFinished || editing || done);
+  const upcoming = position ? nextAfter(exercises, position) : null;
+  const nextExercise = upcoming && upcoming.exerciseIndex !== position?.exerciseIndex ? exercises[upcoming.exerciseIndex] : null;
+
+  function moveTo(next: GuidePosition) {
+    setPosition(next);
+    setEditing(false);
+  }
+
+  /** After a set is logged or skipped, go to the next open set and say so when the exercise is finished. */
+  function advance(from: GuidePosition) {
+    const next = nextAfter(exercises, from);
+    const finished = exercises[from.exerciseIndex];
+    if (!next) {
+      setEditing(false);
+      setNotice(null);
+      return;
+    }
+    if (next.exerciseIndex !== from.exerciseIndex && finished) {
+      setNotice(`${finished.exercise_name} done. On to ${exercises[next.exerciseIndex].exercise_name}.`);
+    }
+    moveTo(next);
+  }
 
   async function log() {
-    if (!db || !current) return;
+    if (!db || !current || !position || saving) return;
     const reps = parseAmount(repsText);
     const problem = validateSet(weightValue, reps);
     if (problem) {
@@ -147,13 +180,23 @@ export default function SessionScreen() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
       return;
     }
-    setSaving(true);
+    const from = position;
     const wasDone = current.completed_at != null;
-    await saveRow(db, "session_sets", logSet(current, { weight: weightValue!, reps: reps!, unit: setUnit, rpe }, new Date()));
-    setSaving(false);
+    setSaving(true);
+    try {
+      await saveRow(db, "session_sets", logSet(current, { weight: weightValue!, reps: reps!, unit: setUnit, rpe }, new Date()));
+    } catch {
+      setError("That set did not save. Try again.");
+      return;
+    } finally {
+      setSaving(false);
+    }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-    if (wasDone || done) return;
-    pendingAdvance.current = "next";
+    if (wasDone || done) {
+      setEditing(false);
+      return;
+    }
+    advance(from);
     const remaining = overall.total - overall.done - 1;
     if (current.rest_seconds > 0 && remaining > 0) {
       const scheduled = await startRest(current.rest_seconds);
@@ -163,10 +206,16 @@ export default function SessionScreen() {
   }
 
   async function skip() {
-    if (!db || !current) return;
-    await saveRow(db, "session_sets", skipSet(current));
+    if (!db || !current || !position) return;
+    const from = position;
+    try {
+      await saveRow(db, "session_sets", skipSet(current));
+    } catch {
+      setError("That did not save. Try again.");
+      return;
+    }
     void Haptics.selectionAsync().catch(() => undefined);
-    pendingAdvance.current = "next";
+    advance(from);
   }
 
   async function addSet() {
@@ -178,7 +227,7 @@ export default function SessionScreen() {
   async function removeSet() {
     if (!db || !current || !exercise || !position) return;
     await deleteRow(db, "session_sets", current.id);
-    setPosition({ exerciseIndex: position.exerciseIndex, setIndex: Math.max(0, position.setIndex - 1) });
+    moveTo({ exerciseIndex: position.exerciseIndex, setIndex: Math.max(0, position.setIndex - 1) });
   }
 
   async function film() {
@@ -245,9 +294,10 @@ export default function SessionScreen() {
   }
 
   const nextUp = (() => {
-    const next = nextPosition(exercises);
+    const next = position && current && !isDone(current) ? position : nextPosition(exercises);
     if (!next) return null;
     const item = exercises[next.exerciseIndex];
+    if (!item?.sets[next.setIndex]) return null;
     const values = prefill(item, next.setIndex, unit);
     const amount = values.weight != null && values.reps != null ? `, ${trim(values.weight, 2)} ${values.unit} × ${values.reps}` : "";
     return `${item.exercise_name}, ${setLabel(item, next.setIndex).toLowerCase()}${amount}`;
@@ -265,7 +315,7 @@ export default function SessionScreen() {
             {done ? (
               <Button label="Summary" kind="ghost" compact onPress={() => router.replace({ pathname: "/summary/[id]", params: { id: session.id } })} />
             ) : (
-              <Button label="Finish" compact onPress={finish} testID="finish" />
+              <Button label="Finish" kind={allLogged ? "primary" : "secondary"} compact onPress={finish} testID="finish" />
             )}
           </Row>
           <ProgressBar fraction={overall.fraction} />
@@ -274,30 +324,38 @@ export default function SessionScreen() {
           </T>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.lg, gap: space.sm, paddingVertical: space.sm }} style={{ flexGrow: 0 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: space.lg, gap: space.sm, paddingVertical: space.sm, alignItems: "stretch" }}
+          style={{ flexGrow: 0, flexShrink: 0 }}
+        >
           {exercises.map((item, index) => {
             const p = progress([item]);
             const selected = position?.exerciseIndex === index;
+            const finished = exerciseDone(item);
             return (
               <Pressable
                 key={item.id}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                onPress={() => setPosition({ exerciseIndex: index, setIndex: nextInExercise(item) ?? Math.max(0, item.sets.length - 1) })}
+                accessibilityLabel={`${item.exercise_name}, ${p.done} of ${p.total} sets done`}
+                onPress={() => moveTo({ exerciseIndex: index, setIndex: nextInExercise(item) ?? Math.max(0, item.sets.length - 1) })}
                 style={{
-                  minHeight: 48,
+                  minHeight: 56,
                   paddingHorizontal: space.md,
-                  paddingVertical: space.xs,
+                  paddingVertical: 6,
                   borderRadius: radius.md,
-                  borderWidth: 1.5,
-                  borderColor: selected ? theme.accent : theme.line,
-                  backgroundColor: p.total > 0 && p.done === p.total ? theme.raised : "transparent",
+                  borderWidth: selected ? 2 : 1.5,
+                  borderColor: selected ? theme.highlight : finished ? theme.ok : theme.line,
+                  backgroundColor: selected ? theme.raised : "transparent",
                   justifyContent: "center",
+                  gap: 2,
                 }}
               >
-                <Text style={{ color: theme.text, fontFamily: fonts.bodySemi, fontSize: 14 }}>{item.exercise_name}</Text>
-                <Text style={{ color: p.total > 0 && p.done === p.total ? theme.highlight : theme.muted, fontFamily: fonts.displaySemi, fontSize: 13 }}>
-                  {p.done}/{p.total}
+                <Text style={{ color: finished && !selected ? theme.muted : theme.text, fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 18 }}>{item.exercise_name}</Text>
+                <Text style={{ color: finished ? theme.ok : selected ? theme.highlight : theme.muted, fontFamily: fonts.displaySemi, fontSize: 14, lineHeight: 18 }}>
+                  {finished ? `✓ ${p.done}/${p.total}` : `${p.done}/${p.total}`}
                 </Text>
               </Pressable>
             );
@@ -306,14 +364,29 @@ export default function SessionScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={() => setPicking(true)}
-              style={{ minHeight: 48, paddingHorizontal: space.md, borderRadius: radius.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.line, justifyContent: "center" }}
+              style={{ minHeight: 56, paddingHorizontal: space.md, borderRadius: radius.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.line, justifyContent: "center" }}
             >
-              <Text style={{ color: theme.muted, fontFamily: fonts.bodySemi }}>Add exercise</Text>
+              <Text style={{ color: theme.muted, fontFamily: fonts.bodySemi, lineHeight: 18 }}>Add exercise</Text>
             </Pressable>
           ) : null}
         </ScrollView>
 
         <ScrollView contentContainerStyle={{ padding: space.lg, paddingTop: space.sm, gap: space.md, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+          {notice ? (
+            <View style={{ flexDirection: "row", gap: space.sm, alignItems: "center", padding: space.md, borderRadius: radius.md, borderWidth: 1.5, borderColor: theme.ok }}>
+              <Text style={{ color: theme.ok, fontFamily: fonts.display, fontSize: 20 }}>✓</Text>
+              <T style={{ flex: 1 }}>{notice}</T>
+            </View>
+          ) : null}
+
+          {allLogged && !done ? (
+            <View style={{ gap: space.sm, padding: space.lg, borderRadius: radius.lg, borderWidth: 1.5, borderColor: theme.ok, backgroundColor: theme.raised }}>
+              <T variant="heading">Every set is logged</T>
+              <T variant="muted">Finish to save this workout to your history.</T>
+              <Button label="Finish workout" onPress={finish} testID="finish-all" />
+            </View>
+          ) : null}
+
           {!exercise ? (
             <View style={{ gap: space.md }}>
               <T variant="heading">Add your first exercise</T>
@@ -323,21 +396,37 @@ export default function SessionScreen() {
           ) : (
             <>
               <View style={{ gap: 2 }}>
-                <Text style={{ color: theme.text, fontFamily: fonts.display, fontSize: 38, lineHeight: 40 }}>{exercise.exercise_name}</Text>
-                {current ? (
+                <Text style={{ color: theme.text, fontFamily: fonts.display, fontSize: 38, lineHeight: 42 }}>{exercise.exercise_name}</Text>
+                {showForm && current ? (
                   <Row>
-                    <T variant="heading" style={{ color: current.kind === "warmup" ? theme.muted : theme.accent }}>
+                    <T variant="heading" style={{ color: current.completed_at ? theme.ok : current.kind === "warmup" ? theme.muted : theme.highlight }}>
                       {setLabel(exercise, position!.setIndex)}
                     </T>
-                    {current.completed_at ? <T variant="small" style={{ color: theme.ok }}>Logged</T> : null}
+                    {current.completed_at ? <T variant="small" style={{ color: theme.ok }}>✓ Logged</T> : null}
                     {current.skipped ? <T variant="small">Skipped</T> : null}
                   </Row>
-                ) : (
+                ) : !current ? (
                   <T variant="muted">No sets yet. Add one below.</T>
-                )}
+                ) : null}
               </View>
 
-              {current ? (
+              {exerciseFinished && !editing && !done ? (
+                <View style={{ gap: space.sm, padding: space.lg, borderRadius: radius.lg, borderWidth: 1.5, borderColor: theme.ok }}>
+                  <T variant="heading" style={{ color: theme.ok }}>
+                    ✓ All {exercise.sets.length} {exercise.sets.length === 1 ? "set" : "sets"} done
+                  </T>
+                  {nextExercise ? (
+                    <Button
+                      label={`Next: ${nextExercise.exercise_name}`}
+                      onPress={() => upcoming && moveTo(upcoming)}
+                      testID="next-exercise"
+                    />
+                  ) : null}
+                  <Button label="Add an extra set" kind="secondary" onPress={() => void addSet()} />
+                </View>
+              ) : null}
+
+              {showForm && current ? (
                 <>
                   <View style={{ gap: 2 }}>
                     {target ? <T>Plan: {target}</T> : null}
@@ -364,65 +453,115 @@ export default function SessionScreen() {
                       onStep={(direction) => setRepsText(String(Math.max(0, (parseAmount(repsText) ?? 0) + direction)))}
                     />
                   </Row>
-                  <Row style={{ justifyContent: "space-between" }}>
-                    <Row>
-                      <Chip label="lb" selected={setUnit === "lb"} onPress={() => setSetUnit("lb")} />
-                      <Chip label="kg" selected={setUnit === "kg"} onPress={() => setSetUnit("kg")} />
+
+                  {error ? <T style={{ color: theme.danger }}>{error}</T> : null}
+                  {!done || current.completed_at ? (
+                    <Button
+                      label={current.completed_at ? "Save changes" : `Log ${setLabel(exercise, position!.setIndex).toLowerCase()}`}
+                      onPress={() => void log()}
+                      busy={saving}
+                      testID="log-set"
+                      style={{ minHeight: 64 }}
+                    />
+                  ) : null}
+
+                  <Row>
+                    <Chip label="lb" selected={setUnit === "lb"} onPress={() => setSetUnit("lb")} />
+                    <Chip label="kg" selected={setUnit === "kg"} onPress={() => setSetUnit("kg")} />
+                  </Row>
+                  <View style={{ gap: space.xs }}>
+                    <Row style={{ justifyContent: "space-between" }}>
+                      <T variant="label">Effort (RPE), optional</T>
+                      <Pressable accessibilityRole="button" onPress={() => setRpeHelp(!rpeHelp)} hitSlop={8}>
+                        <T variant="small" style={{ textDecorationLine: "underline" }}>
+                          {rpeHelp ? "Hide" : "What is this?"}
+                        </T>
+                      </Pressable>
                     </Row>
+                    {rpeHelp ? (
+                      <T variant="small">
+                        RPE stands for rate of perceived exertion: how hard the set felt. 10 means you could not do another rep, 9 means one rep left in the tank, 8 means two.
+                      </T>
+                    ) : null}
                     <Row gap={6}>
-                      <T variant="label">RPE</T>
                       {RPE.map((value) => (
                         <Chip key={value} label={String(value)} selected={rpe === value} onPress={() => setRpe(rpe === value ? null : value)} />
                       ))}
                     </Row>
-                  </Row>
+                  </View>
 
                   <PlateDiagram weight={weightValue} unit={setUnit} />
 
-                  {error ? <T style={{ color: theme.danger }}>{error}</T> : null}
-                  {!done || current.completed_at ? (
-                    <>
-                      <Button label={current.completed_at ? "Save changes" : "Log set"} onPress={() => void log()} busy={saving} testID="log-set" style={{ minHeight: 64 }} />
-                      <Row>
-                        {!done && !current.completed_at && !current.skipped ? <Button label="Skip set" kind="secondary" onPress={() => void skip()} style={{ flex: 1 }} /> : null}
-                        <Button label="Film set" kind="secondary" onPress={() => void film()} style={{ flex: 1 }} />
-                      </Row>
-                    </>
+                  {!done ? (
+                    <Row>
+                      {!current.completed_at && !current.skipped ? <Button label="Skip set" kind="ghost" compact onPress={() => void skip()} style={{ flex: 1 }} /> : null}
+                      <Button label="Film set" kind="ghost" compact onPress={() => void film()} style={{ flex: 1 }} />
+                    </Row>
                   ) : null}
                 </>
               ) : null}
 
               <View style={{ gap: space.xs, marginTop: space.sm }}>
-                <T variant="label">All sets</T>
+                <T variant="label">{exercise.exercise_name} sets</T>
                 {exercise.sets.map((set, index) => {
-                  const selected = position?.setIndex === index;
-                  const status = set.completed_at ? pair(set.actual_weight, set.actual_unit, set.actual_reps) : set.skipped ? "Skipped" : targetText(set) ?? "Open";
+                  const selected = showForm && position?.setIndex === index;
+                  const logged = set.completed_at != null;
+                  const status = logged ? pair(set.actual_weight, set.actual_unit, set.actual_reps) : set.skipped ? "Skipped" : targetText(set) ?? "Open";
                   return (
                     <Pressable
                       key={set.id}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
-                      onPress={() => setPosition({ exerciseIndex: position!.exerciseIndex, setIndex: index })}
+                      accessibilityLabel={`${setLabel(exercise, index)}, ${logged ? `logged ${status}` : status}`}
+                      onPress={() => {
+                        setPosition({ exerciseIndex: position!.exerciseIndex, setIndex: index });
+                        setEditing(true);
+                      }}
                       style={{
                         minHeight: 48,
                         flexDirection: "row",
                         alignItems: "center",
-                        justifyContent: "space-between",
+                        gap: space.sm,
                         paddingHorizontal: space.md,
                         borderRadius: radius.md,
                         backgroundColor: selected ? theme.raised : "transparent",
-                        borderWidth: 1,
-                        borderColor: selected ? theme.line : "transparent",
+                        borderWidth: selected ? 2 : 1,
+                        borderColor: selected ? theme.highlight : logged ? theme.line : "transparent",
                       }}
                     >
-                      <T variant={set.completed_at ? "body" : "muted"}>{setLabel(exercise, index)}</T>
-                      <Text style={{ color: set.completed_at ? theme.text : theme.muted, fontFamily: fonts.displaySemi, fontSize: 18 }}>{status}</Text>
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          borderWidth: 2,
+                          borderColor: logged ? theme.ok : selected ? theme.highlight : theme.line,
+                          backgroundColor: logged ? theme.ok : "transparent",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {logged ? <Text style={{ color: theme.bg, fontFamily: fonts.display, fontSize: 13, lineHeight: 15 }}>✓</Text> : null}
+                      </View>
+                      <T variant={logged || selected ? "body" : "muted"} style={{ flex: 1 }}>
+                        {setLabel(exercise, index)}
+                      </T>
+                      <Text
+                        style={{
+                          color: logged ? theme.text : theme.muted,
+                          fontFamily: fonts.displaySemi,
+                          fontSize: 18,
+                          textDecorationLine: set.skipped ? "line-through" : "none",
+                        }}
+                      >
+                        {status}
+                      </Text>
                     </Pressable>
                   );
                 })}
-                {!done ? (
+                {!done && !exerciseFinished ? (
                   <Row style={{ marginTop: space.xs }}>
-                    <Button label="Add set" kind="secondary" compact onPress={() => void addSet()} style={{ flex: 1 }} />
+                    <Button label="Add set" kind="ghost" compact onPress={() => void addSet()} style={{ flex: 1 }} />
                     {current && !current.completed_at ? <Button label="Remove set" kind="ghost" compact onPress={() => void removeSet()} style={{ flex: 1 }} /> : null}
                   </Row>
                 ) : null}

@@ -6,7 +6,7 @@ import { ApiError } from "@swolltech/api-client";
 import { localDay, parseAmount } from "@swolltech/metrics";
 import { useApi } from "../auth";
 import { BarSeries, LineSeries } from "../components/Charts";
-import { LoadError, Loading } from "../components/Feedback";
+import { BrandEmpty, LoadError, Loading } from "../components/Feedback";
 import { Heatmap } from "../components/Heatmap";
 import { bigWeightFromKg, convert, errorMessage, formatDay, formatShortDate, plural, timeZone, trimNumber, weightFromKg } from "../format";
 import { keys, useExercises, useOverview, useUnit } from "../hooks";
@@ -35,12 +35,12 @@ export function ProgressPage() {
             <h1>Progress</h1>
           </div>
         </header>
-        <div className="empty">
+        <BrandEmpty>
           <p>Finish your first workout and your charts start here: weekly volume, streaks, records, and a trend line for every lift.</p>
           <Link className="btn primary" to="/">
             Start a workout
           </Link>
-        </div>
+        </BrandEmpty>
       </div>
     );
   }

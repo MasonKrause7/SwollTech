@@ -40,6 +40,8 @@ export function validatePlannedSet(input: PlannedSetInput): string | null {
   return null;
 }
 
+export { validateSetCount } from "@swolltech/metrics";
+
 export function newPlannedSet(id: string, workoutExerciseId: string, input: PlannedSetInput, siblings: WorkoutSetRow[]): WorkoutSetRow {
   return {
     id,

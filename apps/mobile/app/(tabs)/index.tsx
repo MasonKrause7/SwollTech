@@ -3,7 +3,9 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, View } from "react-native";
 import { startQuick, startWorkout } from "../../src/actions";
-import { Button, Card, Empty, Row, Screen, Stat, SyncPill, T } from "../../src/components/ui";
+import { art } from "../../src/art";
+import { Mark, MascotPoster } from "../../src/components/brand";
+import { Button, Card, Row, Screen, Stat, SyncPill, T } from "../../src/components/ui";
 import { dayTitle, greeting, shortDate, volume, weight } from "../../src/format";
 import { live } from "../../src/logic/rows";
 import { planViews } from "../../src/logic/schedule";
@@ -68,9 +70,12 @@ export default function Today() {
 
   return (
     <Screen refreshing={state.kind === "syncing"} onRefresh={() => void syncNow()}>
-      <View style={{ gap: 2 }}>
-        <T variant="title">{name ? `${greeting()}, ${name}` : greeting()}</T>
-        <SyncPill onPress={() => void syncNow()} />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+        <Mark size={48} />
+        <View style={{ gap: 2, flex: 1 }}>
+          <T variant="title">{name ? `${greeting()}, ${name}` : greeting()}</T>
+          <SyncPill onPress={() => void syncNow()} />
+        </View>
       </View>
 
       {dueToday.map((view) => (
@@ -134,10 +139,11 @@ export default function Today() {
         Start a workout
       </T>
       {workouts.length === 0 ? (
-        <Empty
+        <MascotPoster
+          source={art.deadlift}
           title="No workouts yet"
           body="Write down a workout the way you would in your notebook. Then start it here and the app walks you through every set."
-          action={<Button label="Write a workout" onPress={() => router.push({ pathname: "/workout/[id]", params: { id: "new" } })} />}
+          action={<Button label="Write a workout" onDark onPress={() => router.push({ pathname: "/workout/[id]", params: { id: "new" } })} />}
         />
       ) : (
         workouts.map((workout) => {

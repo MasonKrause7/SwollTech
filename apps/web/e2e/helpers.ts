@@ -11,8 +11,8 @@ export async function signIn(page: Page, email: string) {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/Morning|Afternoon|Evening/);
 }
 
-/** Writes a workout with one exercise and three planned sets at the given weight. */
-export async function writeWorkout(page: Page, name: string, exercise: string, weight: number) {
+/** Writes a workout with one exercise and three planned sets at the given weight, with an optional rest timer. */
+export async function writeWorkout(page: Page, name: string, exercise: string, weight: number, restSeconds?: number) {
   await page.goto("/workouts/new");
   await page.getByTestId("workout-name").fill(name);
   await page.getByTestId("save-workout").click();
@@ -26,19 +26,26 @@ export async function writeWorkout(page: Page, name: string, exercise: string, w
     await loads.nth(index).selectOption("weight");
     await weights.nth(index).fill(String(weight));
     await weights.nth(index).blur();
+    if (restSeconds != null) {
+      const rest = page.getByLabel(`Rest for set ${index + 1}, optional`);
+      await rest.fill(String(restSeconds));
+      await rest.blur();
+    }
   }
   await expect(page.getByTestId("plan-weight").first()).toHaveValue(String(weight));
 }
 
-/** Logs every open set with the prefilled numbers, skipping rest. */
-export async function logAllSets(page: Page, count: number, reps?: number) {
+/** Logs every open set with the prefilled numbers. Pass `rest` when the plan has a rest timer to skip. */
+export async function logAllSets(page: Page, count: number, reps?: number, rest = false) {
   for (let index = 0; index < count; index += 1) {
     const focus = page.getByRole("form", { name: "Current set" });
     await expect(focus).toBeVisible();
     if (reps != null) await focus.getByLabel("Reps", { exact: true }).fill(String(reps));
     await focus.getByRole("button", { name: /Log set/ }).click();
-    const rest = page.getByTestId("rest-timer");
-    await expect(rest).toBeVisible();
-    await rest.getByRole("button", { name: "Skip rest" }).click();
+    if (rest && index < count - 1) {
+      const timer = page.getByTestId("rest-timer");
+      await expect(timer).toBeVisible();
+      await timer.getByRole("button", { name: "Skip rest" }).click();
+    }
   }
 }

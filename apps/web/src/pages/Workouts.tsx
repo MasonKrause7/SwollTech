@@ -3,10 +3,10 @@ import { ArrowDown, ArrowUp, Copy, Play, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { SetKind, Workout, WorkoutExercise, WorkoutSet, WeightUnit } from "@swolltech/api-client";
-import { parseAmount } from "@swolltech/metrics";
+import { parseAmount, validateSetCount } from "@swolltech/metrics";
 import { useApi } from "../auth";
 import { ExercisePicker } from "../components/ExercisePicker";
-import { LoadError, Loading, Toast } from "../components/Feedback";
+import { BrandEmpty, LoadError, Loading, Toast } from "../components/Feedback";
 import { errorMessage, plural, trimNumber } from "../format";
 import { keys, useUnit } from "../hooks";
 import { ConfirmDialog } from "./Session";
@@ -33,12 +33,12 @@ export function WorkoutsPage() {
         </Link>
       </header>
       {active.length === 0 ? (
-        <div className="empty">
+        <BrandEmpty>
           <p>No workouts yet. A simple one is fine: three exercises, a few sets each.</p>
           <Link className="btn primary" to="/workouts/new">
             Write a workout
           </Link>
-        </div>
+        </BrandEmpty>
       ) : (
         <div className="list">
           {active.map((workout) => (
@@ -216,21 +216,38 @@ export function EditorPage() {
                   const next = await api.addWorkoutExercise(data.id, exercise.id);
                   const added = next.exercises[next.exercises.length - 1];
                   for (let count = 0; count < 3; count += 1) {
-                    await api.addWorkoutSet(added.id, { kind: "working", target_reps: 5, rest_seconds: 120 });
+                    await api.addWorkoutSet(added.id, { kind: "working", target_reps: 5, rest_seconds: 0 });
                   }
                   await refresh();
                 }}
               />
               <p className="small muted" style={{ marginTop: 8 }}>
-                New exercises start with three open sets of 5. Change them below.
+                New exercises start with three sets of 5 and no rest timer. Change them below.
               </p>
             </div>
           </section>
 
+          <div className="row">
+            <button
+              className="btn primary"
+              data-testid="done-editing"
+              onClick={() =>
+                act(async () => {
+                  if (dirty) store(await api.updateWorkout(data.id, { name: title.trim(), notes: body }));
+                  await queryClient.invalidateQueries({ queryKey: keys.workouts });
+                  navigate("/workouts");
+                })
+              }
+            >
+              Save workout
+            </button>
+            <span className="small muted">Sets and exercises save as you go. This takes you back to your workouts.</span>
+          </div>
+
           <section className="section">
             <h2>Manage</h2>
             <div className="row">
-              <button className="btn" onClick={() => act(async () => { store(await api.updateWorkout(data.id, { archived: !data.archived_at })); await queryClient.invalidateQueries({ queryKey: keys.workouts }); })}>
+              <button className="btn quiet" onClick={() => act(async () => { store(await api.updateWorkout(data.id, { archived: !data.archived_at })); await queryClient.invalidateQueries({ queryKey: keys.workouts }); })}>
                 {data.archived_at ? "Restore workout" : "Archive workout"}
               </button>
               <button className="btn danger" onClick={() => setConfirmDelete(true)}>
@@ -238,7 +255,11 @@ export function EditorPage() {
                 Delete workout
               </button>
             </div>
-            <p className="small muted">Archiving hides it from Today. Your logged sessions stay either way.</p>
+            <p className="small muted">
+              {data.archived_at
+                ? "This workout is archived, so it is hidden from your lists and calendar. Restore it to use it again."
+                : "Archive hides this workout from your lists without deleting its history."}
+            </p>
           </section>
         </>
       )}
@@ -283,27 +304,36 @@ function ExerciseCard({
   onError: (message: string) => void;
 }) {
   const api = useApi();
+  const [batch, setBatch] = useState(1);
+  const [more, setMore] = useState(false);
+  const [countText, setCountText] = useState("6");
+  const [adding, setAdding] = useState(false);
+  const sets = more ? parseAmount(countText) : batch;
 
-  async function duplicateLast() {
+  async function addSets() {
+    const problem = validateSetCount(sets);
+    if (problem) return onError(problem);
+    const last = item.sets[item.sets.length - 1];
+    const template = last
+      ? {
+          kind: last.kind,
+          target_reps: last.target_reps,
+          target_weight: last.target_weight,
+          target_unit: last.target_unit,
+          target_percent: last.target_percent,
+          target_rpe: last.target_rpe,
+          rest_seconds: last.rest_seconds,
+        }
+      : { kind: "working" as const, target_reps: 5, rest_seconds: 0 };
+    setAdding(true);
     try {
-      const last = item.sets[item.sets.length - 1];
-      await api.addWorkoutSet(
-        item.id,
-        last
-          ? {
-              kind: last.kind,
-              target_reps: last.target_reps,
-              target_weight: last.target_weight,
-              target_unit: last.target_unit,
-              target_percent: last.target_percent,
-              target_rpe: last.target_rpe,
-              rest_seconds: last.rest_seconds,
-            }
-          : { kind: "working", target_reps: 5, rest_seconds: 120 },
-      );
+      // One at a time so the server hands out positions in order.
+      for (let index = 0; index < sets!; index += 1) await api.addWorkoutSet(item.id, template);
       await onChanged();
     } catch (err) {
       onError(errorMessage(err));
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -329,10 +359,34 @@ function ExerciseCard({
       {item.sets.map((set, setIndex) => (
         <PlannedSetRow key={set.id} set={set} index={setIndex} defaultUnit={defaultUnit} onChanged={onChanged} onError={onError} />
       ))}
-      <div>
-        <button className="btn" onClick={duplicateLast} data-testid={`add-set-${item.exercise_name}`}>
+      <div className="row" style={{ flexWrap: "wrap" }}>
+        <div className="segmented" role="group" aria-label="How many sets to add">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={!more && batch === value}
+              onClick={() => {
+                setMore(false);
+                setBatch(value);
+              }}
+            >
+              {value}
+            </button>
+          ))}
+          <button type="button" aria-pressed={more} onClick={() => setMore(true)} data-testid={`more-sets-${item.exercise_name}`}>
+            More
+          </button>
+        </div>
+        {more && (
+          <label className="field" style={{ width: 110 }}>
+            <span className="visually-hidden">Number of sets</span>
+            <input aria-label="Number of sets" inputMode="numeric" value={countText} onChange={(event) => setCountText(event.target.value)} />
+          </label>
+        )}
+        <button className="btn" onClick={addSets} disabled={adding} data-testid={`add-set-${item.exercise_name}`}>
           <Copy size={16} aria-hidden="true" />
-          {item.sets.length ? "Add another set like the last" : "Add a set"}
+          {adding ? "Adding sets" : `Add ${sets === 1 ? "a set" : `${sets != null && sets > 0 ? sets : ""} sets`}${item.sets.length ? " like the last" : ""}`}
         </button>
       </div>
     </article>
@@ -362,7 +416,7 @@ function PlannedSetRow({
   const [weight, setWeight] = useState(set.target_weight != null ? trimNumber(set.target_weight, 2) : "");
   const [unit, setUnit] = useState<WeightUnit>(set.target_unit ?? defaultUnit);
   const [percent, setPercent] = useState(set.target_percent?.toString() ?? "");
-  const [rest, setRest] = useState(String(set.rest_seconds));
+  const [rest, setRest] = useState(set.rest_seconds > 0 ? String(set.rest_seconds) : "");
 
   async function commit(overrides: Partial<{ kind: SetKind; mode: LoadMode; unit: WeightUnit }> = {}) {
     const nextKind = overrides.kind ?? kind;
@@ -371,8 +425,7 @@ function PlannedSetRow({
     const patch: Record<string, unknown> = { kind: nextKind };
     const repsValue = parseAmount(reps);
     if (repsValue != null && repsValue >= 1) patch.target_reps = Math.round(repsValue);
-    const restValue = parseAmount(rest);
-    if (restValue != null) patch.rest_seconds = Math.round(restValue);
+    patch.rest_seconds = Math.round(parseAmount(rest) ?? 0);
     const weightValue = parseAmount(weight);
     const percentValue = parseAmount(percent);
     if (nextMode === "weight" && weightValue != null) Object.assign(patch, { target_weight: weightValue, target_unit: nextUnit, clear_percent: true });
@@ -462,7 +515,7 @@ function PlannedSetRow({
       )}
       <label className="field">
         <span>Rest (sec)</span>
-        <input inputMode="numeric" value={rest} onChange={(event) => setRest(event.target.value)} onBlur={blur} />
+        <input inputMode="numeric" value={rest} onChange={(event) => setRest(event.target.value)} onBlur={blur} placeholder="Optional" aria-label={`Rest for set ${index + 1}, optional`} />
       </label>
       <button className="btn quiet icon" onClick={remove} aria-label={`Remove set ${index + 1}`} style={{ alignSelf: "end" }}>
         <Trash2 size={16} aria-hidden="true" />

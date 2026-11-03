@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, matchingPrevious, nextInExercise, nextPosition, nextSetTemplate, parseAmount, prefill, progress, type GuideExercise, type GuideSet } from "./index";
+import { exerciseDone, formatClock, matchingPrevious, nextAfter, nextInExercise, nextPosition, nextSetTemplate, parseAmount, prefill, progress, type GuideExercise, type GuideSet } from "./index";
 
 function set(overrides: Partial<GuideSet> = {}): GuideSet {
   return {
@@ -34,6 +34,29 @@ describe("next set", () => {
     expect(nextPosition([{ id: "a", exercise_name: "Squat", sets: [done()] }])).toBeNull();
     expect(nextPosition([])).toBeNull();
     expect(progress([]).fraction).toBe(0);
+  });
+
+  it("moves on from the set just logged before its row reloads", () => {
+    const exercises: GuideExercise[] = [
+      { id: "a", exercise_name: "Bench", sets: [set(), set(), set()] },
+      { id: "b", exercise_name: "Dips", sets: [set(), set()] },
+    ];
+    expect(nextAfter(exercises, { exerciseIndex: 0, setIndex: 0 })).toEqual({ exerciseIndex: 0, setIndex: 1 });
+    exercises[0].sets[0] = done();
+    exercises[0].sets[1] = done();
+    expect(nextAfter(exercises, { exerciseIndex: 0, setIndex: 2 })).toEqual({ exerciseIndex: 1, setIndex: 0 });
+  });
+
+  it("goes back for sets left open earlier, then stops when everything is done", () => {
+    const exercises: GuideExercise[] = [
+      { id: "a", exercise_name: "Bench", sets: [done(), set()] },
+      { id: "b", exercise_name: "Dips", sets: [done(), set()] },
+    ];
+    expect(nextAfter(exercises, { exerciseIndex: 1, setIndex: 1 })).toEqual({ exerciseIndex: 0, setIndex: 1 });
+    expect(nextAfter([{ id: "a", exercise_name: "Bench", sets: [done(), set()] }], { exerciseIndex: 0, setIndex: 1 })).toBeNull();
+    expect(exerciseDone(exercises[0])).toBe(false);
+    expect(exerciseDone({ id: "c", exercise_name: "Row", sets: [done(), set({ skipped: true })] })).toBe(true);
+    expect(exerciseDone({ id: "d", exercise_name: "Curl", sets: [] })).toBe(false);
   });
 });
 

@@ -3,7 +3,7 @@ import { logAllSets, signIn, uniqueEmail, writeWorkout } from "./helpers";
 
 test("plan a workout, follow it set by set, and see a record the next time", async ({ page }) => {
   await signIn(page, uniqueEmail("journey"));
-  await writeWorkout(page, "Push day", "Bench Press", 135);
+  await writeWorkout(page, "Push day", "Bench Press", 135, 90);
 
   await page.getByTestId("start-workout").click();
   await expect(page.getByTestId("focus-exercise")).toHaveText("Bench Press");
@@ -12,7 +12,7 @@ test("plan a workout, follow it set by set, and see a record the next time", asy
   await expect(page.getByRole("figure")).toContainText("Each side: 45 lb.");
   await expect(page.getByTestId("previous-sets")).toContainText("first time");
 
-  await logAllSets(page, 3);
+  await logAllSets(page, 3, undefined, true);
   await expect(page.getByText("Every set is logged")).toBeVisible();
   await page.getByTestId("finish-session").click();
   await expect(page.getByTestId("summary-headline")).toHaveText("Workout logged.");
@@ -83,7 +83,8 @@ test("logging works from a phone @phone", async ({ page }) => {
   await page.getByLabel("Reps", { exact: true }).fill("3");
   await expect(page.getByRole("figure")).toContainText("45 + 45 + 45");
   await page.getByRole("button", { name: /Log set/ }).click();
-  await expect(page.getByTestId("rest-timer")).toBeVisible();
+  await expect(page.getByText("Every set is logged")).toBeVisible();
+  await expect(page.getByTestId("rest-timer")).not.toBeVisible();
   await page.getByRole("navigation", { name: "Main" }).last().getByRole("link", { name: "History" }).click();
   await expect(page.getByText("In progress")).toBeVisible();
 });

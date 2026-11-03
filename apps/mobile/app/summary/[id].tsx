@@ -2,7 +2,8 @@ import { buildSessionReport } from "@swolltech/metrics";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo } from "react";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
+import { art } from "../../src/art";
 import { Button, Card, Row, Screen, Stat, T } from "../../src/components/ui";
 import { duration, volume, weight } from "../../src/format";
 import { statLog } from "../../src/logic/localStats";
@@ -38,8 +39,17 @@ export default function Summary() {
 
   return (
     <Screen edges={["top", "bottom"]}>
-      <T variant="label">Workout done</T>
-      <T variant="title">{session.name}</T>
+      <View style={{ borderRadius: 20, overflow: "hidden", backgroundColor: "#0F1011", borderWidth: 1, borderColor: theme.line }}>
+        <Image source={art.bench} accessible={false} style={{ width: "100%", height: 220 }} resizeMode="cover" />
+        <View style={{ padding: space.lg, gap: space.sm }}>
+          <T variant="label" style={{ color: "#8E9196" }}>
+            Workout done
+          </T>
+          <T variant="title" style={{ color: "#F4F4F2" }}>
+            {session.name}
+          </T>
+        </View>
+      </View>
       <Card>
         <Row gap={space.lg}>
           <Stat value={volume(report.volumeKg, unit)} label="Volume" />

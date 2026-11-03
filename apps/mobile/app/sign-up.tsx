@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { Lockup } from "../src/components/brand";
 import { Button, Field, Screen, T } from "../src/components/ui";
 import { useAuth } from "../src/auth";
 import { useTheme } from "../src/theme";
@@ -27,6 +28,7 @@ export default function SignUp() {
   if (sent) {
     return (
       <Screen edges={["bottom"]}>
+        <Lockup caption="Training notebook" />
         <T variant="heading">Check your email</T>
         <T variant="muted">We sent a link to {email.trim()}. Open it on this phone, then sign in.</T>
         <Button label="Back to sign in" onPress={() => router.replace("/sign-in")} />
@@ -36,6 +38,7 @@ export default function SignUp() {
 
   return (
     <Screen edges={["bottom"]}>
+      <Lockup caption="Training notebook" />
       <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" />
       <T variant="small">At least 8 characters.</T>

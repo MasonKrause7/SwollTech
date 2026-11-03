@@ -8,7 +8,10 @@ function AuthLayout({ children }: { children: ReactNode }) {
     <div className="auth">
       <section className="auth-art" aria-hidden="true">
         <img className="auth-mascot" src="/art/mascot-deadlift.webp" alt="" fetchPriority="high" />
-        <div className="brand">SwollTech</div>
+        <div className="brand">
+          <img className="brand-mark" src="/art/mascot-mark.webp" alt="" width={40} height={40} />
+          SwollTech
+        </div>
         <div className="auth-copy stack-lg">
           <span className="eyebrow">Training notebook</span>
           <h1>

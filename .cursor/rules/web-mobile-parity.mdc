@@ -1,0 +1,16 @@
+---
+description: Keep the web app and the mobile app in feature and behavior parity
+alwaysApply: true
+---
+
+# Web and mobile parity
+
+SwollTech ships two clients, `apps/web` (React + Vite) and `apps/mobile` (Expo). Lifters use both, so they must behave the same.
+
+- Any user-facing change to one client lands in the other in the same piece of work: features, flows, labels, validation limits, defaults, empty states and color meaning.
+- Put shared rules in `packages/metrics` (or another shared package) and import them from both apps instead of writing them twice. Examples: `nextAfter` and `exerciseDone` for the guided workout, `validateSetCount` for planning, `planStates` for the calendar.
+- Differences are fine only where the platform demands it (sheets on mobile, dialogs on web; offline outbox on mobile, direct API calls on web). Keep the wording and outcome the same.
+- Test both sides: web unit tests (`apps/web`, vitest), web e2e (`apps/web/e2e`, Playwright), mobile logic tests (`apps/mobile/src/logic`, vitest), and typecheck every workspace.
+- When reporting work, say what changed on each client. If something could not be matched, call it out instead of leaving it silently different.
+
+Example: the "More" set count on mobile's plan sheet (1 to 999) is matched by the same chips and limit in the web editor, both using `validateSetCount`.

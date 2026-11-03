@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createChunkedStorage, safeKey, type KeyValueStore } from "./chunkedStorage";
 import { describeSync, errorMessage } from "./status";
-import { describePlannedSet, moveRow, newPlannedSet, validatePlannedSet, validateWorkoutName } from "./workouts";
+import { describePlannedSet, moveRow, newPlannedSet, validatePlannedSet, validateSetCount, validateWorkoutName } from "./workouts";
 
 class Memory implements KeyValueStore {
   data = new Map<string, string>();
@@ -95,6 +95,17 @@ describe("workout editing", () => {
     expect(validatePlannedSet({ ...base, weight: 100, percent: 80 })).toMatch(/not both/);
     expect(validatePlannedSet({ ...base, percent: 150 })).toMatch(/120/);
     expect(validatePlannedSet({ ...base, restSeconds: -1 })).toMatch(/Rest/);
+    expect(validatePlannedSet({ ...base, restSeconds: 0 })).toBeNull();
+  });
+
+  it("allows any whole number of sets under a thousand", () => {
+    expect(validateSetCount(1)).toBeNull();
+    expect(validateSetCount(12)).toBeNull();
+    expect(validateSetCount(999)).toBeNull();
+    expect(validateSetCount(1000)).toMatch(/999/);
+    expect(validateSetCount(0)).toMatch(/1 or more/);
+    expect(validateSetCount(2.5)).toMatch(/1 or more/);
+    expect(validateSetCount(null)).toMatch(/1 or more/);
   });
 
   it("describes planned sets", () => {

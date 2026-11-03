@@ -47,6 +47,36 @@ export function nextPosition(exercises: GuideExercise[]): GuidePosition | null {
   return null;
 }
 
+/**
+ * Where to go after finishing the set at `from`: the next open set in the same
+ * exercise, then the next unfinished exercise after it, wrapping to any earlier
+ * exercise left open. The set at `from` counts as done even if the row that
+ * says so has not loaded yet.
+ */
+export function nextAfter(exercises: GuideExercise[], from: GuidePosition): GuidePosition | null {
+  const open = (exerciseIndex: number, setIndex: number) =>
+    !(exerciseIndex === from.exerciseIndex && setIndex === from.setIndex) && !isDone(exercises[exerciseIndex].sets[setIndex]);
+  const current = exercises[from.exerciseIndex];
+  if (current) {
+    for (let setIndex = from.setIndex + 1; setIndex < current.sets.length; setIndex += 1) {
+      if (open(from.exerciseIndex, setIndex)) return { exerciseIndex: from.exerciseIndex, setIndex };
+    }
+    for (let setIndex = 0; setIndex < from.setIndex; setIndex += 1) {
+      if (open(from.exerciseIndex, setIndex)) return { exerciseIndex: from.exerciseIndex, setIndex };
+    }
+  }
+  for (let step = 1; step < exercises.length; step += 1) {
+    const exerciseIndex = (from.exerciseIndex + step) % exercises.length;
+    const setIndex = exercises[exerciseIndex].sets.findIndex((_, index) => open(exerciseIndex, index));
+    if (setIndex >= 0) return { exerciseIndex, setIndex };
+  }
+  return null;
+}
+
+export function exerciseDone(exercise: GuideExercise) {
+  return exercise.sets.length > 0 && exercise.sets.every(isDone);
+}
+
 /** Next open set within one exercise, so tapping an exercise jumps to where you left off. */
 export function nextInExercise(exercise: GuideExercise): number | null {
   const index = exercise.sets.findIndex((set) => !isDone(set));
@@ -142,6 +172,15 @@ export function nextSetTemplate(exercise: GuideExercise, fallbackUnit: Unit) {
     target_unit: last?.actual_unit ?? last?.target_unit ?? (last?.actual_weight != null || last?.target_weight != null ? fallbackUnit : null),
     rest_seconds: last?.rest_seconds ?? 120,
   };
+}
+
+export const MAX_PLANNED_SETS = 999;
+
+/** How many sets the planner may add in one go. */
+export function validateSetCount(count: number | null): string | null {
+  if (count == null || !Number.isInteger(count) || count < 1) return "Enter how many sets, 1 or more";
+  if (count > MAX_PLANNED_SETS) return `Plan at most ${MAX_PLANNED_SETS} sets at a time`;
+  return null;
 }
 
 export function formatClock(totalSeconds: number) {

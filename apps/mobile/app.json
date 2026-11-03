@@ -6,7 +6,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#1B2027",
+    "icon": "./assets/images/icon.png",
+    "backgroundColor": "#0F1011",
     "plugins": [
       "expo-router",
       "expo-sqlite",
@@ -36,7 +37,14 @@
     },
     "android": {
       "package": "com.swolltech.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0F1011"
+      },
       "permissions": ["CAMERA", "RECORD_AUDIO", "POST_NOTIFICATIONS"]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
     }
   }
 }

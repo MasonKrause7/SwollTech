@@ -123,6 +123,36 @@ describe("guided session", () => {
     expect(screen.queryByTestId("rest-timer")).not.toBeInTheDocument();
   });
 
+  it("says when an exercise is done, then offers the next one or an extra set", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByTestId("focus-exercise");
+    expect(screen.getByTestId("done-0")).toHaveTextContent("Log set 1 of 2");
+    await user.click(screen.getByTestId("done-0"));
+    await user.click(await screen.findByRole("button", { name: "Skip rest" }));
+    await waitFor(() => expect(screen.getByTestId("done-1")).toHaveTextContent("Log set 2 of 2"));
+    await user.click(screen.getByTestId("done-1"));
+    expect(await screen.findByText("Bench Press done. On to Barbell Row.")).toBeInTheDocument();
+    expect(screen.getByTestId("focus-exercise")).toHaveTextContent("Barbell Row");
+
+    const nav = screen.getByRole("complementary", { name: "Exercises in this workout" });
+    await user.click(within(nav).getByRole("button", { name: /Bench Press/ }));
+    expect(screen.getByTestId("exercise-complete")).toHaveTextContent("Bench Press: all 2 sets done");
+    expect(screen.queryByTestId("focus-exercise")).not.toBeInTheDocument();
+    expect(screen.getByTestId("extra-set")).toBeInTheDocument();
+    await user.click(screen.getByTestId("next-exercise"));
+    expect(screen.getByTestId("focus-exercise")).toHaveTextContent("Barbell Row");
+  });
+
+  it("explains RPE on request", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByTestId("focus-exercise");
+    expect(screen.queryByTestId("rpe-help")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "What is this?" }));
+    expect(screen.getByTestId("rpe-help")).toHaveTextContent("rate of perceived exertion");
+  });
+
   it("refuses to log without reps", async () => {
     const user = userEvent.setup();
     const { api } = setup();

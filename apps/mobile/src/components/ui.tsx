@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -15,6 +16,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { art } from "../art";
 import { describeSync } from "../logic/status";
 import { useSyncState } from "../sync";
 import { fonts, radius, space, touch, useTheme, type Palette } from "../theme";
@@ -86,6 +88,7 @@ export function Button({
   style,
   testID,
   compact,
+  onDark,
 }: {
   label: string;
   onPress: () => void;
@@ -95,14 +98,18 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   testID?: string;
   compact?: boolean;
+  /** Chalk button for hero panels, which stay dark in both appearances. */
+  onDark?: boolean;
 }) {
   const theme = useTheme();
-  const colors = {
-    primary: { bg: theme.accent, fg: theme.accentInk, border: theme.accent },
-    secondary: { bg: theme.raised, fg: theme.text, border: theme.line },
-    danger: { bg: "transparent", fg: theme.danger, border: theme.danger },
-    ghost: { bg: "transparent", fg: theme.text, border: "transparent" },
-  }[kind];
+  const colors = onDark
+    ? { bg: "#F4F4F2", fg: "#0F1011", border: "#F4F4F2" }
+    : {
+        primary: { bg: theme.accent, fg: theme.accentInk, border: theme.accent },
+        secondary: { bg: theme.raised, fg: theme.text, border: theme.line },
+        danger: { bg: "transparent", fg: theme.danger, border: theme.danger },
+        ghost: { bg: "transparent", fg: theme.text, border: "transparent" },
+      }[kind];
   return (
     <Pressable
       testID={testID}
@@ -284,7 +291,8 @@ export function SyncPill({ onPress }: { onPress?: () => void }) {
 export function Empty({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   const theme = useTheme();
   return (
-    <View style={{ borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.line, borderRadius: radius.lg, padding: space.xl, gap: space.sm }}>
+    <View style={{ borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.line, borderRadius: radius.lg, padding: space.xl, gap: space.sm, alignItems: "flex-start" }}>
+      <Image source={art.mark} accessible={false} style={{ width: 64, height: 64, borderRadius: 16 }} />
       <T variant="heading">{title}</T>
       <T variant="muted">{body}</T>
       {action}

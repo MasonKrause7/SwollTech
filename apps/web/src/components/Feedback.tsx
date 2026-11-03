@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 
 export function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   useEffect(() => {
@@ -17,6 +17,16 @@ export function Loading({ label = "Loading" }: { label?: string }) {
     <p className="muted" role="status">
       {label}…
     </p>
+  );
+}
+
+/** Blank notebook: the mascot's face keeps the empty state from looking unfinished. */
+export function BrandEmpty({ children }: { children: ReactNode }) {
+  return (
+    <div className="brand-empty">
+      <img src="/art/mascot-mark.webp" alt="" width={72} height={72} />
+      <div className="brand-empty-copy">{children}</div>
+    </div>
   );
 }
 

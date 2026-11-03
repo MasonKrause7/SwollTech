@@ -40,6 +40,14 @@ export function newId() {
 
 let opened: Promise<Notebook> | null = null;
 const listeners = new Set<() => void>();
+let writing: Promise<unknown> = Promise.resolve();
+
+/** expo-sqlite throws if a second transaction starts while one is open, so transactions queue. */
+function transaction(db: Notebook, task: () => Promise<void>): Promise<void> {
+  const run = writing.then(() => db.withTransactionAsync(task));
+  writing = run.catch(() => undefined);
+  return run;
+}
 /** Mutation ids currently being sent to the server. */
 const inFlight = new Set<string>();
 
@@ -167,7 +175,7 @@ async function writeOutbox(db: Notebook, entity: Entity, entityId: string, op: "
 
 /** Save rows locally and queue them for sync, all in one transaction. */
 export async function saveRows<E extends Entity>(db: Notebook, entity: E, rows: RowOf<E>[]) {
-  await db.withTransactionAsync(async () => {
+  await transaction(db, async () => {
     for (const row of rows) {
       const current = await getRow(db, entity, row.id);
       const body = { ...row, updated_at: current?.updated_at ?? row.updated_at ?? null };
@@ -201,7 +209,7 @@ async function removeTree(db: Notebook, entity: Entity, id: string, top: boolean
 }
 
 export async function deleteRow(db: Notebook, entity: Entity, id: string) {
-  await db.withTransactionAsync(async () => {
+  await transaction(db, async () => {
     await removeTree(db, entity, id, true);
   });
   notifyChange();
@@ -214,7 +222,7 @@ export async function pendingCount(db: Notebook) {
 
 /** Store the shared exercise catalog, which is not part of the per-user change feed. */
 export async function storeCatalog(db: Notebook, exercises: Record<string, unknown>[], version: number) {
-  await db.withTransactionAsync(async () => {
+  await transaction(db, async () => {
     const existing = await readRows(db, "exercises");
     for (const row of existing) {
       if (row.owner_id == null && !exercises.some((item) => item.id === row.id)) {

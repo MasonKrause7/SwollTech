@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Session, SessionExercise, SessionSet, WeightUnit } from "@swolltech/api-client";
 import {
+  exerciseDone,
   formatClock,
   matchingPrevious,
+  nextAfter,
   nextInExercise,
   nextPosition,
   nextSetTemplate,
@@ -50,7 +52,20 @@ export function SessionPage() {
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState<"finish" | "discard" | null>(null);
   const [addingExercise, setAddingExercise] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [editing, setEditing] = useState(false);
   const placed = useRef(false);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  function moveTo(next: GuidePosition, edit = false) {
+    setPosition(next);
+    setEditing(edit);
+  }
 
   const data = session.data;
   useEffect(() => {
@@ -77,11 +92,18 @@ export function SessionPage() {
     return next;
   }
 
+  /** After a set is logged or skipped, go to the next open set and say so when the exercise is finished. */
   function advanceFrom(next: Session, from: GuidePosition) {
-    const exercise = next.exercises[from.exerciseIndex];
-    const within = exercise ? nextInExercise(exercise) : null;
-    if (within != null) setPosition({ exerciseIndex: from.exerciseIndex, setIndex: within });
-    else setPosition(nextPosition(next.exercises) ?? from);
+    const target = nextAfter(next.exercises, from);
+    if (!target) {
+      setEditing(false);
+      return;
+    }
+    const finished = next.exercises[from.exerciseIndex];
+    if (target.exerciseIndex !== from.exerciseIndex && finished) {
+      setNotice(`${finished.exercise_name} done. On to ${next.exercises[target.exerciseIndex].exercise_name}.`);
+    }
+    moveTo(target);
   }
 
   const finish = useMutation({
@@ -114,6 +136,9 @@ export function SessionPage() {
   const tally = progress(data.exercises);
   const current = position ? data.exercises[position.exerciseIndex] : undefined;
   const currentSet = current && position ? current.sets[position.setIndex] : undefined;
+  const exerciseFinished = current ? exerciseDone(current) : false;
+  const upcoming = position ? nextAfter(data.exercises, position) : null;
+  const nextExercise = upcoming && upcoming.exerciseIndex !== position?.exerciseIndex ? data.exercises[upcoming.exerciseIndex] : null;
 
   async function log(values: Draft, skip: boolean) {
     if (!current || !currentSet || !position) return;
@@ -132,8 +157,10 @@ export function SessionPage() {
           : { actual_weight: weight, actual_unit: values.unit, actual_reps: reps, rpe: values.rpe, skipped: false, completed: true },
       );
       const next = patchSet(updated);
-      if (!skip && !currentSet.completed_at && currentSet.rest_seconds > 0) setRestUntil(Date.now() + currentSet.rest_seconds * 1000);
-      if (next) advanceFrom(next, position);
+      const more = next ? nextAfter(next.exercises, position) != null : false;
+      if (!skip && !currentSet.completed_at && currentSet.rest_seconds > 0 && more) setRestUntil(Date.now() + currentSet.rest_seconds * 1000);
+      if (currentSet.completed_at) setEditing(false);
+      else if (next) advanceFrom(next, position);
       void queryClient.invalidateQueries({ queryKey: keys.session(sessionId) });
     } catch (err) {
       setError(errorMessage(err));
@@ -154,7 +181,7 @@ export function SessionPage() {
       await api.addSessionSet(exercise.id, nextSetTemplate(exercise, profileUnit));
       const next = await api.session(sessionId);
       store(next);
-      setPosition({ exerciseIndex, setIndex: next.exercises[exerciseIndex].sets.length - 1 });
+      moveTo({ exerciseIndex, setIndex: next.exercises[exerciseIndex].sets.length - 1 });
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -178,7 +205,7 @@ export function SessionPage() {
     if (added.sets.length === 0) await api.addSessionSet(added.id, nextSetTemplate(added, profileUnit));
     const refreshed = await api.session(sessionId);
     store(refreshed);
-    setPosition({ exerciseIndex: index, setIndex: 0 });
+    moveTo({ exerciseIndex: index, setIndex: 0 });
     setAddingExercise(false);
   }
 
@@ -227,18 +254,43 @@ export function SessionPage() {
 
       <div className="session">
         <div className="stack-lg">
+          {notice && (
+            <p className="notice" role="status">
+              <Check size={18} aria-hidden="true" />
+              {notice}
+            </p>
+          )}
           {data.exercises.length === 0 && (
             <div className="empty">
               <p>This workout has no exercises yet. Add the first one to start logging.</p>
             </div>
           )}
-          {current && currentSet && position && !readOnly && (
+          {current && position && !readOnly && exerciseFinished && !editing && (
+            <div className="panel stack complete" role="status" data-testid="exercise-complete">
+              <h2>
+                <Check size={22} aria-hidden="true" /> {current.exercise_name}: all {plural(current.sets.length, "set")} done
+              </h2>
+              <div className="row">
+                {nextExercise && upcoming && (
+                  <button className="btn primary" onClick={() => moveTo(upcoming)} data-testid="next-exercise">
+                    Next: {nextExercise.exercise_name}
+                  </button>
+                )}
+                <button className="btn" onClick={() => addSet(current, position.exerciseIndex)} data-testid="extra-set">
+                  <Plus size={16} aria-hidden="true" />
+                  Add an extra set
+                </button>
+              </div>
+            </div>
+          )}
+          {current && currentSet && position && !readOnly && (!exerciseFinished || editing) && (
             <SetFocus
               key={`${currentSet.id}:${currentSet.updated_at}`}
               exercise={current}
               set={currentSet}
               setIndex={position.setIndex}
               fallbackUnit={profileUnit}
+              logLabel={currentSet.completed_at ? "Save changes" : `Log ${currentSet.kind === "warmup" ? "warmup" : "set"} ${current.sets.slice(0, position.setIndex + 1).filter((item) => item.kind === currentSet.kind).length} of ${current.sets.filter((item) => item.kind === currentSet.kind).length}`}
               onLog={(values) => log(values, false)}
               onSkip={(values) => log(values, true)}
             />
@@ -258,7 +310,7 @@ export function SessionPage() {
             <section className="panel stack" aria-label={`${current.exercise_name} sets`}>
               <div className="section-head">
                 <h3>{current.exercise_name}</h3>
-                {!readOnly && (
+                {!readOnly && !exerciseFinished && (
                   <button className="btn quiet" onClick={() => addSet(current, position.exerciseIndex)} data-testid="add-session-set">
                     <Plus size={16} aria-hidden="true" />
                     Add set
@@ -267,9 +319,9 @@ export function SessionPage() {
               </div>
               <SetTable
                 exercise={current}
-                currentIndex={readOnly ? -1 : position.setIndex}
+                currentIndex={readOnly || (exerciseFinished && !editing) ? -1 : position.setIndex}
                 readOnly={readOnly}
-                onSelect={(setIndex) => setPosition({ exerciseIndex: position.exerciseIndex, setIndex })}
+                onSelect={(setIndex) => moveTo({ exerciseIndex: position.exerciseIndex, setIndex }, true)}
                 onUndo={undo}
                 onRemove={removeSet}
               />
@@ -283,9 +335,13 @@ export function SessionPage() {
               <button
                 key={exercise.id}
                 aria-current={position?.exerciseIndex === index}
-                onClick={() => setPosition({ exerciseIndex: index, setIndex: nextInExercise(exercise) ?? 0 })}
+                data-done={exerciseDone(exercise) || undefined}
+                onClick={() => moveTo({ exerciseIndex: index, setIndex: nextInExercise(exercise) ?? Math.max(0, exercise.sets.length - 1) })}
               >
-                <span style={{ fontWeight: 600 }}>{exercise.exercise_name}</span>
+                <span style={{ fontWeight: 600 }}>
+                  {exerciseDone(exercise) && <Check size={16} aria-hidden="true" className="ok" style={{ verticalAlign: "-3px", marginRight: 4 }} />}
+                  {exercise.exercise_name}
+                </span>
                 <span className="pips" aria-label={`${exercise.sets.filter((item) => setState(item) !== "open").length} of ${exercise.sets.length} sets done`}>
                   {exercise.sets.map((item) => (
                     <i key={item.id} data-state={setState(item)} />
@@ -340,6 +396,7 @@ function SetFocus({
   set,
   setIndex,
   fallbackUnit,
+  logLabel,
   onLog,
   onSkip,
 }: {
@@ -347,6 +404,7 @@ function SetFocus({
   set: SessionSet;
   setIndex: number;
   fallbackUnit: WeightUnit;
+  logLabel: string;
   onLog: (values: Draft) => Promise<void>;
   onSkip: (values: Draft) => Promise<void>;
 }) {
@@ -358,6 +416,7 @@ function SetFocus({
     rpe: initial.rpe,
   });
   const [busy, setBusy] = useState(false);
+  const [rpeHelp, setRpeHelp] = useState(false);
   const last = matchingPrevious(exercise, setIndex);
   const ofKind = exercise.sets.filter((item) => item.kind === set.kind);
   const ordinal = exercise.sets.slice(0, setIndex + 1).filter((item) => item.kind === set.kind).length;
@@ -390,7 +449,7 @@ function SetFocus({
           {exercise.exercise_name}
         </h2>
         <div className="focus-meta">
-          <span className="num" data-testid="focus-set">
+          <span className="num" data-testid="focus-set" data-state={set.completed_at ? "done" : "current"}>
             {set.kind === "warmup" ? "Warmup" : "Set"} {ordinal} of {ofKind.length}
           </span>
           {set.kind === "warmup" && <span className="tag warmup">Warmup, not counted in stats</span>}
@@ -429,10 +488,33 @@ function SetFocus({
         <Stepper label="Reps" testId={`reps-${setIndex}`} value={draft.reps} step={1} decimals={0} onChange={(reps) => setDraft({ ...draft, reps })} />
       </div>
 
+      <div className="row">
+        <button className="btn primary big" style={{ flex: 1 }} type="submit" data-testid={`done-${setIndex}`} disabled={busy}>
+          <Check size={22} aria-hidden="true" />
+          {logLabel}
+        </button>
+        {!set.completed_at && (
+          <button className="btn quiet big" type="button" onClick={() => run(onSkip)} disabled={busy}>
+            <SkipForward size={20} aria-hidden="true" />
+            Skip
+          </button>
+        )}
+      </div>
+
       <div className="stack">
-        <span className="small muted" id="rpe-label">
-          How hard was it? RPE, optional
-        </span>
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <span className="small muted" id="rpe-label">
+            Effort (RPE), optional
+          </span>
+          <button className="linklike small" type="button" onClick={() => setRpeHelp(!rpeHelp)} aria-expanded={rpeHelp}>
+            {rpeHelp ? "Hide" : "What is this?"}
+          </button>
+        </div>
+        {rpeHelp && (
+          <p className="small muted" data-testid="rpe-help">
+            RPE stands for rate of perceived exertion: how hard the set felt. 10 means you could not do another rep, 9 means one rep left in the tank, 8 means two.
+          </p>
+        )}
         <div className="rpe" role="group" aria-labelledby="rpe-label">
           {RPE_CHOICES.map((value) => (
             <button key={value} type="button" aria-pressed={draft.rpe === value} onClick={() => setDraft({ ...draft, rpe: draft.rpe === value ? null : value })}>
@@ -443,19 +525,6 @@ function SetFocus({
       </div>
 
       <PlateBar weight={weightValue} unit={draft.unit} />
-
-      <div className="row">
-        <button className="btn primary big" style={{ flex: 1 }} type="submit" data-testid={`done-${setIndex}`} disabled={busy}>
-          <Check size={22} aria-hidden="true" />
-          {set.completed_at ? "Save changes" : "Log set"}
-        </button>
-        {!set.completed_at && (
-          <button className="btn big" type="button" onClick={() => run(onSkip)} disabled={busy}>
-            <SkipForward size={20} aria-hidden="true" />
-            Skip
-          </button>
-        )}
-      </div>
     </form>
   );
 }
@@ -490,7 +559,7 @@ function SetTable({
       </thead>
       <tbody>
         {exercise.sets.map((set, index) => (
-          <tr key={set.id} data-current={index === currentIndex}>
+          <tr key={set.id} data-current={index === currentIndex} data-state={setState(set)}>
             <td>
               {readOnly ? (
                 index + 1
@@ -509,6 +578,7 @@ function SetTable({
               {set.target_weight != null || set.target_reps != null ? formatPair(set.target_weight, set.target_unit, set.target_reps) : "Open"}
             </td>
             <td className="num">
+              {set.completed_at && <Check size={16} aria-hidden="true" className="ok" style={{ verticalAlign: "-3px", marginRight: 6 }} />}
               {set.skipped ? <span className="muted">Skipped</span> : set.completed_at ? `${formatPair(set.actual_weight, set.actual_unit, set.actual_reps)}${set.rpe ? ` @ ${set.rpe}` : ""}` : <span className="muted">Not yet</span>}
             </td>
             <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>

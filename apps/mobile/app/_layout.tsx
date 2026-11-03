@@ -8,8 +8,9 @@ import { useFonts } from "expo-font";
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { AppState, useColorScheme } from "react-native";
+import { AppState, Image, useColorScheme, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { art } from "../src/art";
 import { AuthProvider, useAuth } from "../src/auth";
 import { NotebookProvider } from "../src/notebook";
 import { syncNow, watchNetwork } from "../src/sync";
@@ -84,7 +85,13 @@ export default function RootLayout() {
     Barlow_600SemiBold,
   });
   // If fonts fail to load the app still works with system fonts.
-  if (!loaded && !error) return null;
+  if (!loaded && !error) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#0F1011", alignItems: "center", justifyContent: "center" }}>
+        <Image source={art.mark} accessible={false} style={{ width: 96, height: 96, borderRadius: 22 }} />
+      </View>
+    );
+  }
   return (
     <SafeAreaProvider>
       <AuthProvider>

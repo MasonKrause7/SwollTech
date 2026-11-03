@@ -215,6 +215,10 @@ a.list-row:hover, button.list-row:hover, .list-row:hover { background: var(--rai
 button.list-row { width: 100%; border: 0; background: none; text-align: left; }
 .list-row .title { font-weight: 600; }
 .empty { border: 1px dashed var(--line-strong); border-radius: var(--r-lg); padding: 28px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.brand-empty { display: flex; align-items: center; gap: 18px; border: 1px dashed var(--line-strong); border-radius: var(--r-lg); padding: 22px; }
+.brand-empty img { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; flex: none; border: 1px solid var(--line-strong); }
+.brand-empty-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+@media (max-width: 520px) { .brand-empty { align-items: flex-start; } }
 
 /* ---------- controls ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: var(--r-md); border: 1px solid transparent; background: var(--secondary); font-weight: 600; font-size: 0.95rem; text-decoration: none; white-space: nowrap; transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease; }
@@ -271,6 +275,7 @@ textarea { min-height: 84px; resize: vertical; }
 .auth-art::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, rgba(15, 16, 17, 0.66) 0%, rgba(15, 16, 17, 0.12) 24%, rgba(15, 16, 17, 0.08) 46%, rgba(15, 16, 17, 0.72) 78%, rgba(15, 16, 17, 0.94) 100%), linear-gradient(100deg, rgba(15, 16, 17, 0.84) 0%, rgba(15, 16, 17, 0.42) 36%, rgba(15, 16, 17, 0.08) 68%, rgba(15, 16, 17, 0) 100%); }
 .auth-art > :not(img) { position: relative; z-index: 2; }
 .auth-art .brand { padding: 0; }
+.auth-art .brand-mark { width: 40px; height: 40px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
 .auth-copy { max-width: 38rem; }
 .auth-art h1 { font-size: clamp(2.8rem, 5.2vw, 4.75rem); max-width: 11ch; line-height: 0.95; }
 .auth-art h1 em { font-style: normal; color: var(--accent); }
@@ -415,10 +420,11 @@ textarea { min-height: 84px; resize: vertical; }
 .exercise-nav { display: flex; flex-direction: column; gap: 6px; }
 .exercise-nav button { display: flex; align-items: center; gap: 10px; justify-content: space-between; text-align: left; border: 1px solid var(--line); background: var(--raised); border-radius: var(--r-md); padding: 10px 12px; min-height: 52px; transition: border-color 0.12s ease; }
 .exercise-nav button:hover { border-color: var(--line-strong); }
-.exercise-nav button[aria-current="true"] { border-color: var(--text); }
+.exercise-nav button[data-done] { border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
+.exercise-nav button[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .pips { display: flex; gap: 3px; }
 .pips i { width: 8px; height: 8px; border-radius: 2px; background: var(--line-strong); }
-.pips i[data-state="done"] { background: var(--text); }
+.pips i[data-state="done"] { background: var(--ok); }
 .pips i[data-state="skipped"] { background: var(--line); }
 
 .set-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -426,6 +432,15 @@ textarea { min-height: 84px; resize: vertical; }
 .set-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); }
 .set-table tr:last-child td { border-bottom: 0; }
 .set-table tr[data-current="true"] td { background: var(--accent-soft); }
+.set-table tr[data-current="true"] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.set-table tr[data-state="skipped"] td.num { text-decoration: line-through; }
+.focus-meta .num[data-state="current"] { color: var(--accent-text); }
+.focus-meta .num[data-state="done"] { color: var(--ok); }
+.notice { display: flex; gap: 10px; align-items: center; border: 1px solid var(--ok); border-radius: var(--r-md); padding: 10px 14px; margin: 0; }
+.notice svg { color: var(--ok); flex: none; }
+.panel.complete { border-color: var(--ok); }
+.panel.complete h2 { display: flex; align-items: center; gap: 8px; color: var(--ok); }
+button.linklike { border: 0; background: none; padding: 0; text-decoration: underline; color: var(--muted); cursor: pointer; }
 .set-table button.linklike { border: 0; background: none; padding: 0; text-decoration: underline; color: var(--muted); }
 
 /* ---------- summary ---------- */
