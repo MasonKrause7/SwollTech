@@ -8,6 +8,7 @@ import {
   live,
   type ExerciseRow,
   type ReferenceRow,
+  type ScheduledWorkoutRow,
   type SessionExerciseRow,
   type SessionRow,
   type SessionSetRow,
@@ -23,6 +24,7 @@ export interface LocalData {
   workouts: WorkoutRow[];
   workoutExercises: WorkoutExerciseRow[];
   workoutSets: WorkoutSetRow[];
+  schedule: ScheduledWorkoutRow[];
   sessions: SessionRow[];
   sessionExercises: SessionExerciseRow[];
   sessionSets: SessionSetRow[];

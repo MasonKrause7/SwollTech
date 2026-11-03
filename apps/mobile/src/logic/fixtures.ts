@@ -21,6 +21,7 @@ export function emptyData(): LocalData {
     workouts: [],
     workoutExercises: [],
     workoutSets: [],
+    schedule: [],
     sessions: [],
     sessionExercises: [],
     sessionSets: [],

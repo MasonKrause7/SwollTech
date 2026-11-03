@@ -26,6 +26,11 @@ export function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+/** A calendar day (YYYY-MM-DD) as "Tuesday, Nov 3". */
+export function dayTitle(day: string) {
+  return new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+}
+
 export function dayAndTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }

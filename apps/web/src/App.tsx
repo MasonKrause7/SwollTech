@@ -5,6 +5,7 @@ import { Loading } from "./components/Feedback";
 import { Shell } from "./Shell";
 import { AccountPage } from "./pages/Account";
 import { ResetPage, SignInPage, SignUpPage, UpdatePasswordPage } from "./pages/AuthPages";
+import { CalendarPage } from "./pages/Calendar";
 import { ExercisesPage } from "./pages/Exercises";
 import { HistoryPage } from "./pages/History";
 import { HomePage } from "./pages/Home";
@@ -44,6 +45,7 @@ export function App() {
         <Route path="workouts/:workoutId" element={<EditorPage />} />
         <Route path="sessions/:sessionId" element={<SessionPage />} />
         <Route path="sessions/:sessionId/summary" element={<SummaryPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="exercises" element={<ExercisesPage />} />
         <Route path="progress" element={<Suspense fallback={<Loading />}><ProgressPage /></Suspense>} />

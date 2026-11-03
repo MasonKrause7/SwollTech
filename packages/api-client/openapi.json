@@ -1139,6 +1139,201 @@
     }
    }
   },
+  "/v1/schedule": {
+   "get": {
+    "summary": "Get Schedule",
+    "operationId": "get_schedule_v1_schedule_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "start",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "date",
+       "title": "Start"
+      }
+     },
+     {
+      "name": "end",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "date",
+       "title": "End"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ScheduledWorkoutOut"
+         },
+         "title": "Response Get Schedule V1 Schedule Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "summary": "Post Schedule",
+    "operationId": "post_schedule_v1_schedule_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ScheduledWorkoutIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ScheduledWorkoutOut"
+         },
+         "title": "Response Post Schedule V1 Schedule Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/schedule/{scheduled_id}": {
+   "patch": {
+    "summary": "Patch Schedule",
+    "operationId": "patch_schedule_v1_schedule__scheduled_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "scheduled_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Scheduled Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ScheduledWorkoutPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ScheduledWorkoutOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Remove Schedule",
+    "operationId": "remove_schedule_v1_schedule__scheduled_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "scheduled_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Scheduled Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/sessions": {
    "get": {
     "summary": "Get Sessions",
@@ -2988,6 +3183,153 @@
      "ids"
     ],
     "title": "ReorderIn"
+   },
+   "ScheduledWorkoutIn": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "workout_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Workout Id"
+     },
+     "scheduled_on": {
+      "type": "string",
+      "format": "date",
+      "title": "Scheduled On"
+     },
+     "notes": {
+      "type": "string",
+      "maxLength": 500,
+      "title": "Notes",
+      "default": ""
+     },
+     "repeat_weeks": {
+      "type": "integer",
+      "maximum": 52.0,
+      "minimum": 0.0,
+      "title": "Repeat Weeks",
+      "description": "Also plan it on the same weekday for this many following weeks",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "workout_id",
+     "scheduled_on"
+    ],
+    "title": "ScheduledWorkoutIn"
+   },
+   "ScheduledWorkoutOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "workout_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Workout Id"
+     },
+     "workout_name": {
+      "type": "string",
+      "title": "Workout Name"
+     },
+     "workout_archived": {
+      "type": "boolean",
+      "title": "Workout Archived"
+     },
+     "scheduled_on": {
+      "type": "string",
+      "format": "date",
+      "title": "Scheduled On"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "workout_id",
+     "workout_name",
+     "workout_archived",
+     "scheduled_on",
+     "notes",
+     "updated_at"
+    ],
+    "title": "ScheduledWorkoutOut"
+   },
+   "ScheduledWorkoutPatch": {
+    "properties": {
+     "workout_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Workout Id"
+     },
+     "scheduled_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scheduled On"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "base_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Updated At"
+     }
+    },
+    "type": "object",
+    "title": "ScheduledWorkoutPatch"
    },
    "SessionExerciseIn": {
     "properties": {

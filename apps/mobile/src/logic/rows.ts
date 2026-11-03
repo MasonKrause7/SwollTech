@@ -60,6 +60,14 @@ export interface WorkoutSetRow extends ServerStamp {
   rest_seconds: number;
 }
 
+export interface ScheduledWorkoutRow extends ServerStamp {
+  id: string;
+  workout_id: string;
+  /** Local calendar day, YYYY-MM-DD. */
+  scheduled_on: string;
+  notes: string;
+}
+
 export interface SessionRow extends ServerStamp {
   id: string;
   workout_id: string | null;
@@ -106,6 +114,7 @@ export interface EntityRows {
   workouts: WorkoutRow;
   workout_exercises: WorkoutExerciseRow;
   workout_sets: WorkoutSetRow;
+  scheduled_workouts: ScheduledWorkoutRow;
   sessions: SessionRow;
   session_exercises: SessionExerciseRow;
   session_sets: SessionSetRow;

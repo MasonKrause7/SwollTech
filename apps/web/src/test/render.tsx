@@ -13,6 +13,7 @@ export function fakeApi(overrides: Partial<Record<keyof ApiClient, unknown>> = {
     overview: vi.fn(async () => emptyOverview()),
     workouts: vi.fn(async () => []),
     sessions: vi.fn(async () => []),
+    schedule: vi.fn(async () => []),
     exercises: vi.fn(async () => []),
   };
   return new Proxy({ ...base, ...overrides } as ApiClient, {

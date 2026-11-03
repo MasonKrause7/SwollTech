@@ -7,16 +7,14 @@ function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="auth">
       <section className="auth-art" aria-hidden="true">
+        <img className="auth-mascot" src="/art/mascot-deadlift.webp" alt="" fetchPriority="high" />
         <div className="brand">SwollTech</div>
-        <div className="auth-hero">
-          <div className="stack-lg">
-            <span className="eyebrow">Training notebook</span>
-            <h1>
-              Write it down. Lift it. <em>Beat it next week.</em>
-            </h1>
-            <p>The notebook you already keep at the gym, with the math done for you. Plan a workout, follow it set by set, and see every lift trend up.</p>
-          </div>
-          <div className="hero-art" data-label="Mascot art" />
+        <div className="auth-copy stack-lg">
+          <span className="eyebrow">Training notebook</span>
+          <h1>
+            Write it down. Lift it. <em>Beat it next week.</em>
+          </h1>
+          <p>The notebook you already keep at the gym, with the math done for you. Plan a workout, follow it set by set, and see every lift trend up.</p>
         </div>
       </section>
       <main className="auth-form">{children}</main>

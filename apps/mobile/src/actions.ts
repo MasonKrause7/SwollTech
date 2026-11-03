@@ -1,5 +1,6 @@
-import { loadAll, newId, saveRow, saveRows, type Notebook } from "./db";
-import type { ProfileRow, SessionExerciseRow, SessionRow, SessionSetRow, Unit } from "./logic/rows";
+import { deleteRow, loadAll, newId, saveRow, saveRows, type Notebook } from "./db";
+import type { ProfileRow, ScheduledWorkoutRow, SessionExerciseRow, SessionRow, SessionSetRow, Unit } from "./logic/rows";
+import { newPlans } from "./logic/schedule";
 import { blankSet, buildQuickSession, buildSessionFromWorkout, finishSession } from "./logic/session";
 import { nextPosition } from "./logic/workouts";
 import { syncNow } from "./sync";
@@ -13,6 +14,22 @@ export async function startWorkout(db: Notebook, workoutId: string, unit: Unit) 
   await saveRows(db, "session_sets", built.sets);
   void syncNow();
   return built.session.id;
+}
+
+/** Put a workout on the calendar, optionally on the same weekday for more weeks. */
+export async function scheduleWorkout(db: Notebook, workoutId: string, day: string, repeatWeeks: number) {
+  await saveRows(db, "scheduled_workouts", newPlans(workoutId, day, repeatWeeks, newId));
+  void syncNow();
+}
+
+export async function movePlan(db: Notebook, plan: ScheduledWorkoutRow, day: string) {
+  await saveRow(db, "scheduled_workouts", { ...plan, scheduled_on: day });
+  void syncNow();
+}
+
+export async function removePlan(db: Notebook, planId: string) {
+  await deleteRow(db, "scheduled_workouts", planId);
+  void syncNow();
 }
 
 export async function startQuick(db: Notebook) {

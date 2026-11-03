@@ -5,6 +5,7 @@ import { fonts, useTheme } from "../theme";
 
 const LABELS: Record<string, string> = {
   index: "Today",
+  calendar: "Calendar",
   workouts: "Workouts",
   history: "History",
   progress: "Progress",
@@ -22,10 +23,16 @@ function Icon({ name, color }: { name: string; color: string }) {
         </>
       ) : null}
       {name === "workouts" ? <Path d="M4 6h16M4 12h16M4 18h10" {...stroke} /> : null}
-      {name === "history" ? (
+      {name === "calendar" ? (
         <>
           <Rect x={3.5} y={5} width={17} height={15} rx={2} {...stroke} />
           <Path d="M3.5 10h17M8 3v4M16 3v4" {...stroke} />
+        </>
+      ) : null}
+      {name === "history" ? (
+        <>
+          <Path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" {...stroke} />
+          <Path d="M3.5 4v4h4M12 7.5V12l3 2" {...stroke} />
         </>
       ) : null}
       {name === "progress" ? <Path d="M4 19l5-6 4 3 7-9" {...stroke} /> : null}
@@ -67,7 +74,9 @@ export function TabBar({ state, navigateToTab, insets }: BottomTabBarProps) {
           >
             <View style={{ height: 3, width: 22, borderRadius: 2, backgroundColor: focused ? theme.highlight : "transparent", marginBottom: 2 }} />
             <Icon name={route.name} color={color} />
-            <Text style={{ color, fontFamily: focused ? fonts.bodySemi : fonts.bodyMedium, fontSize: 12 }}>{label}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color, fontFamily: focused ? fonts.bodySemi : fonts.bodyMedium, fontSize: 12 }}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}

@@ -24,35 +24,38 @@ export function SummaryPage() {
   return (
     <div className="page">
       <section className="summary-hero" aria-labelledby="summary-title">
-        <div className="stack">
-          <p style={{ color: "var(--muted)" }}>
-            {data.name}, {formatWhen(data.started_at)}
-          </p>
-          <h1 id="summary-title" data-testid="summary-headline">
-            {headline}
-          </h1>
-        </div>
-        <div className="figures">
-          <div>
-            <span className="value">
-              {bigWeightFromKg(data.volume_kg, unit)}
-              <small>{unit}</small>
-            </span>
-            <span className="label">total volume</span>
+        <img className="summary-mascot" src="/art/mascot-bench.webp" alt="" />
+        <div className="summary-hero-main">
+          <div className="stack">
+            <p style={{ color: "var(--muted)" }}>
+              {data.name}, {formatWhen(data.started_at)}
+            </p>
+            <h1 id="summary-title" data-testid="summary-headline">
+              {headline}
+            </h1>
           </div>
-          <div>
-            <span className="value">{data.sets}</span>
-            <span className="label">working sets</span>
-          </div>
-          <div>
-            <span className="value">{data.exercises.length}</span>
-            <span className="label">{data.exercises.length === 1 ? "exercise" : "exercises"}</span>
-          </div>
-          <div>
-            <span className="value" style={{ fontSize: "1.6rem", paddingTop: 6 }}>
-              {formatDuration(data.duration_seconds)}
-            </span>
-            <span className="label">time</span>
+          <div className="figures">
+            <div>
+              <span className="value">
+                {bigWeightFromKg(data.volume_kg, unit)}
+                <small>{unit}</small>
+              </span>
+              <span className="label">total volume</span>
+            </div>
+            <div>
+              <span className="value">{data.sets}</span>
+              <span className="label">working sets</span>
+            </div>
+            <div>
+              <span className="value">{data.exercises.length}</span>
+              <span className="label">{data.exercises.length === 1 ? "exercise" : "exercises"}</span>
+            </div>
+            <div>
+              <span className="value" style={{ fontSize: "1.6rem", paddingTop: 6 }}>
+                {formatDuration(data.duration_seconds)}
+              </span>
+              <span className="label">time</span>
+            </div>
           </div>
         </div>
       </section>

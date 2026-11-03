@@ -108,6 +108,7 @@ WORKOUT_SET_FIELDS = [
     "id", "user_id", "workout_exercise_id", "position", "kind", "target_reps", "target_weight",
     "target_unit", "target_percent", "target_rpe", "rest_seconds", "updated_at", "deleted_at",
 ]
+SCHEDULED_FIELDS = ["id", "user_id", "workout_id", "scheduled_on", "notes", "updated_at", "deleted_at"]
 SESSION_FIELDS = ["id", "user_id", "workout_id", "name", "status", "started_at", "ended_at", "notes", "updated_at", "deleted_at"]
 SESSION_EXERCISE_FIELDS = ["id", "user_id", "session_id", "exercise_id", "position", "notes", "updated_at", "deleted_at"]
 SESSION_SET_FIELDS = [

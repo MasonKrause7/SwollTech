@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import bindparam, func, or_, select, text
@@ -15,6 +15,7 @@ from swolltech.models import (
     ExerciseReference,
     MediaStatus,
     Profile,
+    ScheduledWorkout,
     Session,
     SessionExercise,
     SessionSet,
@@ -37,6 +38,9 @@ from swolltech.schemas import (
     ProgressPoint,
     ReferenceIn,
     ReferenceOut,
+    ScheduledWorkoutIn,
+    ScheduledWorkoutOut,
+    ScheduledWorkoutPatch,
     SessionExerciseIn,
     SessionExerciseOut,
     SessionExercisePatch,
@@ -74,6 +78,7 @@ from swolltech.services.common import (
     MEDIA_FIELDS,
     PROFILE_FIELDS,
     REFERENCE_FIELDS,
+    SCHEDULED_FIELDS,
     SESSION_EXERCISE_FIELDS,
     SESSION_FIELDS,
     SESSION_SET_FIELDS,
@@ -414,6 +419,13 @@ async def delete_workout(db: AsyncSession, user_id: UUID, workout_id: UUID) -> N
             if planned.deleted_at is None:
                 mark_deleted(planned)
         mark_deleted(item)
+    plans = (
+        await db.scalars(
+            select(ScheduledWorkout).where(ScheduledWorkout.workout_id == row.id, ScheduledWorkout.deleted_at.is_(None))
+        )
+    ).all()
+    for plan in plans:
+        mark_deleted(plan)
     mark_deleted(row)
     await db.flush()
 
@@ -569,6 +581,108 @@ async def reorder_workout_sets(db: AsyncSession, user_id: UUID, item_id: UUID, i
     if parent is None or parent.deleted_at is not None or parent.user_id != user_id:
         raise DomainError(404, "Not found")
     await reorder(db, WorkoutSet, WorkoutSet.workout_exercise_id, item_id, ids)
+    await db.flush()
+
+
+MAX_SCHEDULE_DAYS = 400
+
+
+def present_scheduled(row: ScheduledWorkout) -> ScheduledWorkoutOut:
+    return ScheduledWorkoutOut(
+        id=row.id,
+        workout_id=row.workout_id,
+        workout_name=row.workout.name,
+        workout_archived=row.workout.archived_at is not None,
+        scheduled_on=row.scheduled_on,
+        notes=row.notes,
+        updated_at=row.updated_at,
+    )
+
+
+async def schedulable_workout(db: AsyncSession, user_id: UUID, workout_id: UUID) -> Workout:
+    workout = await db.get(Workout, workout_id)
+    if workout is None or workout.deleted_at is not None or workout.user_id != user_id:
+        raise DomainError(404, "Not found")
+    if workout.archived_at is not None:
+        raise DomainError(400, "That workout is archived")
+    return workout
+
+
+async def list_schedule(db: AsyncSession, user_id: UUID, start: date, end: date) -> list[ScheduledWorkoutOut]:
+    if end < start:
+        raise DomainError(400, "The end date is before the start date")
+    if (end - start).days > MAX_SCHEDULE_DAYS:
+        raise DomainError(400, f"Ask for {MAX_SCHEDULE_DAYS} days or fewer at a time")
+    stmt = (
+        select(ScheduledWorkout)
+        .join(Workout, Workout.id == ScheduledWorkout.workout_id)
+        .where(
+            ScheduledWorkout.user_id == user_id,
+            ScheduledWorkout.deleted_at.is_(None),
+            Workout.deleted_at.is_(None),
+            ScheduledWorkout.scheduled_on >= start,
+            ScheduledWorkout.scheduled_on <= end,
+        )
+        .options(selectinload(ScheduledWorkout.workout))
+        .order_by(ScheduledWorkout.scheduled_on, ScheduledWorkout.created_at)
+    )
+    return [present_scheduled(row) for row in (await db.scalars(stmt)).all()]
+
+
+async def get_scheduled(db: AsyncSession, user_id: UUID, scheduled_id: UUID) -> ScheduledWorkout:
+    stmt = (
+        select(ScheduledWorkout)
+        .where(ScheduledWorkout.id == scheduled_id, ScheduledWorkout.user_id == user_id, ScheduledWorkout.deleted_at.is_(None))
+        .options(selectinload(ScheduledWorkout.workout))
+        .execution_options(populate_existing=True)
+    )
+    row = (await db.scalars(stmt)).one_or_none()
+    if row is None:
+        raise DomainError(404, "Not found")
+    return row
+
+
+async def schedule_workout(db: AsyncSession, user_id: UUID, body: ScheduledWorkoutIn) -> list[ScheduledWorkoutOut]:
+    await schedulable_workout(db, user_id, body.workout_id)
+    created = []
+    for week in range(body.repeat_weeks + 1):
+        row = ScheduledWorkout(
+            id=(body.id if week == 0 and body.id else uuid.uuid4()),
+            user_id=user_id,
+            workout_id=body.workout_id,
+            scheduled_on=body.scheduled_on + timedelta(weeks=week),
+            notes=body.notes,
+            created_at=now(),
+        )
+        db.add(row)
+        created.append(row.id)
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        raise DomainError(409, "That plan already exists") from exc
+    return [present_scheduled(await get_scheduled(db, user_id, row_id)) for row_id in created]
+
+
+async def update_scheduled(db: AsyncSession, user_id: UUID, scheduled_id: UUID, body: ScheduledWorkoutPatch) -> ScheduledWorkoutOut:
+    row = await get_scheduled(db, user_id, scheduled_id)
+    if body.base_updated_at is not None and not timestamps_match(row.updated_at, body.base_updated_at):
+        conflict(row, SCHEDULED_FIELDS)
+    if body.workout_id is not None and body.workout_id != row.workout_id:
+        await schedulable_workout(db, user_id, body.workout_id)
+        row.workout_id = body.workout_id
+    if body.scheduled_on is not None:
+        row.scheduled_on = body.scheduled_on
+    if body.notes is not None:
+        row.notes = body.notes
+    await db.flush()
+    return present_scheduled(await get_scheduled(db, user_id, scheduled_id))
+
+
+async def delete_scheduled(db: AsyncSession, user_id: UUID, scheduled_id: UUID) -> None:
+    row = await db.get(ScheduledWorkout, scheduled_id)
+    if row is None or row.deleted_at is not None or row.user_id != user_id:
+        raise DomainError(404, "Not found")
+    mark_deleted(row)
     await db.flush()
 
 

@@ -162,6 +162,31 @@ class ReorderIn(BaseModel):
     ids: list[UUID]
 
 
+class ScheduledWorkoutOut(BaseModel):
+    id: UUID
+    workout_id: UUID
+    workout_name: str
+    workout_archived: bool
+    scheduled_on: date
+    notes: str
+    updated_at: datetime
+
+
+class ScheduledWorkoutIn(BaseModel):
+    id: UUID | None = None
+    workout_id: UUID
+    scheduled_on: date
+    notes: str = Field(default="", max_length=500)
+    repeat_weeks: int = Field(default=0, ge=0, le=52, description="Also plan it on the same weekday for this many following weeks")
+
+
+class ScheduledWorkoutPatch(BaseModel):
+    workout_id: UUID | None = None
+    scheduled_on: date | None = None
+    notes: str | None = Field(default=None, max_length=500)
+    base_updated_at: datetime | None = None
+
+
 class SessionSetOut(ORMModel):
     id: UUID
     position: int

@@ -56,3 +56,4 @@ export function summarizeSets(sets: PerformedSet[], referenceKg: number | null) 
 export * from "./stats";
 export * from "./plates";
 export * from "./guide";
+export * from "./schedule";

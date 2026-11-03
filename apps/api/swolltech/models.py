@@ -139,6 +139,19 @@ class WorkoutSet(Base):
     workout_exercise: Mapped[WorkoutExercise] = relationship(back_populates="sets")
 
 
+class ScheduledWorkout(Base):
+    __tablename__ = "scheduled_workouts"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    workout_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("workouts.id"))
+    scheduled_on: Mapped[date] = mapped_column(Date)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    workout: Mapped[Workout] = relationship()
+
+
 class Session(Base):
     __tablename__ = "sessions"
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)

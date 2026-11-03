@@ -13,6 +13,7 @@ const SERVER = {
   WorkoutExerciseSync: ["id", "workout_id", "exercise_id", "position", "notes"],
   WorkoutSetSync: ["id", "workout_exercise_id", "position", "kind", "target_reps", "target_weight", "target_unit", "target_percent", "target_rpe", "rest_seconds"],
   ProfileSync: ["display_name", "unit_preference"],
+  ScheduledWorkoutSync: ["id", "workout_id", "scheduled_on", "notes"],
 };
 
 function subset(keys: string[], allowed: string[]) {
@@ -28,6 +29,7 @@ describe("sync payloads", () => {
     expect(SYNC_FIELDS.workout_exercises).toEqual(SERVER.WorkoutExerciseSync);
     expect(SYNC_FIELDS.workout_sets).toEqual(SERVER.WorkoutSetSync);
     expect(SYNC_FIELDS.profiles).toEqual(SERVER.ProfileSync);
+    expect(SYNC_FIELDS.scheduled_workouts).toEqual(SERVER.ScheduledWorkoutSync);
   });
 
   it("a logged session set only sends fields the server accepts, and all of them", () => {

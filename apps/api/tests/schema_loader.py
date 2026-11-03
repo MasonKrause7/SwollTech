@@ -4,7 +4,7 @@ from pathlib import Path
 import psycopg
 
 ROOT = Path(__file__).resolve().parents[3]
-MIGRATION = ROOT / "supabase" / "migrations" / "20261025020000_init.sql"
+MIGRATIONS = ROOT / "supabase" / "migrations"
 PRELUDE = """
 create schema if not exists auth;
 create table if not exists auth.users (
@@ -79,7 +79,7 @@ def split_sql(script: str) -> list[str]:
 def apply_schema(dsn: str) -> None:
     if "supabase.co" in dsn or "pooler.supabase.com" in dsn:
         raise RuntimeError("Refusing to rebuild a Supabase database.")
-    migration = MIGRATION.read_text()
+    migration = "\n".join(path.read_text() for path in sorted(MIGRATIONS.glob("*.sql")))
     with psycopg.connect(dsn, autocommit=True) as conn:
         conn.execute("drop schema if exists public cascade")
         conn.execute("drop schema if exists auth cascade")

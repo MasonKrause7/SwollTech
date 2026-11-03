@@ -69,5 +69,5 @@ Scale (web): h1 2.25 to 3rem, h2 1.4rem, h3 1.15rem, body 1rem, small 0.875rem, 
 
 - **Film grain:** a fixed `body::after` overlay at 5% (dark) and 3.5% (light). Don't stack more grain on top.
 - **Concrete:** generated SVG noise on hero panels only.
-- **Art slots:** `<div class="hero-art" data-label="…">` shows a quiet dashed marker until real art is set with `style={{ "--art": "url(/art/mascot.webp)" }}`. The sign-in screen has one for the full-body mascot (transparent PNG or WebP, about 1200×1500).
-- **Logo:** none for now. The product name is set in plain display type until the real logo arrives.
+- **Art:** source files live in `brand_assets/`. Web copies are in `apps/web/public/art/` (WebP, longest side about 1600). The standing mascot fills the sign-in panel and the empty Today hero. The bench-press poster sits in the workout summary hero. A face crop marks the nav and the phone home header. `.hero-art` is still the slot for a future transparent cutout (`style={{ "--art": "url(/art/mascot.webp)" }}`).
+- **Logo:** the product name stays in display type. The nav mark is the mascot's face, not a separate wordmark.

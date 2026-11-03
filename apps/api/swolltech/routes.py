@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response
@@ -30,6 +31,9 @@ from swolltech.schemas import (
     ReferenceIn,
     ReferenceOut,
     ReorderIn,
+    ScheduledWorkoutIn,
+    ScheduledWorkoutOut,
+    ScheduledWorkoutPatch,
     SessionExerciseIn,
     SessionExercisePatch,
     SessionIn,
@@ -236,6 +240,27 @@ async def patch_workout_set(set_id: UUID, body: WorkoutSetPatch, user_id: UUID =
 @router.delete("/workout-sets/{set_id}", status_code=204)
 async def remove_workout_set(set_id: UUID, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
     await store.delete_workout_set(db, user_id, set_id)
+    return Response(status_code=204)
+
+
+@router.get("/schedule", response_model=list[ScheduledWorkoutOut])
+async def get_schedule(start: date, end: date, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
+    return await store.list_schedule(db, user_id, start, end)
+
+
+@router.post("/schedule", response_model=list[ScheduledWorkoutOut], status_code=201)
+async def post_schedule(body: ScheduledWorkoutIn, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
+    return await store.schedule_workout(db, user_id, body)
+
+
+@router.patch("/schedule/{scheduled_id}", response_model=ScheduledWorkoutOut)
+async def patch_schedule(scheduled_id: UUID, body: ScheduledWorkoutPatch, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
+    return await store.update_scheduled(db, user_id, scheduled_id, body)
+
+
+@router.delete("/schedule/{scheduled_id}", status_code=204)
+async def remove_schedule(scheduled_id: UUID, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
+    await store.delete_scheduled(db, user_id, scheduled_id)
     return Response(status_code=204)
 
 

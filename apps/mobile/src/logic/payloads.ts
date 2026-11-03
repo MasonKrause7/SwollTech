@@ -22,6 +22,7 @@ export const SYNC_FIELDS: Record<Entity, readonly string[]> = {
     "target_rpe",
     "rest_seconds",
   ],
+  scheduled_workouts: ["id", "workout_id", "scheduled_on", "notes"],
   sessions: ["id", "workout_id", "name", "status", "started_at", "ended_at", "notes"],
   session_exercises: ["id", "session_id", "exercise_id", "position", "notes"],
   session_sets: [
@@ -56,7 +57,10 @@ export function toPayload(entity: Entity, row: object): Record<string, unknown> 
 
 /** Entities whose rows the server deletes along with a parent. */
 export const CHILDREN: Partial<Record<Entity, { entity: Entity; key: string }[]>> = {
-  workouts: [{ entity: "workout_exercises", key: "workout_id" }],
+  workouts: [
+    { entity: "workout_exercises", key: "workout_id" },
+    { entity: "scheduled_workouts", key: "workout_id" },
+  ],
   workout_exercises: [{ entity: "workout_sets", key: "workout_exercise_id" }],
   sessions: [{ entity: "session_exercises", key: "session_id" }],
   session_exercises: [{ entity: "session_sets", key: "session_exercise_id" }],

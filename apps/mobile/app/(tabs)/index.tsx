@@ -1,11 +1,12 @@
-import { buildOverview, deviceTimeZone } from "@swolltech/metrics";
+import { buildOverview, deviceTimeZone, localDay } from "@swolltech/metrics";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, View } from "react-native";
 import { startQuick, startWorkout } from "../../src/actions";
 import { Button, Card, Empty, Row, Screen, Stat, SyncPill, T } from "../../src/components/ui";
-import { greeting, shortDate, volume, weight } from "../../src/format";
+import { dayTitle, greeting, shortDate, volume, weight } from "../../src/format";
 import { live } from "../../src/logic/rows";
+import { planViews } from "../../src/logic/schedule";
 import { statLog } from "../../src/logic/localStats";
 import { useNotebook } from "../../src/notebook";
 import { syncNow, useSyncState } from "../../src/sync";
@@ -25,6 +26,12 @@ export default function Today() {
   }, [data]);
 
   const active = useMemo(() => live(data?.sessions ?? []).filter((row) => row.status === "in_progress").sort((a, b) => b.started_at.localeCompare(a.started_at)), [data]);
+  const zone = deviceTimeZone();
+  const today = localDay(new Date(), zone);
+  const plans = useMemo(() => (data ? planViews(data, today, zone) : []), [data, today, zone]);
+  const dueToday = plans.filter((view) => view.plan.scheduled_on === today && view.status.state === "today" && !view.workout.archived_at);
+  const doneToday = plans.some((view) => view.plan.scheduled_on === today && view.status.state === "done");
+  const nextPlan = plans.find((view) => view.plan.scheduled_on > today);
   const workouts = useMemo(() => live(data?.workouts ?? []).filter((row) => !row.archived_at).sort((a, b) => a.name.localeCompare(b.name)), [data]);
   const lastByWorkout = useMemo(() => {
     const map = new Map<string, string>();
@@ -65,6 +72,30 @@ export default function Today() {
         <T variant="title">{name ? `${greeting()}, ${name}` : greeting()}</T>
         <SyncPill onPress={() => void syncNow()} />
       </View>
+
+      {dueToday.map((view) => (
+        <Card key={view.plan.id} testID="today-plan" style={{ borderColor: theme.highlight, borderWidth: 2, gap: space.md }}>
+          <View style={{ gap: 2 }}>
+            <T variant="label" style={{ color: theme.highlight }}>
+              Today's workout
+            </T>
+            <T variant="title" style={{ fontSize: 34, lineHeight: 36 }}>
+              {view.workout.name}
+            </T>
+            {view.plan.notes ? <T variant="muted">{view.plan.notes}</T> : null}
+          </View>
+          <Button label="Start today's workout" onPress={() => void start(view.workout.id)} busy={starting === view.workout.id} testID="start-today" />
+        </Card>
+      ))}
+
+      {dueToday.length === 0 && active.length === 0 && workouts.length > 0 ? (
+        <Card onPress={() => router.push("/calendar")} testID="plan-hint">
+          <T variant="muted">
+            {doneToday ? "Today's plan is done. " : nextPlan ? "Nothing planned today. " : "Nothing planned. Tap to plan your week."}
+            {nextPlan ? `Next up: ${nextPlan.workout.name}, ${dayTitle(nextPlan.plan.scheduled_on)}.` : ""}
+          </T>
+        </Card>
+      ) : null}
 
       {active.map((session) => (
         <Card key={session.id} onPress={() => router.push({ pathname: "/session/[id]", params: { id: session.id } })} style={{ borderColor: theme.highlight, borderWidth: 2 }}>

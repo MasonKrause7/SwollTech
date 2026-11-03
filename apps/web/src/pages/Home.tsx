@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Play, Plus, Trophy } from "lucide-react";
+import { addDays, localDay } from "@swolltech/metrics";
+import { CalendarDays, Play, Plus, Trophy } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApi } from "../auth";
 import { LoadError, Loading } from "../components/Feedback";
-import { bigWeightFromKg, errorMessage, formatDay, formatWhen, plural, weightFromKg } from "../format";
+import { bigWeightFromKg, errorMessage, formatDay, formatWhen, plural, timeZone, weightFromKg } from "../format";
 import { keys, useOverview, useProfile, useUnit } from "../hooks";
+import { usePlans } from "./Calendar";
 
 function greeting(name: string) {
   const hour = new Date().getHours();
@@ -21,6 +23,8 @@ export function HomePage() {
   const overview = useOverview();
   const workouts = useQuery({ queryKey: keys.workouts, queryFn: () => api.workouts() });
   const sessions = useQuery({ queryKey: keys.sessions(), queryFn: () => api.sessions() });
+  const todayDay = localDay(new Date(), timeZone());
+  const { schedule, states } = usePlans(todayDay, addDays(todayDay, 13), sessions.data);
   const start = useMutation({
     mutationFn: (workoutId: string | null) => api.startSession(workoutId),
     onSuccess: async (session) => {
@@ -38,6 +42,10 @@ export function HomePage() {
     if (item.status === "completed" && item.workout_id && !lastByWorkout.has(item.workout_id)) lastByWorkout.set(item.workout_id, item.started_at);
   }
   const ready = (workouts.data ?? []).filter((item) => !item.archived_at);
+  const plans = schedule.data ?? [];
+  const dueToday = plans.filter((plan) => plan.scheduled_on === todayDay && states.get(plan.id)?.state === "today" && !plan.workout_archived);
+  const doneToday = plans.filter((plan) => plan.scheduled_on === todayDay && states.get(plan.id)?.state === "done");
+  const nextPlan = plans.find((plan) => plan.scheduled_on > todayDay);
   const totals = overview.data?.totals;
   const latestRecord = overview.data?.recent_records[0];
   const volumeChange = totals && totals.last_week_volume_kg > 0 ? Math.round(((totals.this_week_volume_kg - totals.last_week_volume_kg) / totals.last_week_volume_kg) * 100) : null;
@@ -45,9 +53,12 @@ export function HomePage() {
   return (
     <div className="page">
       <header className="page-head">
-        <div>
-          <h1>{greeting(profile.data?.display_name ?? "")}</h1>
-          <p className="lede">{ready.length ? "Pick today's workout and log each set as you go." : "Write your first workout the way you would in your notebook."}</p>
+        <div className="page-hello">
+          <img className="brand-mark home-mark" src="/art/mascot-mark.webp" alt="" width={44} height={44} />
+          <div>
+            <h1>{greeting(profile.data?.display_name ?? "")}</h1>
+            <p className="lede">{ready.length ? "Pick today's workout and log each set as you go." : "Write your first workout the way you would in your notebook."}</p>
+          </div>
         </div>
         <button className="btn" onClick={() => start.mutate(null)} disabled={start.isPending}>
           <Plus size={18} aria-hidden="true" />
@@ -58,6 +69,36 @@ export function HomePage() {
         <p className="error" role="alert">
           {errorMessage(start.error)}
         </p>
+      )}
+
+      {dueToday.map((plan) => (
+        <section key={plan.id} className="today-plan" aria-label="Today's workout" data-testid="today-plan">
+          <div className="stack" style={{ gap: 6, minWidth: 0 }}>
+            <span className="eyebrow">Today's workout</span>
+            <h2>{plan.workout_name}</h2>
+            {plan.notes && <p className="muted">{plan.notes}</p>}
+          </div>
+          <button className="btn primary big" onClick={() => start.mutate(plan.workout_id)} disabled={start.isPending}>
+            <Play size={20} aria-hidden="true" />
+            Start today's workout
+          </button>
+        </section>
+      ))}
+
+      {dueToday.length === 0 && !active.length && schedule.isSuccess && (
+        <Link to="/calendar" className="panel tight row between" style={{ textDecoration: "none" }} data-testid="plan-hint">
+          <span className="row" style={{ gap: 12 }}>
+            <CalendarDays size={20} aria-hidden="true" />
+            <span>
+              {doneToday.length > 0
+                ? `Today's plan is done. ${nextPlan ? `Next up: ${nextPlan.workout_name}, ${formatDay(`${nextPlan.scheduled_on}T12:00:00`)}.` : ""}`
+                : nextPlan
+                  ? `Nothing planned today. Next up: ${nextPlan.workout_name}, ${formatDay(`${nextPlan.scheduled_on}T12:00:00`)}.`
+                  : "Nothing planned. Plan your week on the calendar."}
+            </span>
+          </span>
+          <span className="small muted">Calendar</span>
+        </Link>
       )}
 
       {active.map((session) => (
@@ -108,11 +149,14 @@ export function HomePage() {
           </Link>
         </div>
         {ready.length === 0 ? (
-          <div className="empty">
-            <p>No workouts yet. Add the exercises and sets you plan to do, and SwollTech will walk you through them.</p>
-            <Link to="/workouts/new" className="btn primary">
-              Write a workout
-            </Link>
+          <div className="first-run">
+            <img src="/art/mascot-deadlift.webp" alt="" />
+            <div className="first-run-copy">
+              <p>No workouts yet. Add the exercises and sets you plan to do, and SwollTech will walk you through them.</p>
+              <Link to="/workouts/new" className="btn primary">
+                Write a workout
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="list">

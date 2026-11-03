@@ -54,6 +54,17 @@ export interface Workout extends WorkoutSummary {
   exercises: WorkoutExercise[];
 }
 
+export interface ScheduledWorkout {
+  id: string;
+  workout_id: string;
+  workout_name: string;
+  workout_archived: boolean;
+  /** Local calendar day, YYYY-MM-DD. */
+  scheduled_on: string;
+  notes: string;
+  updated_at: string;
+}
+
 export interface SessionSet {
   id: string;
   position: number;
@@ -321,6 +332,12 @@ export function createClient(options: ClientOptions) {
     updateWorkoutSet: (id: string, body: Record<string, unknown>) =>
       request<WorkoutSet>(`/v1/workout-sets/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     deleteWorkoutSet: (id: string) => request<void>(`/v1/workout-sets/${id}`, { method: "DELETE" }),
+    schedule: (start: string, end: string) => request<ScheduledWorkout[]>(`/v1/schedule${query({ start, end })}`),
+    scheduleWorkout: (body: { workout_id: string; scheduled_on: string; notes?: string; repeat_weeks?: number }) =>
+      request<ScheduledWorkout[]>("/v1/schedule", { method: "POST", body: JSON.stringify(body) }),
+    updateScheduled: (id: string, body: { workout_id?: string; scheduled_on?: string; notes?: string }) =>
+      request<ScheduledWorkout>(`/v1/schedule/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    deleteScheduled: (id: string) => request<void>(`/v1/schedule/${id}`, { method: "DELETE" }),
     sessions: (status?: SessionStatus) =>
       request<SessionSummary[]>(`/v1/sessions${query({ status })}`),
     session: (id: string) => request<Session>(`/v1/sessions/${id}`),

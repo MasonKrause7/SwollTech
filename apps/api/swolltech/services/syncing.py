@@ -15,6 +15,7 @@ from swolltech.models import (
     ExerciseReference,
     MediaStatus,
     Profile,
+    ScheduledWorkout,
     Session,
     SessionExercise,
     SessionSet,
@@ -33,6 +34,7 @@ from swolltech.services.common import (
     MEDIA_FIELDS,
     PROFILE_FIELDS,
     REFERENCE_FIELDS,
+    SCHEDULED_FIELDS,
     SESSION_EXERCISE_FIELDS,
     SESSION_FIELDS,
     SESSION_SET_FIELDS,
@@ -47,6 +49,7 @@ from swolltech.services.store import (
     archive_exercise,
     assert_exercise_name,
     assert_workout_name,
+    delete_scheduled,
     delete_session,
     delete_session_exercise,
     delete_session_set,
@@ -65,6 +68,7 @@ ENTITIES = {
     "workouts",
     "workout_exercises",
     "workout_sets",
+    "scheduled_workouts",
     "sessions",
     "session_exercises",
     "session_sets",
@@ -118,6 +122,13 @@ class WorkoutSetSync(BaseModel):
     target_percent: float | None = Field(default=None, ge=1, le=120)
     target_rpe: float | None = None
     rest_seconds: int = Field(default=120, ge=0)
+
+
+class ScheduledWorkoutSync(BaseModel):
+    id: UUID
+    workout_id: UUID
+    scheduled_on: date
+    notes: str = Field(default="", max_length=500)
 
 
 class SessionSync(BaseModel):
@@ -312,6 +323,24 @@ async def apply_upsert(db: AsyncSession, user_id: UUID, mutation: MutationIn):
         row.target_percent = body.target_percent
         row.target_rpe = body.target_rpe
         row.rest_seconds = body.rest_seconds
+    elif entity == "scheduled_workouts":
+        body = ScheduledWorkoutSync.model_validate(payload)
+        workout = await owned(db, Workout, body.workout_id, user_id)
+        if workout.deleted_at is not None:
+            raise DomainError(404, "Not found")
+        existing = await db.get(ScheduledWorkout, body.id)
+        if existing is not None and existing.user_id != user_id:
+            raise DomainError(404, "Not found")
+        if existing is None:
+            row = ScheduledWorkout(id=body.id, user_id=user_id, workout_id=body.workout_id, scheduled_on=body.scheduled_on, notes=body.notes, created_at=now())
+            db.add(row)
+        else:
+            match_sync(existing, mutation.base_updated_at, SCHEDULED_FIELDS)
+            existing.workout_id = body.workout_id
+            existing.scheduled_on = body.scheduled_on
+            existing.notes = body.notes
+            existing.deleted_at = None
+            row = existing
     elif entity == "sessions":
         body = SessionSync.model_validate(payload)
         if body.workout_id is not None:
@@ -428,6 +457,7 @@ async def apply_delete(db: AsyncSession, user_id: UUID, mutation: MutationIn):
         "workouts": (Workout, WORKOUT_FIELDS, delete_workout),
         "workout_exercises": (WorkoutExercise, WORKOUT_EXERCISE_FIELDS, delete_workout_exercise),
         "workout_sets": (WorkoutSet, WORKOUT_SET_FIELDS, delete_workout_set),
+        "scheduled_workouts": (ScheduledWorkout, SCHEDULED_FIELDS, delete_scheduled),
         "sessions": (Session, SESSION_FIELDS, delete_session),
         "session_exercises": (SessionExercise, SESSION_EXERCISE_FIELDS, delete_session_exercise),
         "session_sets": (SessionSet, SESSION_SET_FIELDS, delete_session_set),
@@ -471,6 +501,7 @@ SPECS = {
     "workouts": (Workout, WORKOUT_FIELDS, "user_id"),
     "workout_exercises": (WorkoutExercise, WORKOUT_EXERCISE_FIELDS, "user_id"),
     "workout_sets": (WorkoutSet, WORKOUT_SET_FIELDS, "user_id"),
+    "scheduled_workouts": (ScheduledWorkout, SCHEDULED_FIELDS, "user_id"),
     "sessions": (Session, SESSION_FIELDS, "user_id"),
     "session_exercises": (SessionExercise, SESSION_EXERCISE_FIELDS, "user_id"),
     "session_sets": (SessionSet, SESSION_SET_FIELDS, "user_id"),

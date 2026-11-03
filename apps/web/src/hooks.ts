@@ -9,6 +9,7 @@ export const keys = {
   workout: (id: string) => ["workout", id] as const,
   exercises: ["exercises"] as const,
   sessions: (status?: string) => ["sessions", status ?? "all"] as const,
+  schedule: (start: string, end: string) => ["schedule", start, end] as const,
   session: (id: string) => ["session", id] as const,
   summary: (id: string) => ["summary", id] as const,
   progress: (id: string) => ["progress", id] as const,
