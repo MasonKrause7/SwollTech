@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, devLoginEnabled, onUnauthorized } from "./api";
-import { clearNotebook, getMeta, openNotebook, setMeta } from "./db";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Alert } from "react-native";
+import { api, devLoginEnabled, onSessionLost } from "./api";
+import { clearNotebook, getMeta, openNotebook, setMeta, unsavedCount } from "./db";
+import { planClaim } from "./logic/claim";
 import { getDevToken, neonAuth, setDevToken, webUrl } from "./session";
-import { resetSyncState, syncNow } from "./sync";
+import { refreshPending, resetSyncState, startSync, stopSync, syncNow } from "./sync";
 
 type Status = "loading" | "signed-in" | "signed-out";
 
@@ -20,12 +22,34 @@ interface AuthValue {
 
 const AuthContext = createContext<AuthValue | null>(null);
 
-/** The notebook on the phone belongs to one account. A different account starts empty. */
-async function claimNotebook(userId: string) {
+function confirmErase(unsaved: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(
+      "Another account's changes are on this phone",
+      `${unsaved} change${unsaved === 1 ? " was" : "s were"} logged on this phone by the account that was signed in before and never saved to it. Signing in with this account erases them. To keep them, cancel and sign in with that account instead.`,
+      [
+        { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+        { text: "Erase and continue", style: "destructive", onPress: () => resolve(true) },
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) },
+    );
+  });
+}
+
+/**
+ * The notebook on the phone belongs to one account. A different account starts empty, but
+ * unsaved changes from the previous one are only erased after the user confirms.
+ * Returns false if the user chose to keep them (the sign in is abandoned).
+ */
+async function claimNotebook(userId: string): Promise<boolean> {
   const db = await openNotebook();
   const owner = await getMeta(db, "owner");
-  if (owner && owner !== userId) await clearNotebook();
+  const hasData = ((await db.getFirstAsync<{ n: number }>("select (select count(*) from rows) + (select count(*) from outbox) as n"))?.n ?? 0) > 0;
+  const action = planClaim({ owner, userId, unsaved: await unsavedCount(db), hasData });
+  if (action === "confirm-clear" && !(await confirmErase(await unsavedCount(db)))) return false;
+  if (action !== "keep") await clearNotebook();
   await setMeta(db, "owner", userId);
+  return true;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -33,21 +57,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
-  const enter = useCallback(async (id: string, address: string | null) => {
-    await claimNotebook(id);
+  const statusRef = useRef<Status>("loading");
+  statusRef.current = status;
+
+  /** Returns false when the user kept another account's unsaved changes instead of signing in. */
+  const enter = useCallback(async (id: string, address: string | null): Promise<boolean> => {
+    if (!(await claimNotebook(id))) {
+      if (neonAuth) await neonAuth.signOut().catch(() => undefined);
+      await setDevToken(null);
+      return false;
+    }
+    startSync();
     setUserId(id);
     setEmail(address);
     setStatus("signed-in");
+    void refreshPending();
     void syncNow();
+    return true;
   }, []);
 
+  /** Explicit sign out: stop any running sync first so it cannot write into the wiped notebook. */
   const leave = useCallback(async () => {
+    await stopSync();
     await setDevToken(null);
     await clearNotebook();
     resetSyncState();
     setUserId(null);
     setEmail(null);
     setStatus("signed-out");
+  }, []);
+
+  /**
+   * The session is gone (it expired, or the API keeps refusing fresh tokens). Ask the user
+   * to sign in again, but keep the notebook: unsynced sets are still on the phone and go up
+   * once the same account signs back in.
+   */
+  const expiring = useRef(false);
+  const expire = useCallback(async () => {
+    if (statusRef.current !== "signed-in" || expiring.current) return;
+    expiring.current = true;
+    try {
+      await stopSync();
+      if (neonAuth) await neonAuth.forget();
+      await setDevToken(null);
+      resetSyncState();
+      setUserId(null);
+      setEmail(null);
+      setStatus("signed-out");
+    } finally {
+      expiring.current = false;
+    }
   }, []);
 
   useEffect(() => {
@@ -60,24 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const session = await neonAuth.getSession();
           if (!active) return;
-          if (session) {
-            await enter(session.user.id, session.user.email ?? null);
-            return;
-          }
+          if (session && (await enter(session.user.id, session.user.email ?? null))) return;
         } catch {
-          if (owner && active) {
-            await enter(owner, null);
-            return;
-          }
+          // Offline or Neon Auth is down: not the same as signed out.
+          if (owner && active && (await enter(owner, null))) return;
         }
       }
       if (devLoginEnabled) {
         const token = await getDevToken();
         const owner = await getMeta(await openNotebook(), "owner");
-        if (token && owner && active) {
-          await enter(owner, null);
-          return;
-        }
+        if (token && owner && active && (await enter(owner, null))) return;
       }
       if (active) setStatus("signed-out");
     })();
@@ -87,15 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [enter]);
 
   useEffect(() => {
-    onUnauthorized(() => {
-      // A 401 with a token means the session is gone (for example the account was deleted).
-      void (async () => {
-        if (neonAuth) await neonAuth.forget();
-        await leave();
-      })();
-    });
-    return () => onUnauthorized(null);
-  }, [leave]);
+    // The client already retried with a fresh token, so this is a real loss of the session.
+    onSessionLost(() => void expire());
+    return () => onSessionLost(null);
+  }, [expire]);
 
   const value = useMemo<AuthValue>(
     () => ({
@@ -111,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const session = result.userId ? null : await neonAuth.getSession();
           const id = result.userId ?? session?.user.id;
           if (!id) return "Signed in, but the session could not be stored. Try again.";
-          await enter(id, result.email);
+          if (!(await enter(id, result.email))) return "Signed out again so the other account's changes stay on this phone.";
           return null;
         } catch {
           return "Could not reach SwollTech. Check your connection.";
@@ -122,7 +168,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const result = await neonAuth.signUp(address.trim(), password, "");
           if (result.error) return { error: result.error, needsConfirmation: false };
-          if (result.signedIn && result.userId) await enter(result.userId, result.email);
+          if (result.signedIn && result.userId && !(await enter(result.userId, result.email))) {
+            return { error: "Signed out again so the other account's changes stay on this phone.", needsConfirmation: false };
+          }
           return { error: null, needsConfirmation: !result.signedIn };
         } catch {
           return { error: "Could not reach SwollTech. Check your connection.", needsConfirmation: false };
@@ -142,13 +190,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const result = await api().devToken(address.trim() || "lifter@example.com", "Lifter");
           await setDevToken(result.access_token);
-          await enter(result.user_id, result.email);
+          if (!(await enter(result.user_id, result.email))) return "Signed out again so the other account's changes stay on this phone.";
           return null;
         } catch (error) {
           return error instanceof Error ? error.message : "Could not reach the API";
         }
       },
       async signOut() {
+        // Callers warn about unsaved changes first (Account). Stop syncing before the session goes.
+        await stopSync();
         if (neonAuth) await neonAuth.signOut().catch(() => undefined);
         await leave();
       },

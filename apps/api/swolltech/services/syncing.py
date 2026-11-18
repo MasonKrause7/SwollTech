@@ -1,10 +1,11 @@
+import logging
 import uuid
 from datetime import date, datetime, timezone
 from uuid import UUID
 
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from swolltech.errors import ConflictError, DomainError
@@ -22,13 +23,12 @@ from swolltech.models import (
     SessionStatus,
     SetKind,
     SetMedia,
-    SyncChange,
     WeightUnit,
     Workout,
     WorkoutExercise,
     WorkoutSet,
 )
-from swolltech.schemas import MutationIn
+from swolltech.schemas import Label, MutationIn, Name, Notes, Percent, Position, PositiveWeight, Reps, Rest, Rpe, Weight
 from swolltech.services.common import (
     EXERCISE_FIELDS,
     MEDIA_FIELDS,
@@ -61,6 +61,8 @@ from swolltech.services.store import (
     visible_exercise,
 )
 
+logger = logging.getLogger("swolltech.sync")
+
 ENTITIES = {
     "profiles",
     "exercises",
@@ -77,21 +79,21 @@ ENTITIES = {
 
 
 class ProfileSync(BaseModel):
-    display_name: str = ""
+    display_name: Name = ""
     unit_preference: WeightUnit = WeightUnit.lb
 
 
 class ExerciseSync(BaseModel):
     id: UUID
     name: str = Field(min_length=1, max_length=80)
-    primary_muscle: str = ""
-    equipment: str = ""
+    primary_muscle: Label = ""
+    equipment: Label = ""
 
 
 class ReferenceSync(BaseModel):
     id: UUID
     exercise_id: UUID
-    weight: float = Field(gt=0)
+    weight: PositiveWeight
     unit: WeightUnit
     noted_on: date
 
@@ -99,7 +101,7 @@ class ReferenceSync(BaseModel):
 class WorkoutSync(BaseModel):
     id: UUID
     name: str = Field(min_length=1, max_length=80)
-    notes: str = ""
+    notes: Notes = ""
     archived_at: datetime | None = None
 
 
@@ -107,21 +109,21 @@ class WorkoutExerciseSync(BaseModel):
     id: UUID
     workout_id: UUID
     exercise_id: UUID
-    position: int = Field(ge=0)
-    notes: str = ""
+    position: Position
+    notes: Notes = ""
 
 
 class WorkoutSetSync(BaseModel):
     id: UUID
     workout_exercise_id: UUID
-    position: int = Field(ge=0)
+    position: Position
     kind: SetKind = SetKind.working
-    target_reps: int | None = Field(default=None, ge=1)
-    target_weight: float | None = Field(default=None, ge=0)
+    target_reps: Reps | None = None
+    target_weight: Weight | None = None
     target_unit: WeightUnit | None = None
-    target_percent: float | None = Field(default=None, ge=1, le=120)
-    target_rpe: float | None = None
-    rest_seconds: int = Field(default=120, ge=0)
+    target_percent: Percent | None = None
+    target_rpe: Rpe | None = None
+    rest_seconds: Rest = 120
 
 
 class ScheduledWorkoutSync(BaseModel):
@@ -134,37 +136,37 @@ class ScheduledWorkoutSync(BaseModel):
 class SessionSync(BaseModel):
     id: UUID
     workout_id: UUID | None = None
-    name: str = ""
+    name: Name = ""
     status: SessionStatus = SessionStatus.in_progress
     started_at: datetime
     ended_at: datetime | None = None
-    notes: str = ""
+    notes: Notes = ""
 
 
 class SessionExerciseSync(BaseModel):
     id: UUID
     session_id: UUID
     exercise_id: UUID
-    position: int = Field(ge=0)
-    notes: str = ""
+    position: Position
+    notes: Notes = ""
 
 
 class SessionSetSync(BaseModel):
     id: UUID
     session_exercise_id: UUID
-    position: int = Field(ge=0)
+    position: Position
     kind: SetKind = SetKind.working
-    target_reps: int | None = None
-    target_weight: float | None = None
+    target_reps: Reps | None = None
+    target_weight: Weight | None = None
     target_unit: WeightUnit | None = None
-    target_percent: float | None = None
-    target_rpe: float | None = None
-    rest_seconds: int = 120
-    actual_reps: int | None = None
-    actual_weight: float | None = None
+    target_percent: Percent | None = None
+    target_rpe: Rpe | None = None
+    rest_seconds: Rest = 120
+    actual_reps: Reps | None = None
+    actual_weight: Weight | None = None
     actual_unit: WeightUnit | None = None
-    rpe: float | None = None
-    notes: str = ""
+    rpe: Rpe | None = None
+    notes: Notes = ""
     skipped: bool = False
     completed_at: datetime | None = None
 
@@ -172,10 +174,35 @@ class SessionSetSync(BaseModel):
 class MediaSync(BaseModel):
     id: UUID
     session_set_id: UUID
-    content_type: str | None = None
-    byte_size: int | None = None
-    duration_seconds: float | None = None
+    content_type: str | None = Field(default=None, max_length=100)
+    byte_size: int | None = Field(default=None, gt=0, le=10 * 1024**3)
+    duration_seconds: float | None = Field(default=None, ge=0, le=86_400)
     status: MediaStatus = MediaStatus.local
+
+
+class MergedInto(Exception):
+    """A new custom exercise has the same name as one the user (or the catalog) already has.
+    The phone made it offline on one device while another made the same one. Instead of
+    refusing it, the change resolves to the existing exercise and the phone repoints its rows."""
+
+    def __init__(self, row: Exercise) -> None:
+        super().__init__(str(row.id))
+        self.row = row
+
+
+async def name_twin(db: AsyncSession, user_id: UUID, name: str) -> Exercise | None:
+    lowered = name.strip().lower()
+    return await db.scalar(
+        select(Exercise)
+        .where(
+            (Exercise.owner_id == user_id) | Exercise.owner_id.is_(None),
+            func.lower(Exercise.name) == lowered,
+            Exercise.deleted_at.is_(None),
+        )
+        # The user's own copy wins over the catalog's.
+        .order_by(Exercise.owner_id.is_(None))
+        .limit(1)
+    )
 
 
 def aware(value: datetime | None) -> datetime | None:
@@ -211,7 +238,9 @@ async def apply_upsert(db: AsyncSession, user_id: UUID, mutation: MutationIn):
         if existing is not None and existing.owner_id != user_id:
             raise DomainError(404, "Not found")
         if existing is None:
-            await assert_exercise_name(db, user_id, body.name)
+            twin = await name_twin(db, user_id, body.name)
+            if twin is not None:
+                raise MergedInto(twin)
             row = Exercise(
                 id=body.id,
                 owner_id=user_id,
@@ -517,9 +546,23 @@ async def load_row(db: AsyncSession, user_id: UUID, entity: str, entity_id: UUID
     return row_dict(row, fields)
 
 
-async def sync(db: AsyncSession, user_id: UUID, cursor: int, mutations: list[MutationIn]) -> dict:
+EXERCISE_REFERENCING = ("exercise_references", "workout_exercises", "session_exercises")
+
+
+def _with_alias(mutation: MutationIn, aliases: dict[str, str]) -> MutationIn:
+    """Point a change at the exercise an earlier change in this batch was merged into."""
+    if mutation.entity not in EXERCISE_REFERENCING:
+        return mutation
+    target = aliases.get(str(mutation.payload.get("exercise_id")))
+    if target is None:
+        return mutation
+    return mutation.model_copy(update={"payload": {**mutation.payload, "exercise_id": target}})
+
+
+async def sync(db: AsyncSession, user_id: UUID, cursor: int, mutations: list[MutationIn], limit: int | None = None) -> dict:
     await require_profile(db, user_id)
     applied = []
+    aliases: dict[str, str] = {}
     for mutation in mutations:
         if mutation.entity not in ENTITIES or mutation.op not in {"upsert", "delete"}:
             applied.append({"client_mutation_id": mutation.client_mutation_id, "status": "error", "detail": "Unknown mutation"})
@@ -533,10 +576,11 @@ async def sync(db: AsyncSession, user_id: UUID, cursor: int, mutations: list[Mut
         if existing:
             applied.append({"client_mutation_id": mutation.client_mutation_id, "status": "duplicate"})
             continue
+        mutation = _with_alias(mutation, aliases)
         try:
             async with db.begin_nested():
                 if mutation.op == "upsert":
-                    row = await apply_upsert(db, user_id, mutation)
+                    await apply_upsert(db, user_id, mutation)
                     server_row = await load_row(db, user_id, mutation.entity, mutation.entity_id)
                 else:
                     await apply_delete(db, user_id, mutation)
@@ -544,6 +588,18 @@ async def sync(db: AsyncSession, user_id: UUID, cursor: int, mutations: list[Mut
                 db.add(AppliedMutation(id=uuid.uuid4(), user_id=user_id, client_mutation_id=mutation.client_mutation_id, created_at=now()))
                 await db.flush()
             applied.append({"client_mutation_id": mutation.client_mutation_id, "status": "applied", "server_row": server_row})
+        except MergedInto as exc:
+            twin = exc.row
+            aliases[str(mutation.entity_id)] = str(twin.id)
+            async with db.begin_nested():
+                db.add(AppliedMutation(id=uuid.uuid4(), user_id=user_id, client_mutation_id=mutation.client_mutation_id, created_at=now()))
+                await db.flush()
+            applied.append({
+                "client_mutation_id": mutation.client_mutation_id,
+                "status": "merged",
+                "server_row": row_dict(twin, EXERCISE_FIELDS),
+                "detail": "You already had an exercise with that name, so this one was merged into it",
+            })
         except ConflictError as exc:
             applied.append({"client_mutation_id": mutation.client_mutation_id, "status": "conflict", "server_row": exc.row, "detail": "Updated on another device"})
         except DomainError as exc:
@@ -552,28 +608,51 @@ async def sync(db: AsyncSession, user_id: UUID, cursor: int, mutations: list[Mut
             first = exc.errors()[0] if exc.errors() else {}
             field = ".".join(str(part) for part in first.get("loc", ())) or "payload"
             applied.append({"client_mutation_id": mutation.client_mutation_id, "status": "error", "detail": f"Invalid {field}: {first.get('msg', 'bad value')}"})
-        except IntegrityError:
+        except DBAPIError as exc:
+            # A value the database refused (a constraint, an overflowing number, ...). Report
+            # this one change and keep going, so one bad row cannot block every later sync.
+            if exc.connection_invalidated:
+                raise
+            logger.warning("Sync change refused by the database: %s %s: %s", mutation.entity, mutation.op, type(exc.orig).__name__ if exc.orig else type(exc).__name__)
             applied.append({"client_mutation_id": mutation.client_mutation_id, "status": "error", "detail": "Could not save that change"})
-    new_cursor, changes = await pull(db, user_id, cursor)
-    return {"cursor": new_cursor, "applied": applied, "changes": changes}
+    new_cursor, changes, has_more = await pull(db, user_id, cursor, limit)
+    return {"cursor": new_cursor, "applied": applied, "changes": changes, "has_more": has_more}
 
 
-async def pull(db: AsyncSession, user_id: UUID, cursor: int) -> tuple[int, list[dict]]:
-    max_id = await db.scalar(select(func.max(SyncChange.id)).where(SyncChange.user_id == user_id, SyncChange.id > cursor))
-    if max_id is None:
-        return cursor, []
+DEFAULT_PULL_LIMIT = 2000
+
+
+async def pull(db: AsyncSession, user_id: UUID, cursor: int, limit: int | None = None) -> tuple[int, list[dict], bool]:
+    """Changes after the cursor, newest per row, at most `limit` rows (Vercel caps a
+    response at 4.5 MB, and a fresh install pulls the whole history).
+
+    Rows come in order of their latest change and the new cursor is the last change
+    returned. Every change at or below it is covered: its row is either in this page (its
+    latest change is at or below the cursor) or comes in a later page with a newer one. So
+    a client that ignores has_more still converges, one sync at a time.
+    """
+    take = limit or DEFAULT_PULL_LIMIT
     result = await db.execute(
         text(
             """
-            select distinct on (entity, entity_id) id, entity, entity_id, op
-            from sync_changes
-            where user_id = :uid and id > :cursor
-            order by entity, entity_id, id desc
+            select id, entity, entity_id, op from (
+              select distinct on (entity, entity_id) id, entity, entity_id, op
+              from sync_changes
+              where user_id = :uid and id > :cursor
+              order by entity, entity_id, id desc
+            ) latest
+            order by id
+            limit :take
             """
         ),
-        {"uid": user_id, "cursor": cursor},
+        {"uid": user_id, "cursor": cursor, "take": take + 1},
     )
     entries = list(result)
+    has_more = len(entries) > take
+    entries = entries[:take]
+    if not entries:
+        return cursor, [], False
+    max_id = entries[-1][0]
     # One query per entity instead of one per row: a fresh install pulls the whole history.
     wanted: dict[str, list[UUID]] = {}
     for _change_id, entity, entity_id, op in entries:
@@ -595,4 +674,4 @@ async def pull(db: AsyncSession, user_id: UUID, cursor: int) -> tuple[int, list[
             if row is None:
                 op = "delete"
         changes.append({"id": change_id, "entity": entity, "entity_id": entity_id, "op": op, "row": row})
-    return int(max_id), changes
+    return int(max_id), changes, has_more
