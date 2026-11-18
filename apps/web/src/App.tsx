@@ -9,6 +9,7 @@ import { CalendarPage } from "./pages/Calendar";
 import { ExercisesPage } from "./pages/Exercises";
 import { HistoryPage } from "./pages/History";
 import { HomePage } from "./pages/Home";
+import { PrivacyPage, SupportPage, TermsPage } from "./pages/Legal";
 import { SessionPage } from "./pages/Session";
 import { SummaryPage } from "./pages/Summary";
 import { EditorPage, WorkoutsPage } from "./pages/Workouts";
@@ -32,6 +33,9 @@ export function App() {
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/reset" element={<ResetPage />} />
       <Route path="/update-password" element={<UpdatePasswordPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/support" element={<SupportPage />} />
       <Route
         element={
           <Guard>
