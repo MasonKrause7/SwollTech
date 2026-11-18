@@ -223,9 +223,19 @@ describe("legal pages", () => {
     const { PrivacyPage } = await import("./Legal");
     renderPage(<PrivacyPage />, { path: "/privacy", route: "/privacy", auth: { signedIn: false } });
     const text = document.body.textContent ?? "";
-    for (const phrase of ["Everyday Tech LLC", "support@everydaytechllc.com", "camera and microphone", "Sentry", "do not sell your data", "Delete account"]) {
+    for (const phrase of [
+      "Everyday Tech LLC",
+      "support@everydaytechllc.com",
+      "do not ask for camera and microphone access",
+      "do not include a crash-reporting or analytics SDK",
+      "Sentry",
+      "do not sell your data",
+      "Delete account",
+    ]) {
       expect(text).toContain(phrase);
     }
+    // The apps no longer record set videos, so the policy must not say they do.
+    expect(text).not.toMatch(/set videos|optional videos|record a set/i);
   });
 
   it("links privacy, terms and support from the account screen", async () => {

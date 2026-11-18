@@ -57,13 +57,14 @@ export function PrivacyPage() {
             reference weights, plus statistics we compute from them.
           </li>
           <li>
-            <strong>Set videos (optional).</strong> If you choose to record a set, the app asks for camera and microphone access to capture the clip. Videos stay on
-            your device unless you upload them, in which case they are stored privately in your account. We do not use them for anything except showing them back to
-            you. You can deny camera and microphone access and use every other feature.
+            <strong>No camera, microphone, photos or location.</strong> The SwollTech apps do not ask for camera and microphone access, do not read your photo
+            library and do not collect your location. We do not collect videos or photos from the apps.
           </li>
           <li>
-            <strong>Diagnostics.</strong> When the app or server hits an error we send a crash report (error message, stack trace, app version, device and OS type) to
-            our error-monitoring service, Sentry. Reports are configured not to include personal information such as your email, IP address or request contents.
+            <strong>Diagnostics.</strong> The iPhone and Android apps and the website do not include a crash-reporting or analytics SDK. When our server hits an error, it sends an
+            error report to our error-monitoring service, Sentry: the error message, stack trace and server version, plus details of the request that failed (such as
+            its path and the workout data it carried). The server also sends Sentry a small sample of performance timings. Sentry's option to send personal
+            information is turned off, so these reports do not include your IP address, cookies or sign-in tokens.
           </li>
           <li>
             <strong>Technical logs.</strong> Our servers keep short-lived request logs (time, path, status) to keep the service secure and working.
@@ -83,8 +84,7 @@ export function PrivacyPage() {
         <h2>Sharing</h2>
         <p>
           <strong>We do not sell your data or share it for advertising.</strong> We use service providers that process data on our behalf to host the service: Vercel
-          (application hosting), Neon (database and sign-in), Upstash (rate limiting, no personal data), an object storage provider for optional videos, and Sentry
-          (error reports). They may only use it to provide their service to us. We may disclose information if required by law.
+          (application hosting), Neon (database and sign-in), Upstash (rate limiting, no personal data), and Sentry (server error reports). They may only use it to provide their service to us. We may disclose information if required by law.
         </p>
       </section>
 
@@ -92,7 +92,7 @@ export function PrivacyPage() {
         <h2>Retention and deleting your account</h2>
         <p>
           We keep your data while your account is open. You can delete your account at any time in the app or on the web under <strong>Account → Delete account</strong>.
-          Deleting your account immediately and permanently removes your login, your workout data and any uploaded videos. Copies in encrypted backups expire on their
+          Deleting your account immediately and permanently removes your login and your workout data. Copies in encrypted backups expire on their
           normal schedule (within about 30 days). If you cannot access the app, email {mail} from the address on the account and we will delete it for you.
         </p>
       </section>
@@ -146,7 +146,7 @@ export function TermsPage() {
       <section className="stack">
         <h2>Your content</h2>
         <p>
-          You own the workouts, notes and videos you add. You give us permission to store and process them only to provide the service to you. Do not upload anything
+          You own the workouts and notes you add. You give us permission to store and process them only to provide the service to you. Do not upload anything
           illegal or that you do not have the right to share.
         </p>
       </section>
@@ -197,7 +197,7 @@ export function SupportPage() {
         <p>The phone app works offline and syncs when it is back online. Open the app with a connection and pull down to refresh.</p>
         <h3>How do I delete my account?</h3>
         <p>
-          In the app or on the web open <strong>Account</strong> and use <strong>Delete account</strong>. This permanently removes your login, workouts and videos. If you
+          In the app or on the web open <strong>Account</strong> and use <strong>Delete account</strong>. This permanently removes your login and workouts. If you
           cannot sign in, email {mail} from your account's address.
         </p>
       </section>
