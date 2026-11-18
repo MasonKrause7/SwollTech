@@ -20,14 +20,6 @@
         }
       ],
       [
-        "expo-image-picker",
-        {
-          "cameraPermission": "SwollTech uses the camera so you can film a set and check your form.",
-          "microphonePermission": "SwollTech records audio with set videos.",
-          "photosPermission": false
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "backgroundColor": "#0F1011",
@@ -48,8 +40,6 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.swolltech.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "SwollTech uses the camera so you can film a set and check your form.",
-        "NSMicrophoneUsageDescription": "SwollTech records audio with set videos.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "buildNumber": "1"
@@ -61,8 +51,6 @@
         "backgroundColor": "#0F1011"
       },
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS"
       ],
       "versionCode": 1

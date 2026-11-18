@@ -26,17 +26,26 @@ export default function SessionDetail() {
     <Screen edges={["bottom"]}>
       <Stack.Screen options={{ title: session.name }} />
       <T variant="muted">{dayAndTime(session.started_at)}</T>
-      {session.notes ? <T>{session.notes}</T> : null}
+      {session.notes ? (
+        <Card>
+          <T variant="label">Session note</T>
+          <T>{session.notes}</T>
+        </Card>
+      ) : null}
       {exercises.map((item) => (
         <Card key={item.id}>
           <T variant="heading">{item.exercise_name}</T>
+          {item.notes ? <T variant="muted">{item.notes}</T> : null}
           {item.sets.map((set, index) => (
-            <Row key={set.id} style={{ justifyContent: "space-between", minHeight: 32 }}>
-              <T variant={set.kind === "warmup" ? "muted" : "body"}>{set.kind === "warmup" ? "Warmup" : `Set ${item.sets.slice(0, index + 1).filter((other) => other.kind !== "warmup").length}`}</T>
-              <T variant={set.completed_at ? "body" : "muted"}>
-                {set.skipped ? "Skipped" : set.completed_at ? `${pair(set.actual_weight, set.actual_unit, set.actual_reps)}${set.rpe ? ` at RPE ${set.rpe}` : ""}` : "Not logged"}
-              </T>
-            </Row>
+            <View key={set.id} style={{ gap: 2 }}>
+              <Row style={{ justifyContent: "space-between", minHeight: 32 }}>
+                <T variant={set.kind === "warmup" ? "muted" : "body"}>{set.kind === "warmup" ? "Warmup" : `Set ${item.sets.slice(0, index + 1).filter((other) => other.kind !== "warmup").length}`}</T>
+                <T variant={set.completed_at ? "body" : "muted"}>
+                  {set.skipped ? "Skipped" : set.completed_at ? `${pair(set.actual_weight, set.actual_unit, set.actual_reps)}${set.rpe ? ` at RPE ${set.rpe}` : ""}` : "Not logged"}
+                </T>
+              </Row>
+              {set.notes ? <T variant="small">Note: {set.notes}</T> : null}
+            </View>
           ))}
         </Card>
       ))}
