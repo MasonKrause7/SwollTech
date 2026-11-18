@@ -32,7 +32,7 @@ export default function SessionDetail() {
           <T variant="heading">{item.exercise_name}</T>
           {item.sets.map((set, index) => (
             <Row key={set.id} style={{ justifyContent: "space-between", minHeight: 32 }}>
-              <T variant={set.kind === "warmup" ? "muted" : "body"}>{set.kind === "warmup" ? "Warmup" : `Set ${index + 1}`}</T>
+              <T variant={set.kind === "warmup" ? "muted" : "body"}>{set.kind === "warmup" ? "Warmup" : `Set ${item.sets.slice(0, index + 1).filter((other) => other.kind !== "warmup").length}`}</T>
               <T variant={set.completed_at ? "body" : "muted"}>
                 {set.skipped ? "Skipped" : set.completed_at ? `${pair(set.actual_weight, set.actual_unit, set.actual_reps)}${set.rpe ? ` at RPE ${set.rpe}` : ""}` : "Not logged"}
               </T>

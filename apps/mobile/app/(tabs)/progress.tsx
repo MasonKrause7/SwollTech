@@ -74,7 +74,7 @@ export default function Progress() {
 
       <Card>
         <T variant="heading">Consistency</T>
-        <T variant="small">Each square is a day. Green days you trained.</T>
+        <T variant="small">Each square is a day. Filled days are days you trained.</T>
         <Heatmap days={overview.calendar} today={localDay(new Date(), zone)} />
       </Card>
 
