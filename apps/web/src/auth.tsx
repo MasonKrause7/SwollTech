@@ -6,7 +6,7 @@ const DEV_TOKEN_KEY = "swolltech.dev-token";
 
 /**
  * Neon Auth (Better Auth) is reached through this site's own origin at /api/auth
- * (a Vercel rewrite in vercel.json, a Vite proxy in dev), so its session cookie is
+ * (a proxy function, apps/web/api/neon-auth.ts, on Vercel; a Vite proxy in dev), so its session cookie is
  * first-party and survives Safari's third-party cookie blocking.
  */
 const authBase = import.meta.env.VITE_AUTH_BASE || "/api/auth";
