@@ -29,6 +29,9 @@ DEV_AUDIENCE = "swolltech-dev"
 # Dev sign-in derives a stable id from the email, so no local users table is needed.
 DEV_NAMESPACE = uuid.UUID("5b0e7a52-6f0c-4c1e-9d55-2c0a7f3f9b11")
 JWKS_CACHE_SECONDS = 3600
+# Phones can be minutes off. Tokens live 15 minutes, so two minutes of slack in either
+# direction costs little and keeps a skewed clock from looking like a lost session.
+CLOCK_LEEWAY_SECONDS = 120
 
 
 def _jwks_client(url: str) -> PyJWKClient:
@@ -54,7 +57,7 @@ def decode_token(token: str, settings: Settings) -> dict:
             algorithms=["HS256"],
             audience=DEV_AUDIENCE,
             options={"require": ["exp", "sub"]},
-            leeway=30,
+            leeway=CLOCK_LEEWAY_SECONDS,
         )
     if not settings.jwks_url or not settings.token_issuer:
         logger.warning("Rejected %s token: NEON_AUTH_BASE_URL is not configured", algorithm)
@@ -67,7 +70,7 @@ def decode_token(token: str, settings: Settings) -> dict:
         audience=settings.token_issuer,
         issuer=settings.token_issuer,
         options=DECODE_OPTIONS,
-        leeway=30,
+        leeway=CLOCK_LEEWAY_SECONDS,
     )
 
 
@@ -110,7 +113,12 @@ async def current_user_id(
         payload = decode_token(creds.credentials, settings)
     except DomainError:
         raise
-    except (jwt.PyJWTError, jwt.PyJWKClientError) as exc:
+    except jwt.PyJWKClientConnectionError as exc:
+        # Neon Auth's key set could not be fetched. The token may be fine, so this is our
+        # outage, not a lost session: 401 would make clients sign the user out.
+        logger.warning("Could not fetch the signing keys: %s", exc)
+        raise DomainError(503, "Sign-in check is temporarily unavailable. Try again shortly.") from exc
+    except jwt.PyJWTError as exc:
         alg = kid = None
         try:
             header = jwt.get_unverified_header(creds.credentials)

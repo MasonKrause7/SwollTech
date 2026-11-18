@@ -41,7 +41,17 @@ if settings.sentry_dsn:
     # Before the app is built so the FastAPI integration hooks in. No request bodies or IPs.
     sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05, send_default_pii=False, release=os.environ.get("VERCEL_GIT_COMMIT_SHA"), environment=os.environ.get("VERCEL_ENV", "local"))
 
-app = FastAPI(title="SwollTech", version="0.1.0", lifespan=lifespan)
+# The interactive docs and schema are for local development. On a deployed host they only
+# map the API for strangers. app.openapi() still works, so CI's contract check is unaffected.
+_docs = not settings.is_deployed
+app = FastAPI(
+    title="SwollTech",
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url="/docs" if _docs else None,
+    redoc_url="/redoc" if _docs else None,
+    openapi_url="/openapi.json" if _docs else None,
+)
 # The analytics log is large and repetitive JSON; gzip cuts it by roughly 90%.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
