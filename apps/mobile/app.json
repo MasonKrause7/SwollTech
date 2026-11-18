@@ -83,6 +83,9 @@
         "projectId": "0107cdd3-5d7c-4dc5-83a1-45789356c1ab"
       }
     },
-    "owner": "masonkrause"
+    "owner": "masonkrause",
+    "updates": {
+      "url": "https://u.expo.dev/0107cdd3-5d7c-4dc5-83a1-45789356c1ab"
+    }
   }
 }
