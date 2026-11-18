@@ -18,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { addExerciseToSession, addSetToExercise, completeSession } from "../../src/actions";
 import { ProgressBar } from "../../src/components/charts";
 import { ExercisePicker } from "../../src/components/ExercisePicker";
@@ -60,6 +60,9 @@ interface Rest {
 
 export default function SessionScreen() {
   const theme = useTheme();
+  // Insets from the root provider: inside a full-screen modal the native SafeAreaView can
+  // measure zero and slide the header under the status bar.
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { db, data, unit } = useNotebook();
@@ -132,10 +135,10 @@ export default function SessionScreen() {
 
   if (!view || !db) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg, padding: space.lg, gap: space.md }}>
+      <View style={{ flex: 1, backgroundColor: theme.bg, padding: space.lg, paddingTop: insets.top + space.lg, gap: space.md }}>
         <T variant="heading">{data ? "This session is not on this phone" : "Opening your notebook"}</T>
         {data ? <Button label="Back" kind="secondary" onPress={() => router.back()} /> : null}
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -304,7 +307,7 @@ export default function SessionScreen() {
   })();
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.sm }}>
           <Row style={{ justifyContent: "space-between" }}>
@@ -600,6 +603,6 @@ export default function SessionScreen() {
           pendingAdvance.current = { exerciseId: itemId };
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
