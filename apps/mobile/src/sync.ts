@@ -52,6 +52,8 @@ onNotebookChange(() => {
 });
 
 const CATALOG_MAX_AGE = 24 * 3600 * 1000;
+/** The catalog version this build's starter programs expect (apps/api/migrations/0002_catalog.sql). An older stored copy is refetched on the next sync. */
+export const MIN_CATALOG_VERSION = 2;
 /** Rounds per sync: outbox batches of 200 plus pages of pulled changes. */
 const MAX_ROUNDS = 50;
 
@@ -70,7 +72,8 @@ async function syncOnce() {
   try {
     const fetchedAt = Number((await getMeta(db, "catalog_at")) ?? "0");
     const hasCatalog = (await db.getFirstAsync<{ n: number }>("select count(*) as n from rows where entity = 'exercises'"))?.n ?? 0;
-    if (!hasCatalog || Date.now() - fetchedAt > CATALOG_MAX_AGE) {
+    const storedVersion = Number((await getMeta(db, "catalog_version")) ?? "0");
+    if (!hasCatalog || storedVersion < MIN_CATALOG_VERSION || Date.now() - fetchedAt > CATALOG_MAX_AGE) {
       const catalog = await client.catalog();
       if (!alive()) throw new SyncCancelled();
       await storeCatalog(db, catalog.exercises as unknown as Record<string, unknown>[], catalog.version);
