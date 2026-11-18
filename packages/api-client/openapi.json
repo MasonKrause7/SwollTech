@@ -2303,6 +2303,7 @@
      },
      "display_name": {
       "type": "string",
+      "maxLength": 80,
       "title": "Display Name",
       "default": ""
      }
@@ -2610,6 +2611,7 @@
       "anyOf": [
        {
         "type": "number",
+        "maximum": 86400.0,
         "minimum": 0.0
        },
        {
@@ -2713,10 +2715,12 @@
     "properties": {
      "content_type": {
       "type": "string",
+      "maxLength": 100,
       "title": "Content Type"
      },
      "byte_size": {
       "type": "integer",
+      "maximum": 10737418240.0,
       "exclusiveMinimum": 0.0,
       "title": "Byte Size"
      },
@@ -2724,6 +2728,7 @@
       "anyOf": [
        {
         "type": "number",
+        "maximum": 86400.0,
         "minimum": 0.0
        },
        {
@@ -2804,10 +2809,12 @@
      },
      "entity": {
       "type": "string",
+      "maxLength": 40,
       "title": "Entity"
      },
      "op": {
       "type": "string",
+      "maxLength": 10,
       "title": "Op"
      },
      "entity_id": {
@@ -3172,6 +3179,7 @@
      },
      "weight": {
       "type": "number",
+      "maximum": 2000.0,
       "exclusiveMinimum": 0.0,
       "title": "Weight"
      },
@@ -3258,6 +3266,7 @@
        "format": "uuid"
       },
       "type": "array",
+      "maxItems": 1000,
       "title": "Ids"
      }
     },
@@ -3435,6 +3444,7 @@
      },
      "notes": {
       "type": "string",
+      "maxLength": 2000,
       "title": "Notes",
       "default": ""
      },
@@ -3442,6 +3452,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 100000.0,
         "minimum": 0.0
        },
        {
@@ -3519,7 +3530,8 @@
      "notes": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "maxLength": 2000
        },
        {
         "type": "null"
@@ -3571,6 +3583,7 @@
      },
      "name": {
       "type": "string",
+      "maxLength": 80,
       "title": "Name",
       "default": ""
      },
@@ -3588,6 +3601,7 @@
      },
      "notes": {
       "type": "string",
+      "maxLength": 2000,
       "title": "Notes",
       "default": ""
      }
@@ -3674,7 +3688,8 @@
      "name": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "maxLength": 80
        },
        {
         "type": "null"
@@ -3685,7 +3700,8 @@
      "notes": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "maxLength": 2000
        },
        {
         "type": "null"
@@ -3753,6 +3769,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 1000.0,
         "minimum": 1.0
        },
        {
@@ -3765,6 +3782,7 @@
       "anyOf": [
        {
         "type": "number",
+        "maximum": 2000.0,
         "minimum": 0.0
        },
        {
@@ -3799,7 +3817,9 @@
      "target_rpe": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "number",
+        "maximum": 10.0,
+        "minimum": 1.0
        },
        {
         "type": "null"
@@ -3809,6 +3829,7 @@
      },
      "rest_seconds": {
       "type": "integer",
+      "maximum": 3600.0,
       "minimum": 0.0,
       "title": "Rest Seconds",
       "default": 120
@@ -3817,6 +3838,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 1000.0,
         "minimum": 1.0
        },
        {
@@ -3829,6 +3851,7 @@
       "anyOf": [
        {
         "type": "number",
+        "maximum": 2000.0,
         "minimum": 0.0
        },
        {
@@ -3850,7 +3873,9 @@
      "rpe": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "number",
+        "maximum": 10.0,
+        "minimum": 1.0
        },
        {
         "type": "null"
@@ -3860,6 +3885,7 @@
      },
      "notes": {
       "type": "string",
+      "maxLength": 2000,
       "title": "Notes",
       "default": ""
      },
@@ -4068,6 +4094,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 1000.0,
         "minimum": 1.0
        },
        {
@@ -4080,6 +4107,7 @@
       "anyOf": [
        {
         "type": "number",
+        "maximum": 2000.0,
         "minimum": 0.0
        },
        {
@@ -4101,7 +4129,9 @@
      "rpe": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "number",
+        "maximum": 10.0,
+        "minimum": 1.0
        },
        {
         "type": "null"
@@ -4112,7 +4142,8 @@
      "notes": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "maxLength": 2000
        },
        {
         "type": "null"
@@ -4146,6 +4177,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 3600.0,
         "minimum": 0.0
        },
        {
@@ -4455,6 +4487,7 @@
     "properties": {
      "cursor": {
       "type": "integer",
+      "maximum": 9.223372036854776e+18,
       "minimum": 0.0,
       "title": "Cursor",
       "default": 0
@@ -4466,6 +4499,20 @@
       "type": "array",
       "maxItems": 200,
       "title": "Mutations"
+     },
+     "limit": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 5000.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Limit",
+      "description": "Most changes to return (default 2000). When more are waiting, has_more is true and the client syncs again from the new cursor."
      }
     },
     "type": "object",
@@ -4490,6 +4537,11 @@
       },
       "type": "array",
       "title": "Changes"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More",
+      "default": false
      }
     },
     "type": "object",
@@ -4598,6 +4650,7 @@
      },
      "notes": {
       "type": "string",
+      "maxLength": 2000,
       "title": "Notes",
       "default": ""
      },
@@ -4605,6 +4658,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 100000.0,
         "minimum": 0.0
        },
        {
@@ -4674,7 +4728,8 @@
      "notes": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "maxLength": 2000
        },
        {
         "type": "null"
@@ -4720,6 +4775,7 @@
      },
      "notes": {
       "type": "string",
+      "maxLength": 2000,
       "title": "Notes",
       "default": ""
      }
@@ -4799,7 +4855,8 @@
      "notes": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "maxLength": 2000
        },
        {
         "type": "null"
@@ -4856,6 +4913,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 1000.0,
         "minimum": 1.0
        },
        {
@@ -4868,6 +4926,7 @@
       "anyOf": [
        {
         "type": "number",
+        "maximum": 2000.0,
         "minimum": 0.0
        },
        {
@@ -4902,7 +4961,9 @@
      "target_rpe": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "number",
+        "maximum": 10.0,
+        "minimum": 1.0
        },
        {
         "type": "null"
@@ -4912,6 +4973,7 @@
      },
      "rest_seconds": {
       "type": "integer",
+      "maximum": 3600.0,
       "minimum": 0.0,
       "title": "Rest Seconds",
       "default": 120
@@ -5029,6 +5091,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 1000.0,
         "minimum": 1.0
        },
        {
@@ -5041,6 +5104,7 @@
       "anyOf": [
        {
         "type": "number",
+        "maximum": 2000.0,
         "minimum": 0.0
        },
        {
@@ -5075,7 +5139,9 @@
      "target_rpe": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "number",
+        "maximum": 10.0,
+        "minimum": 1.0
        },
        {
         "type": "null"
@@ -5087,6 +5153,7 @@
       "anyOf": [
        {
         "type": "integer",
+        "maximum": 3600.0,
         "minimum": 0.0
        },
        {
