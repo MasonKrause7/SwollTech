@@ -20,7 +20,6 @@ vi.mock("expo-network", () => ({
   addNetworkStateListener: () => ({ remove() {} }),
 }));
 
-vi.mock("../uploads", () => ({ drainUploads: async () => undefined }));
 
 vi.mock("../api", () => ({
   api: () => ({

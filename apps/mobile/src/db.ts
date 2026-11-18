@@ -437,23 +437,3 @@ export function storeFor(db: Notebook, alive: () => boolean = () => true): SyncS
 export function endFlight() {
   inFlight.clear();
 }
-
-export async function queueVideo(db: Notebook, setId: string, localUri: string, contentType: string) {
-  await db.runAsync(
-    "insert or replace into uploads (id, set_id, local_uri, content_type, status) values (?, ?, ?, ?, 'local')",
-    newId(),
-    setId,
-    localUri,
-    contentType,
-  );
-}
-
-export async function pendingUploads(db: Notebook) {
-  return db.getAllAsync<{ id: string; set_id: string; local_uri: string; content_type: string }>(
-    "select id, set_id, local_uri, content_type from uploads where status = 'local'",
-  );
-}
-
-export async function markUpload(db: Notebook, id: string, status: string) {
-  await db.runAsync("update uploads set status = ? where id = ?", status, id);
-}

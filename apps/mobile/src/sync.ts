@@ -18,7 +18,6 @@ import {
   unsavedCount,
 } from "./db";
 import { errorMessage, type SyncState } from "./logic/status";
-import { drainUploads } from "./uploads";
 
 let state: SyncState = { kind: "idle" };
 let pending = 0;
@@ -93,7 +92,6 @@ async function syncOnce() {
       if (!result.hasMore && (await pendingCount(db)) === 0) break;
     }
     if (!alive()) throw new SyncCancelled();
-    await drainUploads(db, client);
     await refreshPending();
     emit({ kind: "synced", at: Date.now(), conflicts });
   } catch (error) {
