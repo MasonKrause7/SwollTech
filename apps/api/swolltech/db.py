@@ -1,4 +1,5 @@
 import ssl
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from collections.abc import AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -12,33 +13,37 @@ _engine = None
 _sessionmaker = None
 
 
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "db", "test-db", "postgres"}
+# libpq options that asyncpg does not take as URL parameters. TLS is set in connect_args.
+DROPPED_PARAMS = {"sslmode", "channel_binding", "sslrootcert", "options"}
+
+
 def normalize_database_url(url: str) -> str:
-    if url.startswith("postgresql+asyncpg://"):
+    """Turn the URL Neon/Vercel hands out (postgres://...?sslmode=require&channel_binding=require)
+    into one SQLAlchemy's asyncpg driver accepts."""
+    for prefix in ("postgresql+asyncpg://", "postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            url = "postgresql+asyncpg://" + url[len(prefix) :]
+            break
+    else:
         return url
-    if url.startswith("postgresql://"):
-        return "postgresql+asyncpg://" + url[len("postgresql://") :]
-    if url.startswith("postgres://"):
-        return "postgresql+asyncpg://" + url[len("postgres://") :]
-    return url
+    parts = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k not in DROPPED_PARAMS]
+    return urlunsplit(parts._replace(query=urlencode(query)))
+
+
+def is_local_url(url: str) -> bool:
+    return (urlsplit(url).hostname or "") in LOCAL_HOSTS
 
 
 def connect_args_for(url: str, root_cert: str = "", command_timeout: float | None = None) -> dict:
-    # statement_cache_size=0 keeps asyncpg working behind Supabase's transaction pooler.
+    # statement_cache_size=0 keeps asyncpg working behind Neon's PgBouncer (transaction mode).
     args: dict = {"statement_cache_size": 0}
     if command_timeout:
         args["command_timeout"] = command_timeout
-    if "supabase.co" in url or "pooler.supabase.com" in url:
-        if root_cert:
-            # Full verification against Supabase's own root CA.
-            args["ssl"] = ssl.create_default_context(cafile=root_cert)
-        else:
-            # Supabase signs with its own CA, so without that file the chain cannot be checked.
-            # The link is still encrypted. Set DATABASE_SSL_ROOT_CERT in production.
-            logger.warning("Database TLS is not verified. Set DATABASE_SSL_ROOT_CERT to Supabase's root CA.")
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
-            args["ssl"] = context
+    if not is_local_url(url):
+        # Hosted databases always use verified TLS. Neon's certificates chain to public roots.
+        args["ssl"] = ssl.create_default_context(cafile=root_cert or None)
     return args
 
 
@@ -47,10 +52,10 @@ def get_engine():
     if _engine is None:
         settings = get_settings()
         if not settings.database_url:
-            raise RuntimeError("Set DATABASE_URL to the Supabase Postgres connection string.")
+            raise RuntimeError("Set DATABASE_URL to the Neon pooled Postgres connection string.")
         url = normalize_database_url(settings.database_url)
         # A small bounded pool: reuses TLS connections and caps how many this instance can
-        # hold, so a burst of traffic queues briefly instead of exhausting Supabase's limit.
+        # hold, so a burst of traffic queues briefly instead of exhausting Neon's connection limit.
         _engine = create_async_engine(
             url,
             pool_size=settings.db_pool_size,

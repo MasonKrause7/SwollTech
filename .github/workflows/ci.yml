@@ -35,6 +35,7 @@ jobs:
           TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/swolltech_test
         run: |
           uv sync
+          MIGRATION_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/swolltech_test uv run python -m scripts.migrate
           uv run pytest --cov --cov-report=term --cov-fail-under=80
 
   js:
@@ -68,15 +69,34 @@ jobs:
           uv sync
           uv run python -c "import json; from swolltech.main import app; json.dump(app.openapi(), open('/tmp/openapi.json','w'))"
           python3 -c "import json,sys; a=json.load(open('/tmp/openapi.json')); b=json.load(open('../../packages/api-client/openapi.json')); sys.exit(0 if a==b else 'openapi.json is stale: regenerate it (see README)')"
-      - name: API image builds
-        run: docker build -t swolltech-api:ci apps/api
-      - name: API image refuses an unsafe config
+      - name: API refuses an unsafe config on Vercel
+        working-directory: apps/api
+        env:
+          VERCEL: "1"
+          VERCEL_ENV: production
+          DATABASE_URL: postgresql://x:y@ep-ci-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require
+          NEON_AUTH_BASE_URL: https://ep-ci.neonauth.us-west-2.aws.neon.tech/neondb/auth
+          CORS_ORIGINS: https://swolltech.com
+          DEV_TOKEN_ENABLED: "true"
+          DEV_JWT_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
         run: |
-          if docker run --rm -e DATABASE_URL=postgresql://x@db.example.supabase.co/postgres -e SUPABASE_URL=https://ref.supabase.co -e DEV_TOKEN_ENABLED=true -e FLY_APP_NAME=ci swolltech-api:ci 2>&1 | tee /tmp/run.log | grep -q "Refusing to start"; then echo ok; else cat /tmp/run.log; exit 1; fi
+          uv run python - <<'PY'
+          import asyncio
+          from swolltech.main import app, lifespan
+          async def main():
+              try:
+                  async with lifespan(app):
+                      raise SystemExit("API started with DEV_TOKEN_ENABLED on Vercel")
+              except RuntimeError as exc:
+                  assert "Refusing to start" in str(exc), exc
+                  print("ok:", exc)
+          asyncio.run(main())
+          PY
       - name: Phone release bundle builds
         working-directory: apps/mobile
         env:
           EXPO_PUBLIC_API_URL: https://api.example.test
+          EXPO_PUBLIC_NEON_AUTH_URL: https://ep-ci.neonauth.us-west-2.aws.neon.tech/neondb/auth
         run: npx expo export --platform ios --output-dir /tmp/expo-export
       - name: No high-severity vulnerabilities in shipped JS dependencies
         run: npm audit --omit=dev --audit-level=high

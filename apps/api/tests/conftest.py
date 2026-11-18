@@ -15,13 +15,14 @@ LOCAL_DEFAULT = "postgresql+asyncpg://postgres:postgres@localhost:54329/swolltec
 # Tests never read apps/api/.env. They only run against TEST_DATABASE_URL, which
 # must be a disposable local database because the suite drops and rebuilds it.
 _database_url = normalize_database_url(os.environ.get("TEST_DATABASE_URL", LOCAL_DEFAULT))
-if "supabase.co" in _database_url or "pooler.supabase.com" in _database_url:
-    raise RuntimeError("TEST_DATABASE_URL points at Supabase. Tests rebuild the schema, so use a local database.")
+if any(marker in _database_url for marker in ("supabase.co", "supabase.com", "neon.tech")):
+    raise RuntimeError("TEST_DATABASE_URL points at a hosted database. Tests rebuild the schema, so use a local one.")
 os.environ["DATABASE_URL"] = _database_url
-os.environ["SUPABASE_JWT_SECRET"] = os.environ.get("TEST_JWT_SECRET", "test-secret-test-secret-test-secret-12")
-os.environ["SUPABASE_URL"] = ""
-os.environ["SUPABASE_JWKS_URL"] = ""
-os.environ["SERVICE_ROLE_KEY"] = ""
+os.environ["DEV_JWT_SECRET"] = os.environ.get("TEST_JWT_SECRET", "test-secret-test-secret-test-secret-12")
+os.environ["NEON_AUTH_BASE_URL"] = ""
+os.environ["NEON_AUTH_JWKS_URL"] = ""
+for _key in ("KV_REST_API_URL", "KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "VERCEL", "VERCEL_ENV", "SWOLLTECH_DEPLOYED"):
+    os.environ.pop(_key, None)
 os.environ["S3_BUCKET"] = ""
 os.environ["DEV_TOKEN_ENABLED"] = "false"
 os.environ["CORS_ORIGINS"] = "http://localhost:5173"
@@ -33,7 +34,7 @@ from swolltech.storage import MemoryStorage
 from tests.schema_loader import apply_schema
 
 PSYCOPG_DSN = _database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
-SECRET = os.environ["SUPABASE_JWT_SECRET"]
+SECRET = os.environ["DEV_JWT_SECRET"]
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -48,7 +49,10 @@ async def _clean():
     yield storage
     engine = get_engine()
     async with engine.begin() as conn:
-        await conn.execute(text("delete from auth.users"))
+        await conn.execute(text('delete from neon_auth."user"'))
+        await conn.execute(text("delete from public.deleted_accounts"))
+        for (uid,) in (await conn.execute(text("select id from public.profiles"))).all():
+            await conn.execute(text("select app_private.delete_user_data(:id)"), {"id": uid})
     await dispose_engine()
 
 
@@ -60,22 +64,23 @@ async def client():
 
 
 async def make_user(email: str | None = None) -> tuple[uuid.UUID, str]:
+    """A signed-up user: a row in (the stand-in for) Neon Auth's user table, plus a token.
+    The API creates the profile on the first request, as it does in production."""
     user_id = uuid.uuid4()
     address = email or f"{user_id}@swolltech.test"
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.execute(
-            text(
-                "insert into auth.users (id, email, raw_user_meta_data) "
-                "values (:id, :email, '{}'::jsonb)"
-            ),
+            text('insert into neon_auth."user" (id, email, name) values (:id, :email, \'\')'),
             {"id": user_id, "email": address},
         )
-    return user_id, token_for(user_id)
+        await conn.execute(text("insert into neon_auth.session (\"userId\") values (:id)"), {"id": user_id})
+    return user_id, token_for(user_id, email=address)
 
 
 def token_for(user_id: uuid.UUID, *, expires_in: int = 3600, **extra) -> str:
-    claims = {"sub": str(user_id), "aud": "authenticated", "role": "authenticated", "exp": int(time.time()) + expires_in}
+    now = int(time.time())
+    claims = {"sub": str(user_id), "aud": "swolltech-dev", "iat": now, "exp": now + expires_in}
     claims.update(extra)
     return jwt.encode({k: v for k, v in claims.items() if v is not None}, SECRET, algorithm="HS256")
 

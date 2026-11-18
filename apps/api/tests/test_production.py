@@ -11,24 +11,50 @@ from swolltech.db import connect_args_for
 from tests.conftest import headers, make_user
 
 LOCAL_DB = "postgresql+asyncpg://postgres:postgres@localhost:54329/swolltech_dev"
-HOSTED_DB = "postgresql+asyncpg://postgres:secret@db.example.supabase.co:5432/postgres"
+HOSTED_DB = "postgresql+asyncpg://neondb_owner:secret@ep-test-123-pooler.us-west-2.aws.neon.tech/neondb"
+AUTH_URL = "https://ep-test-123.neonauth.us-west-2.aws.neon.tech/neondb/auth"
 
 
 def settings(**values) -> Settings:
-    base = {"database_url": LOCAL_DB, "supabase_url": "https://ref.supabase.co", "cors_origins": "https://app.swolltech.com"}
+    base = {"database_url": LOCAL_DB, "neon_auth_base_url": AUTH_URL, "dev_jwt_secret": "", "cors_origins": "https://app.swolltech.com"}
     base.update(values)
     return Settings(_env_file=None, **base)
 
 
 @pytest.fixture
 def deployed(monkeypatch):
-    monkeypatch.setenv("FLY_APP_NAME", "swolltech-api")
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("VERCEL_ENV", "production")
 
 
 @pytest.fixture
 def local(monkeypatch):
-    monkeypatch.delenv("FLY_APP_NAME", raising=False)
-    monkeypatch.delenv("SWOLLTECH_DEPLOYED", raising=False)
+    for key in ("VERCEL", "VERCEL_ENV", "SWOLLTECH_DEPLOYED"):
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_vercel_is_recognised_as_deployed(local, monkeypatch):
+    assert not settings().is_deployed
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("VERCEL_ENV", "preview")
+    assert settings().is_deployed
+    monkeypatch.setenv("VERCEL_ENV", "development")  # `vercel dev` on a laptop
+    assert not settings().is_deployed
+    monkeypatch.delenv("VERCEL_ENV")
+    assert settings().is_deployed
+    monkeypatch.delenv("VERCEL")
+    monkeypatch.setenv("SWOLLTECH_DEPLOYED", "1")
+    assert settings().is_deployed
+
+
+def test_a_deploy_needs_neon_auth_and_no_dev_secret(deployed):
+    assert any("NEON_AUTH_BASE_URL" in problem for problem in settings(database_url=HOSTED_DB, neon_auth_base_url="", dev_jwt_secret="x" * 40).problems())
+    assert any("DEV_JWT_SECRET" in problem for problem in settings(database_url=HOSTED_DB, dev_jwt_secret="x" * 40).problems())
+
+
+def test_a_deploy_without_redis_warns(deployed):
+    assert any("Upstash" in warning for warning in settings(database_url=HOSTED_DB).warnings())
+    assert settings(database_url=HOSTED_DB, kv_rest_api_url="https://x.upstash.io", kv_rest_api_token="t").warnings() == []
 
 
 def test_a_good_production_config_has_no_problems(deployed):
@@ -36,20 +62,20 @@ def test_a_good_production_config_has_no_problems(deployed):
 
 
 def test_dev_tokens_work_only_locally_against_a_local_database(local, monkeypatch):
-    assert settings(dev_token_enabled=True).dev_tokens_allowed
-    assert settings(dev_token_enabled=True).problems() == []
-    hosted = settings(dev_token_enabled=True, database_url=HOSTED_DB)
+    assert settings(dev_token_enabled=True, dev_jwt_secret="x" * 40).dev_tokens_allowed
+    assert settings(dev_token_enabled=True, dev_jwt_secret="x" * 40).problems() == []
+    hosted = settings(dev_token_enabled=True, dev_jwt_secret="x" * 40, database_url=HOSTED_DB)
     assert not hosted.dev_tokens_allowed
     assert any("DEV_TOKEN_ENABLED" in problem for problem in hosted.problems())
-    monkeypatch.setenv("FLY_APP_NAME", "swolltech-api")
-    on_fly = settings(dev_token_enabled=True)
-    assert not on_fly.dev_tokens_allowed
-    assert any("DEV_TOKEN_ENABLED" in problem for problem in on_fly.problems())
+    monkeypatch.setenv("VERCEL", "1")
+    on_vercel = settings(dev_token_enabled=True, dev_jwt_secret="x" * 40)
+    assert not on_vercel.dev_tokens_allowed
+    assert any("DEV_TOKEN_ENABLED" in problem for problem in on_vercel.problems())
 
 
 def test_startup_refuses_missing_database_or_token_verification(local):
     assert "DATABASE_URL is not set" in settings(database_url="").problems()
-    assert any("verify tokens" in problem for problem in settings(supabase_url="", supabase_jwt_secret="", supabase_jwks_url="").problems())
+    assert any("verify tokens" in problem for problem in settings(neon_auth_base_url="", dev_jwt_secret="").problems())
 
 
 def test_a_deploy_must_name_its_web_origin(deployed):
@@ -61,19 +87,18 @@ def test_missing_ca_file_is_reported(local):
     assert any("DATABASE_SSL_ROOT_CERT" in problem for problem in settings(database_ssl_root_cert="/nope/ca.crt").problems())
 
 
-def test_hosted_database_is_verified_when_a_ca_is_given():
-    args = connect_args_for(HOSTED_DB, root_cert=ssl.get_default_verify_paths().cafile or "", command_timeout=15)
+def test_hosted_database_tls_is_always_verified():
+    args = connect_args_for(HOSTED_DB, command_timeout=15)
     assert args["command_timeout"] == 15
-    if ssl.get_default_verify_paths().cafile:
-        assert args["ssl"].verify_mode == ssl.CERT_REQUIRED
-        assert args["ssl"].check_hostname is True
+    assert args["ssl"].verify_mode == ssl.CERT_REQUIRED
+    assert args["ssl"].check_hostname is True
 
 
 @pytest.mark.asyncio
 async def test_dev_token_route_stays_closed_against_a_hosted_database(client, local):
     from swolltech.main import app
 
-    app.dependency_overrides[get_settings] = lambda: settings(dev_token_enabled=True, database_url=HOSTED_DB)
+    app.dependency_overrides[get_settings] = lambda: settings(dev_token_enabled=True, dev_jwt_secret="x" * 40, database_url=HOSTED_DB)
     try:
         response = await client.post("/v1/dev/token", json={"email": "victim@example.com"})
         assert response.status_code == 404

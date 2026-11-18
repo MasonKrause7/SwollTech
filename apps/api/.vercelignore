@@ -1,0 +1,10 @@
+.venv
+.env
+.env.*
+*.bak
+.coverage
+.pytest_cache
+__pycache__
+tests
+scripts
+migrations

@@ -26,6 +26,8 @@ async def lifespan(app: FastAPI):
     if problems:
         # Fail the deploy instead of serving traffic with an unsafe or broken config.
         raise RuntimeError("Refusing to start: " + "; ".join(problems))
+    for warning in settings.warnings():
+        logger.warning(warning)
     if settings.dev_token_enabled:
         logger.warning("DEV_TOKEN_ENABLED is on. Anyone can sign in as any email. Local use only.")
     yield
@@ -37,7 +39,7 @@ if settings.sentry_dsn:
     import sentry_sdk
 
     # Before the app is built so the FastAPI integration hooks in. No request bodies or IPs.
-    sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05, send_default_pii=False, release=os.environ.get("FLY_IMAGE_REF"))
+    sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05, send_default_pii=False, release=os.environ.get("VERCEL_GIT_COMMIT_SHA"), environment=os.environ.get("VERCEL_ENV", "local"))
 
 app = FastAPI(title="SwollTech", version="0.1.0", lifespan=lifespan)
 # The analytics log is large and repetitive JSON; gzip cuts it by roughly 90%.
@@ -45,6 +47,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1195,20 +1195,20 @@ async def confirm_upload(db, user_id, set_id, duration, storage, settings):
 
 
 async def delete_account(db: AsyncSession, user_id: UUID, storage, settings) -> None:
-    # The login goes first. If that fails the user still has an account and all their videos;
-    # deleting media first would leave a live account with its videos gone.
-    if settings.supabase_url and settings.service_role_key:
-        import httpx
+    """Close an account for good (App Store 5.1.1(v)): every training row, the Neon Auth
+    login (user, sessions and password via its cascades) and all set videos.
 
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                f"{settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
-                headers={"Authorization": f"Bearer {settings.service_role_key}", "apikey": settings.service_role_key},
-                timeout=20,
-            )
-        if response.status_code not in (200, 204, 404):
-            raise DomainError(502, "Could not delete the auth user")
-    else:
-        await db.execute(text("delete from auth.sessions where user_id = :id"), {"id": user_id})
-        await db.execute(text("delete from auth.users where id = :id"), {"id": user_id})
+    The database part is one transaction: either the login and all data go, or nothing
+    does. Videos are removed after that; a failure there is retried by calling again
+    (the tombstone keeps the account closed in the meantime)."""
+    await db.execute(text("select app_private.delete_user_data(:id)"), {"id": user_id})
+    await db.execute(
+        text("insert into public.deleted_accounts (user_id) values (:id) on conflict (user_id) do nothing"),
+        {"id": user_id},
+    )
+    # Neon Auth keeps its users in this same database. Deleting the row removes the
+    # login, its sessions and linked accounts (ON DELETE CASCADE), so no refresh is possible.
+    if await db.scalar(text("select to_regclass('neon_auth.\"user\"') is not null")):
+        await db.execute(text('delete from neon_auth."user" where id = :id'), {"id": user_id})
+    await db.flush()
     await asyncio.to_thread(storage.delete_prefix, f"users/{user_id}/")
