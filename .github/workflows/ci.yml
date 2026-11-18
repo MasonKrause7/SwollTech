@@ -99,7 +99,7 @@ jobs:
           EXPO_PUBLIC_NEON_AUTH_URL: https://ep-ci.neonauth.us-west-2.aws.neon.tech/neondb/auth
         run: npx expo export --platform ios --output-dir /tmp/expo-export
       - name: No high-severity vulnerabilities in shipped JS dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: node scripts/audit.mjs
       - name: No known vulnerabilities in API dependencies
         working-directory: apps/api
         run: uv export --no-dev --no-emit-project --format requirements-txt --no-hashes > /tmp/requirements.txt && uvx pip-audit -r /tmp/requirements.txt
