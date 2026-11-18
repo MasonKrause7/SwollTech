@@ -33,10 +33,13 @@ export interface PlannedSetInput {
 
 export function validatePlannedSet(input: PlannedSetInput): string | null {
   if (input.reps != null && (!Number.isInteger(input.reps) || input.reps < 1)) return "Reps must be a whole number of 1 or more";
+  if (input.reps != null && input.reps > 1000) return "Reps top out at 1000";
   if (input.weight != null && input.percent != null) return "Use a weight or a percent, not both";
   if (input.percent != null && (input.percent < 1 || input.percent > 120)) return "Percent must be between 1 and 120";
   if (input.weight != null && input.weight < 0) return "Weight cannot be negative";
+  if (input.weight != null && input.weight > 2000) return "Weight tops out at 2000";
   if (!Number.isFinite(input.restSeconds) || input.restSeconds < 0) return "Rest must be 0 seconds or more";
+  if (input.restSeconds > 3600) return "Keep rest under an hour";
   return null;
 }
 

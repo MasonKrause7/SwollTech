@@ -1,8 +1,18 @@
 import { deleteRow, loadAll, newId, saveRow, saveRows, type Notebook } from "./db";
 import type { ProfileRow, ScheduledWorkoutRow, SessionExerciseRow, SessionRow, SessionSetRow, Unit } from "./logic/rows";
 import { newPlans } from "./logic/schedule";
-import { blankSet, buildQuickSession, buildSessionFromWorkout, finishSession } from "./logic/session";
-import { nextPosition } from "./logic/workouts";
+import {
+  applyRest,
+  blankSet,
+  buildQuickSession,
+  buildSessionFromWorkout,
+  cleanNote,
+  finishSession,
+  insertWarmup,
+  replaceExercise,
+  type LocalData,
+} from "./logic/session";
+import { moveRow, nextPosition } from "./logic/workouts";
 import { syncNow } from "./sync";
 
 /** Write a new session and its planned sets to the phone. Returns the session id. */
@@ -50,6 +60,41 @@ export async function addSetToExercise(db: Notebook, sessionExerciseId: string, 
   const row = blankSet(sessionExerciseId, nextPosition(sets), newId, template);
   await saveRow(db, "session_sets", row);
   return row.id;
+}
+
+/** Move an exercise one place up or down in the session. */
+export async function moveSessionExercise(db: Notebook, siblings: SessionExerciseRow[], id: string, direction: -1 | 1) {
+  const changed = moveRow(siblings, id, direction);
+  if (changed.length) await saveRows(db, "session_exercises", changed);
+}
+
+/** Swap the lift, keeping planned sets and clearing anything logged on them. */
+export async function replaceSessionExercise(db: Notebook, data: LocalData, item: SessionExerciseRow, sets: SessionSetRow[], exerciseId: string, unit: Unit) {
+  const replaced = replaceExercise(data, item, sets, exerciseId, unit);
+  await saveRow(db, "session_exercises", replaced.exercise);
+  if (replaced.sets.length) await saveRows(db, "session_sets", replaced.sets);
+}
+
+/** Remove an exercise and its sets from the session. */
+export async function removeSessionExercise(db: Notebook, sessionExerciseId: string) {
+  await deleteRow(db, "session_exercises", sessionExerciseId);
+}
+
+/** Add a warm-up before the first working set. Returns the new set id. */
+export async function addWarmupSet(db: Notebook, sessionExerciseId: string, sets: SessionSetRow[], template: Partial<SessionSetRow> = {}) {
+  const { added, rows } = insertWarmup(sets, sessionExerciseId, newId, template);
+  await saveRows(db, "session_sets", rows);
+  return added.id;
+}
+
+/** Change the rest on every open set of an exercise. */
+export async function setExerciseRest(db: Notebook, sets: SessionSetRow[], seconds: number) {
+  const changed = applyRest(sets, seconds);
+  if (changed.length) await saveRows(db, "session_sets", changed);
+}
+
+export async function saveSessionDetails(db: Notebook, session: SessionRow, changes: { name: string; notes: string }) {
+  await saveRow(db, "sessions", { ...session, name: changes.name.trim(), notes: cleanNote(changes.notes) });
 }
 
 export async function completeSession(db: Notebook, session: SessionRow) {

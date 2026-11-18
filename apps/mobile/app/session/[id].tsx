@@ -1,5 +1,7 @@
 import {
+  DEFAULT_BAR,
   exerciseDone,
+  fromKilograms,
   formatClock,
   isDone,
   matchingPrevious,
@@ -14,20 +16,51 @@ import {
   type GuidePosition,
 } from "@swolltech/metrics";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { addExerciseToSession, addSetToExercise, completeSession } from "../../src/actions";
+import {
+  addExerciseToSession,
+  addSetToExercise,
+  addWarmupSet,
+  completeSession,
+  moveSessionExercise,
+  removeSessionExercise,
+  replaceSessionExercise,
+  saveSessionDetails,
+  setExerciseRest,
+} from "../../src/actions";
 import { ProgressBar } from "../../src/components/charts";
 import { ExercisePicker } from "../../src/components/ExercisePicker";
 import { PlateDiagram } from "../../src/components/PlateDiagram";
-import { Button, Chip, Row, Stepper, T } from "../../src/components/ui";
-import { deleteRow, queueVideo, saveRow } from "../../src/db";
+import { Button, Chip, Field, Row, Sheet, Stepper, T } from "../../src/components/ui";
+import { deleteRow, saveRow } from "../../src/db";
 import { pair, trim } from "../../src/format";
 import type { SessionSetRow, Unit } from "../../src/logic/rows";
-import { assembleSession, logSet, skipSet, validateSet, type SessionExerciseView } from "../../src/logic/session";
+import {
+  DEFAULT_REST_SECONDS,
+  MAX_REPS,
+  MAX_WEIGHT,
+  NOTE_LIMIT,
+  REST_CHOICES,
+  SESSION_NAME_LIMIT,
+  assembleSession,
+  clampReps,
+  clampWeight,
+  convertWeight,
+  exerciseRow,
+  isBarbell,
+  logSet,
+  previousNote,
+  recordFor,
+  restLabel,
+  skipSet,
+  startingWeight,
+  validateSessionName,
+  validateSet,
+  type SessionExerciseView,
+} from "../../src/logic/session";
 import { useNotebook } from "../../src/notebook";
 import { cancelRest, startRest } from "../../src/timer";
 import { fonts, radius, space, useTheme } from "../../src/theme";
@@ -50,6 +83,16 @@ function targetText(set: SessionSetRow) {
   if (set.target_weight != null) return `${trim(Number(set.target_weight), 2)} ${set.target_unit ?? ""} × ${set.target_reps ?? "?"}`;
   if (set.target_percent != null) return `${reps ?? "Reps open"} at ${Number(set.target_percent)}%. Set a training max to get a weight`;
   return reps;
+}
+
+/** Where to land once the notebook reloads after a change. */
+interface Pending {
+  exerciseId: string;
+  /** Land on this set once it exists. */
+  setId?: string;
+  setIndex?: number;
+  /** Wait until this exercise is gone (after removing it). */
+  gone?: string;
 }
 
 interface Rest {
@@ -80,9 +123,18 @@ export default function SessionScreen() {
   const [editing, setEditing] = useState(false);
   const [rest, setRest] = useState<Rest | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [picking, setPicking] = useState(false);
+  const [picking, setPicking] = useState<"add" | "replace" | null>(null);
   const [saving, setSaving] = useState(false);
-  const pendingAdvance = useRef<{ exerciseId: string } | null>(null);
+  const [limit, setLimit] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [record, setRecord] = useState<string | null>(null);
+  const [options, setOptions] = useState(false);
+  const [details, setDetails] = useState(false);
+  const [nameText, setNameText] = useState("");
+  const [sessionNote, setSessionNote] = useState("");
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const pendingAdvance = useRef<Pending | null>(null);
 
   // Pick the first open set when the session loads.
   useEffect(() => {
@@ -90,15 +142,35 @@ export default function SessionScreen() {
     setPosition(nextPosition(view.exercises) ?? (view.exercises.length ? { exerciseIndex: 0, setIndex: 0 } : null));
   }, [view, position]);
 
-  // A set or exercise was added: jump to it once its row lands.
+  // A set or exercise was added, moved or removed: land on it once the change shows up.
   useEffect(() => {
-    if (!view || !pendingAdvance.current) return;
-    const index = view.exercises.findIndex((row) => row.id === pendingAdvance.current!.exerciseId);
-    if (index < 0) return;
+    const pending = pendingAdvance.current;
+    if (!view || !pending) return;
+    if (pending.gone && view.exercises.some((row) => row.id === pending.gone)) return;
+    const index = view.exercises.findIndex((row) => row.id === pending.exerciseId);
+    if (index < 0) {
+      if (pending.gone) {
+        pendingAdvance.current = null;
+        setPosition(nextPosition(view.exercises) ?? (view.exercises.length ? { exerciseIndex: 0, setIndex: 0 } : null));
+      }
+      return;
+    }
+    const sets = view.exercises[index].sets;
+    let setIndex = pending.setIndex ?? Math.max(0, sets.length - 1);
+    if (pending.setId) {
+      setIndex = sets.findIndex((row) => row.id === pending.setId);
+      if (setIndex < 0) return;
+    }
     pendingAdvance.current = null;
-    setPosition({ exerciseIndex: index, setIndex: Math.max(0, view.exercises[index].sets.length - 1) });
+    setPosition({ exerciseIndex: index, setIndex: Math.min(setIndex, Math.max(0, sets.length - 1)) });
     setEditing(false);
   }, [view]);
+
+  useEffect(() => {
+    if (!record) return;
+    const timer = setTimeout(() => setRecord(null), 8000);
+    return () => clearTimeout(timer);
+  }, [record]);
 
   useEffect(() => {
     if (!notice) return;
@@ -113,12 +185,17 @@ export default function SessionScreen() {
   useEffect(() => {
     if (!exercise || !position) return;
     const values = prefill(exercise, position.setIndex, unit);
-    setWeightText(values.weight != null ? trim(values.weight, 2) : "");
+    // A barbell lift you have never done starts at the empty bar.
+    const start = current && current.completed_at == null ? startingWeight(values.weight, exercise.equipment, values.unit) : values.weight;
+    setWeightText(start != null ? trim(start, 2) : "");
     setRepsText(values.reps != null ? String(values.reps) : "");
     setSetUnit(values.unit);
     setRpe(values.rpe);
+    setNoteText(current?.notes ?? "");
+    setNoteOpen(Boolean(current?.notes));
     setError(null);
-  }, [exercise?.id, position?.setIndex, current?.id]);
+    setLimit(null);
+  }, [exercise?.id, exercise?.exercise_id, position?.setIndex, current?.id]);
 
   useEffect(() => {
     if (!rest) return;
@@ -153,6 +230,54 @@ export default function SessionScreen() {
   const showForm = Boolean(current) && (!exerciseFinished || editing || done);
   const upcoming = position ? nextAfter(exercises, position) : null;
   const nextExercise = upcoming && upcoming.exerciseIndex !== position?.exerciseIndex ? exercises[upcoming.exerciseIndex] : null;
+  const barbell = exercise ? isBarbell(exercise.equipment) : false;
+  const lastNote = exercise && position ? previousNote(exercise, position.setIndex) : null;
+  const siblings = exercises.map((row) => exerciseRow(session.id, row));
+
+  function changeWeight(text: string) {
+    const clamped = clampWeight(parseAmount(text));
+    if (clamped.message) {
+      setWeightText(String(MAX_WEIGHT));
+      setLimit(`${clamped.message}.`);
+    } else {
+      setWeightText(text);
+      setLimit(null);
+    }
+  }
+
+  function changeReps(text: string) {
+    const clamped = clampReps(parseAmount(text));
+    if (clamped.message) {
+      setRepsText(String(MAX_REPS));
+      setLimit(`${clamped.message}.`);
+    } else {
+      setRepsText(text);
+      setLimit(null);
+    }
+  }
+
+  function stepWeight(direction: -1 | 1) {
+    if (weightValue == null && barbell) return setWeightText(trim(DEFAULT_BAR[setUnit], 2));
+    const next = Math.min(MAX_WEIGHT, Math.max(0, (weightValue ?? 0) + direction * weightStep(setUnit)));
+    setWeightText(trim(next, 2));
+    setLimit(null);
+  }
+
+  function changeUnit(to: Unit) {
+    if (to === setUnit) return;
+    if (weightValue != null) {
+      const converted = Math.min(MAX_WEIGHT, convertWeight(weightValue, setUnit, to, barbell));
+      setWeightText(trim(converted, 2));
+    }
+    setSetUnit(to);
+  }
+
+  async function beginRest(seconds: number) {
+    if (rest) await cancelRest(rest.notificationId);
+    const scheduled = await startRest(seconds);
+    setNow(Date.now());
+    setRest({ until: scheduled.until, total: seconds, notificationId: scheduled.notificationId });
+  }
 
   function moveTo(next: GuidePosition) {
     setPosition(next);
@@ -185,9 +310,10 @@ export default function SessionScreen() {
     }
     const from = position;
     const wasDone = current.completed_at != null;
+    const best = exercise && !done ? recordFor(exercise, current.id, { weight: weightValue!, reps: reps!, unit: setUnit, kind: current.kind }) : null;
     setSaving(true);
     try {
-      await saveRow(db, "session_sets", logSet(current, { weight: weightValue!, reps: reps!, unit: setUnit, rpe }, new Date()));
+      await saveRow(db, "session_sets", logSet(current, { weight: weightValue!, reps: reps!, unit: setUnit, rpe, notes: noteText }, new Date()));
     } catch {
       setError("That set did not save. Try again.");
       return;
@@ -195,17 +321,16 @@ export default function SessionScreen() {
       setSaving(false);
     }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    if (best != null && exercise) {
+      setRecord(`New record on ${exercise.exercise_name}: estimated 1RM ${trim(fromKilograms(best, setUnit), 1)} ${setUnit}`);
+    }
     if (wasDone || done) {
       setEditing(false);
       return;
     }
     advance(from);
     const remaining = overall.total - overall.done - 1;
-    if (current.rest_seconds > 0 && remaining > 0) {
-      const scheduled = await startRest(current.rest_seconds);
-      setNow(Date.now());
-      setRest({ until: scheduled.until, total: current.rest_seconds, notificationId: scheduled.notificationId });
-    }
+    if (current.rest_seconds > 0 && remaining > 0) await beginRest(current.rest_seconds);
   }
 
   async function skip() {
@@ -227,23 +352,78 @@ export default function SessionScreen() {
     await addSetToExercise(db, exercise.id, exercise.sets, nextSetTemplate(exercise, unit));
   }
 
-  async function removeSet() {
-    if (!db || !current || !exercise || !position) return;
-    await deleteRow(db, "session_sets", current.id);
-    moveTo({ exerciseIndex: position.exerciseIndex, setIndex: Math.max(0, position.setIndex - 1) });
+  async function addWarmup() {
+    if (!db || !exercise) return;
+    const template = exercise.sets.find((row) => row.kind === "warmup");
+    const setId = await addWarmupSet(db, exercise.id, exercise.sets, {
+      target_reps: template?.target_reps ?? null,
+      target_weight: template?.target_weight ?? null,
+      target_unit: template?.target_unit ?? null,
+    });
+    pendingAdvance.current = { exerciseId: exercise.id, setId };
   }
 
-  async function film() {
-    if (!db || !current) return;
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Camera is off", "Allow camera access in Settings to film your sets.");
-      return;
-    }
-    const picked = await ImagePicker.launchCameraAsync({ mediaTypes: ["videos"], videoMaxDuration: 60 });
-    if (picked.canceled || !picked.assets[0]) return;
-    await queueVideo(db, current.id, picked.assets[0].uri, picked.assets[0].mimeType || "video/mp4");
-    Alert.alert("Video saved", "It uploads the next time you sync.");
+  function removeSet() {
+    if (!db || !current || !exercise || !position) return;
+    const from = position;
+    const go = async () => {
+      await deleteRow(db, "session_sets", current.id);
+      moveTo({ exerciseIndex: from.exerciseIndex, setIndex: Math.max(0, from.setIndex - 1) });
+    };
+    if (current.completed_at == null) return void go();
+    Alert.alert("Delete this logged set?", `${pair(current.actual_weight, current.actual_unit, current.actual_reps)} will be removed from this workout.`, [
+      { text: "Keep it", style: "cancel" },
+      { text: "Delete set", style: "destructive", onPress: () => void go() },
+    ]);
+  }
+
+  async function moveExercise(direction: -1 | 1) {
+    if (!db || !exercise || !position) return;
+    setOptions(false);
+    const target = { exerciseId: exercise.id, setIndex: position.setIndex };
+    await moveSessionExercise(db, siblings, exercise.id, direction);
+    // Set after the write: the notebook reloads a moment later, and we follow the exercise to its new place.
+    pendingAdvance.current = target;
+  }
+
+  function removeExercise() {
+    if (!db || !exercise) return;
+    const target = exercise;
+    const logged = target.sets.filter((row) => row.completed_at != null).length;
+    Alert.alert(
+      `Remove ${target.exercise_name}?`,
+      logged ? `Its ${logged} logged ${logged === 1 ? "set" : "sets"} will be deleted from this workout.` : "Its sets will be removed from this workout.",
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setOptions(false);
+            const neighbour = exercises[position!.exerciseIndex + 1] ?? exercises[position!.exerciseIndex - 1];
+            pendingAdvance.current = neighbour
+              ? { exerciseId: neighbour.id, setIndex: nextInExercise(neighbour) ?? Math.max(0, neighbour.sets.length - 1), gone: target.id }
+              : { exerciseId: target.id, gone: target.id };
+            await removeSessionExercise(db, target.id);
+          },
+        },
+      ],
+    );
+  }
+
+  function openDetails() {
+    setNameText(session.name);
+    setSessionNote(session.notes ?? "");
+    setDetailsError(null);
+    setDetails(true);
+  }
+
+  async function saveDetails() {
+    if (!db) return;
+    const problem = validateSessionName(nameText);
+    if (problem) return setDetailsError(problem);
+    await saveSessionDetails(db, session, { name: nameText, notes: sessionNote });
+    setDetails(false);
   }
 
   function finish() {
@@ -312,9 +492,18 @@ export default function SessionScreen() {
         <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.sm }}>
           <Row style={{ justifyContent: "space-between" }}>
             <Button label="Close" kind="ghost" compact onPress={() => router.back()} />
-            <T variant="label" numberOfLines={1} style={{ flex: 1, textAlign: "center" }}>
-              {session.name}
-            </T>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${session.name}. Rename or add a session note`}
+              onPress={openDetails}
+              hitSlop={8}
+              style={{ flex: 1, alignItems: "center" }}
+              testID="session-details"
+            >
+              <T variant="label" numberOfLines={1} style={{ textAlign: "center", color: theme.text }}>
+                {session.name} ✎
+              </T>
+            </Pressable>
             {done ? (
               <Button label="Summary" kind="ghost" compact onPress={() => router.replace({ pathname: "/summary/[id]", params: { id: session.id } })} />
             ) : (
@@ -343,7 +532,16 @@ export default function SessionScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 accessibilityLabel={`${item.exercise_name}, ${p.done} of ${p.total} sets done`}
+                accessibilityHint={done ? undefined : "Long press for exercise options"}
                 onPress={() => moveTo({ exerciseIndex: index, setIndex: nextInExercise(item) ?? Math.max(0, item.sets.length - 1) })}
+                onLongPress={
+                  done
+                    ? undefined
+                    : () => {
+                        moveTo({ exerciseIndex: index, setIndex: nextInExercise(item) ?? Math.max(0, item.sets.length - 1) });
+                        setOptions(true);
+                      }
+                }
                 style={{
                   minHeight: 56,
                   paddingHorizontal: space.md,
@@ -366,7 +564,7 @@ export default function SessionScreen() {
           {!done ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => setPicking(true)}
+              onPress={() => setPicking("add")}
               style={{ minHeight: 56, paddingHorizontal: space.md, borderRadius: radius.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.line, justifyContent: "center" }}
             >
               <Text style={{ color: theme.muted, fontFamily: fonts.bodySemi, lineHeight: 18 }}>Add exercise</Text>
@@ -382,11 +580,19 @@ export default function SessionScreen() {
             </View>
           ) : null}
 
+          {record ? (
+            <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", gap: space.sm, alignItems: "center", padding: space.md, borderRadius: radius.md, borderWidth: 2, borderColor: theme.highlight, backgroundColor: theme.raised }}>
+              <Text style={{ color: theme.highlight, fontFamily: fonts.display, fontSize: 20 }}>PR</Text>
+              <T style={{ flex: 1 }}>{record}</T>
+            </View>
+          ) : null}
+
           {allLogged && !done ? (
             <View style={{ gap: space.sm, padding: space.lg, borderRadius: radius.lg, borderWidth: 1.5, borderColor: theme.ok, backgroundColor: theme.raised }}>
               <T variant="heading">Every set is logged</T>
               <T variant="muted">Finish to save this workout to your history.</T>
               <Button label="Finish workout" onPress={finish} testID="finish-all" />
+              <Button label={session.notes ? "Edit name and note" : "Name it or add a note"} kind="secondary" onPress={openDetails} />
             </View>
           ) : null}
 
@@ -394,12 +600,27 @@ export default function SessionScreen() {
             <View style={{ gap: space.md }}>
               <T variant="heading">Add your first exercise</T>
               <T variant="muted">Pick what you are lifting and log sets as you go.</T>
-              <Button label="Add exercise" onPress={() => setPicking(true)} />
+              <Button label="Add exercise" onPress={() => setPicking("add")} />
             </View>
           ) : (
             <>
               <View style={{ gap: 2 }}>
-                <Text style={{ color: theme.text, fontFamily: fonts.display, fontSize: 38, lineHeight: 42 }}>{exercise.exercise_name}</Text>
+                <Row style={{ alignItems: "flex-start" }}>
+                  <Text style={{ flex: 1, color: theme.text, fontFamily: fonts.display, fontSize: 38, lineHeight: 42 }}>{exercise.exercise_name}</Text>
+                  {!done ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${exercise.exercise_name} options`}
+                      onPress={() => setOptions(true)}
+                      hitSlop={8}
+                      testID="exercise-options"
+                      style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: radius.md, borderWidth: 1.5, borderColor: theme.line }}
+                    >
+                      <Text style={{ color: theme.text, fontFamily: fonts.display, fontSize: 22, lineHeight: 24 }}>⋯</Text>
+                    </Pressable>
+                  ) : null}
+                </Row>
+                {exercise.notes ? <T variant="muted">{exercise.notes}</T> : null}
                 {showForm && current ? (
                   <Row>
                     <T variant="heading" style={{ color: current.completed_at ? theme.ok : current.kind === "warmup" ? theme.muted : theme.highlight }}>
@@ -434,29 +655,48 @@ export default function SessionScreen() {
                   <View style={{ gap: 2 }}>
                     {target ? <T>Plan: {target}</T> : null}
                     <T variant="muted">Last time: {last ? `${pair(last.actual_weight, last.actual_unit, last.actual_reps)}${last.rpe ? ` at RPE ${last.rpe}` : ""}` : "nothing logged yet"}</T>
+                    {lastNote ? <T variant="small">Last note: {lastNote}</T> : null}
                   </View>
 
                   <Row gap={space.md}>
                     <Stepper
                       label="Weight"
                       value={weightText}
-                      onChange={setWeightText}
+                      onChange={changeWeight}
                       suffix={setUnit}
                       testID="weight"
-                      onStep={(direction) => setWeightText(trim(Math.max(0, (weightValue ?? 0) + direction * weightStep(setUnit)), 2))}
+                      onStep={stepWeight}
                     />
                   </Row>
                   <Row gap={space.md}>
                     <Stepper
                       label="Reps"
                       value={repsText}
-                      onChange={setRepsText}
+                      onChange={changeReps}
                       keyboardType="number-pad"
                       testID="reps"
-                      onStep={(direction) => setRepsText(String(Math.max(0, (parseAmount(repsText) ?? 0) + direction)))}
+                      onStep={(direction) => {
+                        setRepsText(String(Math.min(MAX_REPS, Math.max(0, Math.round(parseAmount(repsText) ?? 0) + direction))));
+                        setLimit(null);
+                      }}
                     />
                   </Row>
 
+                  {limit ? <T variant="small">{limit}</T> : null}
+                  {noteOpen ? (
+                    <Field
+                      label="Note for this set"
+                      value={noteText}
+                      onChangeText={(text) => setNoteText(text.slice(0, NOTE_LIMIT))}
+                      placeholder="Felt fast, grip slipped, paused reps"
+                      maxLength={NOTE_LIMIT}
+                      multiline
+                      testID="set-note"
+                      style={{ minHeight: 64, paddingTop: 10 }}
+                    />
+                  ) : (
+                    <Button label="Add note" kind="ghost" compact onPress={() => setNoteOpen(true)} style={{ alignSelf: "flex-start" }} testID="add-note" />
+                  )}
                   {error ? <T style={{ color: theme.danger }}>{error}</T> : null}
                   {!done || current.completed_at ? (
                     <Button
@@ -469,8 +709,8 @@ export default function SessionScreen() {
                   ) : null}
 
                   <Row>
-                    <Chip label="lb" selected={setUnit === "lb"} onPress={() => setSetUnit("lb")} />
-                    <Chip label="kg" selected={setUnit === "kg"} onPress={() => setSetUnit("kg")} />
+                    <Chip label="lb" selected={setUnit === "lb"} onPress={() => changeUnit("lb")} />
+                    <Chip label="kg" selected={setUnit === "kg"} onPress={() => changeUnit("kg")} />
                   </Row>
                   <View style={{ gap: space.xs }}>
                     <Row style={{ justifyContent: "space-between" }}>
@@ -493,12 +733,38 @@ export default function SessionScreen() {
                     </Row>
                   </View>
 
-                  <PlateDiagram weight={weightValue} unit={setUnit} />
+                  {barbell ? <PlateDiagram weight={weightValue} unit={setUnit} /> : null}
+
+                  {!done ? (
+                    <View style={{ gap: space.xs }}>
+                      <T variant="label">Rest after each set</T>
+                      <Row gap={6} style={{ flexWrap: "wrap" }}>
+                        {REST_CHOICES.map((seconds) => (
+                          <Chip
+                            key={seconds}
+                            small
+                            label={restLabel(seconds)}
+                            selected={current.rest_seconds === seconds}
+                            onPress={() => db && void setExerciseRest(db, exercise.sets, seconds)}
+                            testID={`rest-${seconds}`}
+                          />
+                        ))}
+                      </Row>
+                      <T variant="small">Applies to the sets you have not logged yet.</T>
+                    </View>
+                  ) : null}
 
                   {!done ? (
                     <Row>
                       {!current.completed_at && !current.skipped ? <Button label="Skip set" kind="ghost" compact onPress={() => void skip()} style={{ flex: 1 }} /> : null}
-                      <Button label="Film set" kind="ghost" compact onPress={() => void film()} style={{ flex: 1 }} />
+                      <Button
+                        label={`Start rest (${restLabel(current.rest_seconds > 0 ? current.rest_seconds : DEFAULT_REST_SECONDS)})`}
+                        kind="ghost"
+                        compact
+                        onPress={() => void beginRest(current.rest_seconds > 0 ? current.rest_seconds : DEFAULT_REST_SECONDS)}
+                        style={{ flex: 1 }}
+                        testID="start-rest"
+                      />
                     </Row>
                   ) : null}
                 </>
@@ -546,9 +812,14 @@ export default function SessionScreen() {
                       >
                         {logged ? <Text style={{ color: theme.bg, fontFamily: fonts.display, fontSize: 13, lineHeight: 15 }}>✓</Text> : null}
                       </View>
-                      <T variant={logged || selected ? "body" : "muted"} style={{ flex: 1 }}>
-                        {setLabel(exercise, index)}
-                      </T>
+                        <View style={{ flex: 1, paddingVertical: 4 }}>
+                        <T variant={logged || selected ? "body" : "muted"}>{setLabel(exercise, index)}</T>
+                        {set.notes ? (
+                          <T variant="small" numberOfLines={1}>
+                            {set.notes}
+                          </T>
+                        ) : null}
+                      </View>
                       <Text
                         style={{
                           color: logged ? theme.text : theme.muted,
@@ -562,11 +833,16 @@ export default function SessionScreen() {
                     </Pressable>
                   );
                 })}
-                {!done && !exerciseFinished ? (
-                  <Row style={{ marginTop: space.xs }}>
-                    <Button label="Add set" kind="ghost" compact onPress={() => void addSet()} style={{ flex: 1 }} />
-                    {current && !current.completed_at ? <Button label="Remove set" kind="ghost" compact onPress={() => void removeSet()} style={{ flex: 1 }} /> : null}
+                {!done ? (
+                  <Row style={{ marginTop: space.xs, flexWrap: "wrap" }}>
+                    {!exerciseFinished ? <Button label="Add set" kind="ghost" compact onPress={() => void addSet()} style={{ flexGrow: 1 }} /> : null}
+                    <Button label="Add warm-up" kind="ghost" compact onPress={() => void addWarmup()} style={{ flexGrow: 1 }} testID="add-warmup" />
+                    {current && showForm ? (
+                      <Button label={current.completed_at ? "Delete set" : "Remove set"} kind="ghost" compact onPress={removeSet} style={{ flexGrow: 1 }} testID="remove-set" />
+                    ) : null}
                   </Row>
+                ) : current && showForm && current.completed_at ? (
+                  <Button label="Delete set" kind="ghost" compact onPress={removeSet} style={{ marginTop: space.xs }} />
                 ) : null}
               </View>
             </>
@@ -585,6 +861,7 @@ export default function SessionScreen() {
             {formatClock((rest.until - now) / 1000)}
           </Text>
           <ProgressBar fraction={1 - Math.max(0, rest.until - now) / (rest.total * 1000)} />
+          {record ? <T style={{ color: theme.highlight }}>{record}</T> : null}
           {nextUp ? <T variant="muted">Up next: {nextUp}</T> : null}
           <Row>
             <Button label="Add 30 seconds" kind="secondary" onPress={() => void addTime()} style={{ flex: 1 }} />
@@ -594,15 +871,72 @@ export default function SessionScreen() {
       ) : null}
 
       <ExercisePicker
-        visible={picking}
+        visible={picking != null}
         exercises={data?.exercises ?? []}
-        onClose={() => setPicking(false)}
+        onClose={() => setPicking(null)}
         onPick={async (picked) => {
-          setPicking(false);
-          const itemId = await addExerciseToSession(db, session.id, picked.id, exercises.map((row) => ({ id: row.id, session_id: session.id, exercise_id: row.exercise_id, position: row.position, notes: "" })));
+          const mode = picking;
+          setPicking(null);
+          if (mode === "replace" && exercise && data) {
+            if (picked.id === exercise.exercise_id) return;
+            await replaceSessionExercise(db, data, exerciseRow(session.id, exercise), exercise.sets, picked.id, unit);
+            pendingAdvance.current = { exerciseId: exercise.id, setIndex: 0 };
+            setRecord(null);
+            return;
+          }
+          const itemId = await addExerciseToSession(db, session.id, picked.id, siblings);
           pendingAdvance.current = { exerciseId: itemId };
         }}
       />
+
+      <Sheet visible={options} onClose={() => setOptions(false)} title={exercise ? exercise.exercise_name : "Exercise options"}>
+        <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.sm, paddingBottom: 48 }}>
+          <Button label="Move up" kind="secondary" disabled={!position || position.exerciseIndex === 0} onPress={() => void moveExercise(-1)} testID="move-up" />
+          <Button
+            label="Move down"
+            kind="secondary"
+            disabled={!position || position.exerciseIndex >= exercises.length - 1}
+            onPress={() => void moveExercise(1)}
+            testID="move-down"
+          />
+          <Button
+            label="Add a warm-up set"
+            kind="secondary"
+            onPress={() => {
+              setOptions(false);
+              void addWarmup();
+            }}
+          />
+          <Button
+            label="Replace exercise"
+            kind="secondary"
+            onPress={() => {
+              setOptions(false);
+              setPicking("replace");
+            }}
+            testID="replace-exercise"
+          />
+          <T variant="small">Replacing keeps the planned sets and clears anything logged on them.</T>
+          <Button label="Remove exercise" kind="danger" onPress={removeExercise} style={{ marginTop: space.md }} testID="remove-exercise" />
+        </ScrollView>
+      </Sheet>
+
+      <Sheet visible={details} onClose={() => setDetails(false)} title="Session">
+        <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+          <Field label="Name" value={nameText} onChangeText={setNameText} maxLength={SESSION_NAME_LIMIT} error={detailsError} testID="session-name" />
+          <Field
+            label="Session note"
+            value={sessionNote}
+            onChangeText={(text) => setSessionNote(text.slice(0, NOTE_LIMIT))}
+            placeholder="Sleep, energy, anything worth remembering"
+            maxLength={NOTE_LIMIT}
+            multiline
+            testID="session-note"
+            style={{ minHeight: 96, paddingTop: 12 }}
+          />
+          <Button label="Save" onPress={() => void saveDetails()} testID="save-session-details" />
+        </ScrollView>
+      </Sheet>
     </View>
   );
 }
