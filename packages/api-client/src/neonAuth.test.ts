@@ -73,4 +73,31 @@ describe("NeonAuth", () => {
     const auth = new NeonAuth("/api/auth", { fetch: fetchMock as unknown as typeof fetch });
     expect(await auth.signUp("a@b.co", "longpassword", "A")).toEqual({ error: null, signedIn: false, email: "a@b.co", userId: "u" });
   });
+
+  it("tells an outage from a lost session", async () => {
+    let status = 503;
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ message: "down" }), { status }));
+    const auth = new NeonAuth("/api/auth", { fetch: fetchMock as unknown as typeof fetch });
+    await expect(auth.getToken()).rejects.toThrow(/unavailable/);
+    await expect(auth.getSession()).rejects.toThrow(/unavailable/);
+    status = 401;
+    expect(await auth.getToken()).toBeNull();
+    expect(await auth.getSession()).toBeNull();
+  });
+
+  it("drops a cached token but keeps the session", async () => {
+    const store = memoryStore();
+    store.value = "cookie";
+    let issued = 0;
+    const fetchMock = vi.fn(async () => {
+      issued += 1;
+      return new Response(JSON.stringify({ token: `${jwt(Math.floor(Date.now() / 1000) + 900)}${issued}` }), { status: 200 });
+    });
+    const auth = new NeonAuth("https://auth.example", { sessionStore: store, fetch: fetchMock as unknown as typeof fetch });
+    const first = await auth.getToken();
+    auth.dropToken();
+    const second = await auth.getToken();
+    expect(second).not.toBe(first);
+    expect(store.value).toBe("cookie");
+  });
 });

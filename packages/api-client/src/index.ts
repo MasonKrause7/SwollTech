@@ -243,6 +243,8 @@ export interface SyncMutation {
 
 export interface SyncResult {
   cursor: number;
+  /** More changes are waiting after this cursor (only when a limit was sent). */
+  has_more?: boolean;
   applied: { client_mutation_id: string; status: string; detail?: string | null; server_row?: Record<string, unknown> | null }[];
   changes: { id: number; entity: string; entity_id: string; op: string; row: Record<string, unknown> | null }[];
 }
@@ -260,8 +262,16 @@ export class ApiError extends Error {
 export interface ClientOptions {
   baseUrl: string;
   getToken: () => string | null | Promise<string | null>;
-  /** Called once per 401 so the app can sign the user out. */
+  /**
+   * Called after the API refuses a token: drop any cached token and return a fresh one (or
+   * null if there is no session any more). The request is retried once with it, so a stale
+   * or clock-skewed token does not look like a lost session.
+   */
+  refreshToken?: () => string | null | Promise<string | null>;
+  /** Called when a request is still refused after the refresh, so the app can ask the user to sign in again. */
   onUnauthorized?: () => void;
+  /** Called when no token can be had at all (the session expired), so the app can ask the user to sign in again. */
+  onNoToken?: () => void;
   fetch?: typeof fetch;
 }
 
@@ -274,13 +284,25 @@ function query(params: Record<string, string | undefined | null>) {
 export function createClient(options: ClientOptions) {
   const base = options.baseUrl.replace(/\/$/, "");
 
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  async function send(path: string, init: RequestInit, token: string | null): Promise<Response> {
     const headers = new Headers(init.headers);
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-    const token = await options.getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
     const doFetch = options.fetch ?? fetch;
-    const response = await doFetch(`${base}${path}`, { ...init, headers });
+    return doFetch(`${base}${path}`, { ...init, headers });
+  }
+
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    let token = await options.getToken();
+    if (!token) options.onNoToken?.();
+    let response = await send(path, init, token);
+    if (response.status === 401 && token && options.refreshToken) {
+      // Once: a fresh token from the session. A second 401 means the session really is gone.
+      await response.body?.cancel().catch(() => undefined);
+      token = await options.refreshToken();
+      if (token) response = await send(path, init, token);
+      else options.onNoToken?.();
+    }
     if (response.status === 204) return undefined as T;
     const body = await response.json().catch(() => ({}));
     if (response.status === 401 && token) options.onUnauthorized?.();
@@ -371,7 +393,7 @@ export function createClient(options: ClientOptions) {
       ),
     confirmMedia: (setId: string) =>
       request<Media>(`/v1/session-sets/${setId}/media/confirm`, { method: "POST", body: JSON.stringify({}) }),
-    sync: (body: { cursor: number; mutations: SyncMutation[] }) =>
+    sync: (body: { cursor: number; mutations: SyncMutation[]; limit?: number }) =>
       request<SyncResult>("/v1/sync", { method: "POST", body: JSON.stringify(body) }),
   };
 }
