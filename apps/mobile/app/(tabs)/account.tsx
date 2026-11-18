@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Linking } from "react-native";
 import { saveProfile } from "../../src/actions";
 import { api } from "../../src/api";
 import { useAuth } from "../../src/auth";
+import { webUrl } from "../../src/session";
 import { Button, Card, Chip, Field, Row, Screen, SyncPill, T } from "../../src/components/ui";
 import { describeSync } from "../../src/logic/status";
 import { useNotebook } from "../../src/notebook";
@@ -76,11 +77,19 @@ export default function Account() {
         <Button label="Sync now" kind="secondary" onPress={() => void syncNow()} busy={state.kind === "syncing"} />
       </Card>
 
+      <Card>
+        <T variant="heading">Help and legal</T>
+        <Button label="Privacy Policy" kind="secondary" onPress={() => void Linking.openURL(`${webUrl}/privacy`)} />
+        <Button label="Terms of Use" kind="secondary" onPress={() => void Linking.openURL(`${webUrl}/terms`)} />
+        <Button label="Support" kind="secondary" onPress={() => void Linking.openURL(`${webUrl}/support`)} />
+        <T variant="small">Questions? support@everydaytechllc.com</T>
+      </Card>
+
       <Button label="Sign out" kind="secondary" onPress={confirmSignOut} />
 
       <Card style={{ borderColor: theme.danger }}>
         <T variant="heading">Delete account</T>
-        <T variant="muted">This permanently removes your workouts, sessions and videos from SwollTech. It cannot be undone.</T>
+        <T variant="muted">This permanently removes your login, workouts, sessions and videos from SwollTech. It cannot be undone.</T>
         <Field label="Type DELETE to confirm" value={confirm} onChangeText={setConfirm} autoCapitalize="characters" error={error} />
         <Button label="Delete account" kind="danger" onPress={() => void deleteAccount()} busy={deleting} disabled={confirm !== "DELETE"} />
       </Card>

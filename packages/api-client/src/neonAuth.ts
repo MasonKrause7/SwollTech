@@ -118,16 +118,16 @@ export class NeonAuth {
     }
   }
 
-  async signUp(email: string, password: string, name: string): Promise<{ error: string | null; signedIn: boolean; email: string | null }> {
+  async signUp(email: string, password: string, name: string): Promise<{ error: string | null; signedIn: boolean; email: string | null; userId?: string }> {
     const response = await this.call("/sign-up/email", { body: { email, password, name: name || email.split("@")[0] } });
     const body = (await this.json(response)) as { token?: string | null; user?: NeonUser } | null;
     if (!response.ok) return { error: messageFrom(body, "Could not create the account."), signedIn: false, email: null };
     this.token = null;
     // With email verification required, Neon Auth returns no session until the link is opened.
-    return { error: null, signedIn: Boolean(body?.token), email: body?.user?.email ?? email };
+    return { error: null, signedIn: Boolean(body?.token), email: body?.user?.email ?? email, ...(body?.user?.id ? { userId: body.user.id } : {}) };
   }
 
-  async signIn(email: string, password: string): Promise<{ error: string | null; email: string | null }> {
+  async signIn(email: string, password: string): Promise<{ error: string | null; email: string | null; userId?: string }> {
     const response = await this.call("/sign-in/email", { body: { email, password } });
     const body = (await this.json(response)) as { user?: NeonUser } | null;
     if (!response.ok) {
@@ -135,7 +135,7 @@ export class NeonAuth {
       return { error: messageFrom(body, "Sign-in failed. Try again."), email: null };
     }
     this.token = null;
-    return { error: null, email: body?.user?.email ?? email };
+    return { error: null, email: body?.user?.email ?? email, ...(body?.user?.id ? { userId: body.user.id } : {}) };
   }
 
   async getSession(): Promise<NeonSession | null> {

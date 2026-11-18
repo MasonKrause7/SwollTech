@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { devLoginEnabled } from "../src/api";
+import { devLoginEnabled, missingReleaseConfig } from "../src/api";
 import { art } from "../src/art";
 import { useAuth } from "../src/auth";
 import { Wordmark } from "../src/components/brand";
@@ -59,8 +59,9 @@ export default function SignIn() {
           <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" textContentType="password" onSubmitEditing={submit} />
           {error ? <T style={{ color: theme.danger }}>{error}</T> : null}
           {!configured && !devLoginEnabled ? (
-            <T variant="small">Sign in is not set up in this build. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.</T>
+            <T variant="small">Sign in is not set up in this build. Set EXPO_PUBLIC_NEON_AUTH_URL.</T>
           ) : null}
+          {missingReleaseConfig.length ? <T variant="small" style={{ color: theme.danger }}>This build is missing {missingReleaseConfig.join(", ")}.</T> : null}
           <Button label="Sign in" onPress={submit} busy={busy} testID="sign-in" />
           {devLoginEnabled ? <Button label="Continue with local account" kind="secondary" onPress={local} disabled={busy} /> : null}
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: space.sm }}>

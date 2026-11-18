@@ -13,11 +13,23 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://swolltech-api-git-launch-v1-mason-krauses-projects.vercel.app",
+        "EXPO_PUBLIC_NEON_AUTH_URL": "https://ep-broad-math-bf1uc14x.neonauth.c-5.us-west-2.aws.neon.tech/neondb/auth",
+        "EXPO_PUBLIC_WEB_URL": "https://swolltech.com",
+        "EXPO_PUBLIC_DEV_LOGIN": "false"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.swolltech.com",
+        "EXPO_PUBLIC_NEON_AUTH_URL": "https://ep-broad-math-bf1uc14x.neonauth.c-5.us-west-2.aws.neon.tech/neondb/auth",
+        "EXPO_PUBLIC_WEB_URL": "https://swolltech.com",
+        "EXPO_PUBLIC_DEV_LOGIN": "false"
+      }
     }
   },
   "submit": {

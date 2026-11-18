@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, devLoginEnabled, onUnauthorized } from "./api";
 import { clearNotebook, getMeta, openNotebook, setMeta } from "./db";
-import { getDevToken, setDevToken, supabase } from "./supabase";
+import { getDevToken, neonAuth, setDevToken, webUrl } from "./session";
 import { resetSyncState, syncNow } from "./sync";
 
 type Status = "loading" | "signed-in" | "signed-out";
@@ -53,12 +53,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     (async () => {
-      if (supabase) {
-        const { data } = await supabase.auth.getSession();
-        if (!active) return;
-        if (data.session) {
-          await enter(data.session.user.id, data.session.user.email ?? null);
-          return;
+      if (neonAuth) {
+        // The stored session cookie is checked with Neon Auth; offline, the notebook's
+        // owner is trusted so the app still opens at the gym with no signal.
+        const owner = await getMeta(await openNotebook(), "owner");
+        try {
+          const session = await neonAuth.getSession();
+          if (!active) return;
+          if (session) {
+            await enter(session.user.id, session.user.email ?? null);
+            return;
+          }
+        } catch {
+          if (owner && active) {
+            await enter(owner, null);
+            return;
+          }
         }
       }
       if (devLoginEnabled) {
@@ -71,24 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (active) setStatus("signed-out");
     })();
-    const subscription = supabase?.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        void leave();
-      } else if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
-        void enter(session.user.id, session.user.email ?? null);
-      }
-    });
     return () => {
       active = false;
-      subscription?.data.subscription.unsubscribe();
     };
-  }, [enter, leave]);
+  }, [enter]);
 
   useEffect(() => {
     onUnauthorized(() => {
       // A 401 with a token means the session is gone (for example the account was deleted).
-      if (supabase) void supabase.auth.signOut();
-      else void leave();
+      void (async () => {
+        if (neonAuth) await neonAuth.forget();
+        await leave();
+      })();
     });
     return () => onUnauthorized(null);
   }, [leave]);
@@ -98,22 +102,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       userId,
       email,
-      configured: Boolean(supabase),
+      configured: Boolean(neonAuth),
       async signIn(address, password) {
-        if (!supabase) return "Sign in is not set up in this build.";
-        const { error } = await supabase.auth.signInWithPassword({ email: address.trim(), password });
-        return error ? error.message : null;
+        if (!neonAuth) return "Sign in is not set up in this build.";
+        try {
+          const result = await neonAuth.signIn(address.trim(), password);
+          if (result.error) return result.error;
+          const session = result.userId ? null : await neonAuth.getSession();
+          const id = result.userId ?? session?.user.id;
+          if (!id) return "Signed in, but the session could not be stored. Try again.";
+          await enter(id, result.email);
+          return null;
+        } catch {
+          return "Could not reach SwollTech. Check your connection.";
+        }
       },
       async signUp(address, password) {
-        if (!supabase) return { error: "Sign up is not set up in this build.", needsConfirmation: false };
-        const { data, error } = await supabase.auth.signUp({ email: address.trim(), password });
-        if (error) return { error: error.message, needsConfirmation: false };
-        return { error: null, needsConfirmation: !data.session };
+        if (!neonAuth) return { error: "Sign up is not set up in this build.", needsConfirmation: false };
+        try {
+          const result = await neonAuth.signUp(address.trim(), password, "");
+          if (result.error) return { error: result.error, needsConfirmation: false };
+          if (result.signedIn && result.userId) await enter(result.userId, result.email);
+          return { error: null, needsConfirmation: !result.signedIn };
+        } catch {
+          return { error: "Could not reach SwollTech. Check your connection.", needsConfirmation: false };
+        }
       },
       async resetPassword(address) {
-        if (!supabase) return "Password reset is not set up in this build.";
-        const { error } = await supabase.auth.resetPasswordForEmail(address.trim());
-        return error ? error.message : null;
+        if (!neonAuth) return "Password reset is not set up in this build.";
+        try {
+          // The link opens the web app, where the new password is chosen.
+          return await neonAuth.requestPasswordReset(address.trim(), `${webUrl}/update-password`);
+        } catch {
+          return "Could not reach SwollTech. Check your connection.";
+        }
       },
       async devSignIn(address) {
         if (!devLoginEnabled) return "Local sign in is off.";
@@ -127,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
       async signOut() {
-        if (supabase) await supabase.auth.signOut();
+        if (neonAuth) await neonAuth.signOut().catch(() => undefined);
         await leave();
       },
     }),

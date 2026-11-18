@@ -40,7 +40,7 @@ describe("NeonAuth", () => {
       return new Response(JSON.stringify({ token: jwt(Math.floor(Date.now() / 1000) + 900) }), { status: 200 });
     });
     const auth = new NeonAuth("https://auth.example/neondb/auth/", { sessionStore: store, origin: "https://swolltech.com", fetch: fetchMock as unknown as typeof fetch });
-    expect(await auth.signIn("a@b.co", "pw")).toEqual({ error: null, email: "a@b.co" });
+    expect(await auth.signIn("a@b.co", "pw")).toEqual({ error: null, email: "a@b.co", userId: "u1" });
     expect(store.value).toBe("signed.value");
     const token = await auth.getToken();
     expect(token).toMatch(/\.sig$/);
@@ -71,6 +71,6 @@ describe("NeonAuth", () => {
   it("signs up without a session when email verification is required", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ token: null, user: { id: "u", email: "a@b.co" } }), { status: 200 }));
     const auth = new NeonAuth("/api/auth", { fetch: fetchMock as unknown as typeof fetch });
-    expect(await auth.signUp("a@b.co", "longpassword", "A")).toEqual({ error: null, signedIn: false, email: "a@b.co" });
+    expect(await auth.signUp("a@b.co", "longpassword", "A")).toEqual({ error: null, signedIn: false, email: "a@b.co", userId: "u" });
   });
 });

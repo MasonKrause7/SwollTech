@@ -26,13 +26,26 @@
           "microphonePermission": "SwollTech records audio with set videos.",
           "photosPermission": false
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0F1011",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#0F1011",
+            "image": "./assets/images/icon.png"
+          }
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": false
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.swolltech.app",
       "infoPlist": {
         "NSCameraUsageDescription": "SwollTech uses the camera so you can film a set and check your form.",
@@ -48,9 +61,9 @@
         "backgroundColor": "#0F1011"
       },
       "permissions": [
-        "CAMERA",
-        "RECORD_AUDIO",
-        "POST_NOTIFICATIONS"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "versionCode": 1
     },
@@ -59,6 +72,17 @@
     },
     "runtimeVersion": {
       "policy": "appVersion"
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "0107cdd3-5d7c-4dc5-83a1-45789356c1ab"
+      }
+    },
+    "owner": "masonkrause"
   }
 }
