@@ -1,24 +1,12 @@
--- SwollTech notebook schema. The API connects as the table owner and scopes
--- every query by the JWT subject. RLS is on with no policies so the Data API
--- roles cannot read training data.
+-- SwollTech notebook schema (Neon Postgres). The API connects as the table owner
+-- and scopes every query by the verified Neon Auth user id (the JWT subject, a uuid).
+-- Users live in Neon Auth's own neon_auth schema; nothing here references it, so the
+-- schema also runs on a plain Postgres for tests. RLS is on with no policies so no
+-- other database role (for example a Data API role) can read training data.
 
-do $$
-begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then
-    create role anon nologin;
-  end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
-    create role authenticated nologin;
-  end if;
-  if not exists (select 1 from pg_roles where rolname = 'service_role') then
-    create role service_role nologin bypassrls;
-  end if;
-end
-$$;
 
 create schema if not exists app_private;
 revoke all on schema app_private from public;
-revoke all on schema app_private from anon, authenticated;
 
 create type public.weight_unit as enum ('lb', 'kg');
 create type public.set_kind as enum ('warmup', 'working');
@@ -26,7 +14,7 @@ create type public.session_status as enum ('in_progress', 'completed', 'abandone
 create type public.media_status as enum ('local', 'uploading', 'ready', 'failed');
 
 create table public.profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
+  id uuid primary key,
   display_name text not null default '',
   unit_preference public.weight_unit not null default 'lb',
   created_at timestamptz not null default now(),
@@ -36,7 +24,7 @@ create table public.profiles (
 
 create table public.exercises (
   id uuid primary key default gen_random_uuid(),
-  owner_id uuid references auth.users (id) on delete cascade,
+  owner_id uuid,
   name text not null,
   primary_muscle text not null default '',
   equipment text not null default '',
@@ -64,7 +52,7 @@ create table public.catalog_meta (
 
 create table public.exercise_references (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null,
   exercise_id uuid not null references public.exercises (id),
   weight numeric(10, 3) not null,
   unit public.weight_unit not null,
@@ -84,7 +72,7 @@ create index exercise_references_exercise_idx
 
 create table public.workouts (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null,
   name text not null,
   notes text not null default '',
   archived_at timestamptz,
@@ -154,7 +142,7 @@ create index workout_sets_user_idx on public.workout_sets (user_id);
 
 create table public.sessions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null,
   workout_id uuid references public.workouts (id),
   name text not null default '',
   status public.session_status not null default 'in_progress',
@@ -262,7 +250,7 @@ create index set_media_user_idx on public.set_media (user_id);
 
 create table public.sync_changes (
   id bigint generated always as identity primary key,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null,
   entity text not null,
   entity_id uuid not null,
   op text not null check (op in ('upsert', 'delete')),
@@ -273,7 +261,7 @@ create index sync_changes_user_cursor_idx on public.sync_changes (user_id, id);
 
 create table public.applied_mutations (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null,
   client_mutation_id uuid not null,
   created_at timestamptz not null default now()
 );
@@ -341,54 +329,8 @@ begin
 end;
 $$;
 
-create function app_private.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-begin
-  insert into public.profiles (id, display_name)
-  values (
-    new.id,
-    coalesce(
-      nullif(new.raw_user_meta_data ->> 'display_name', ''),
-      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
-      ''
-    )
-  )
-  on conflict (id) do nothing;
-  return new;
-end;
-$$;
-
-create function app_private.delete_user_data()
-returns trigger
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-begin
-  delete from public.set_media where user_id = old.id;
-  delete from public.session_sets where user_id = old.id;
-  delete from public.session_exercises where user_id = old.id;
-  delete from public.sessions where user_id = old.id;
-  delete from public.workout_sets where user_id = old.id;
-  delete from public.workout_exercises where user_id = old.id;
-  delete from public.workouts where user_id = old.id;
-  delete from public.exercise_references where user_id = old.id;
-  delete from public.exercises where owner_id = old.id;
-  delete from public.profiles where id = old.id;
-  delete from public.sync_changes where user_id = old.id;
-  delete from public.applied_mutations where user_id = old.id;
-  return old;
-end;
-$$;
-
-revoke all on function app_private.set_updated_at() from public, anon, authenticated;
-revoke all on function app_private.record_sync() from public, anon, authenticated;
-revoke all on function app_private.handle_new_user() from public, anon, authenticated;
-revoke all on function app_private.delete_user_data() from public, anon, authenticated;
+revoke all on function app_private.set_updated_at() from public;
+revoke all on function app_private.record_sync() from public;
 
 create trigger profiles_set_updated_at before insert or update on public.profiles
   for each row execute function app_private.set_updated_at();
@@ -439,14 +381,6 @@ create trigger set_media_set_updated_at before insert or update on public.set_me
   for each row execute function app_private.set_updated_at();
 create trigger set_media_record_sync after insert or update or delete on public.set_media
   for each row execute function app_private.record_sync();
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function app_private.handle_new_user();
-
-create trigger before_auth_user_delete
-  before delete on auth.users
-  for each row execute function app_private.delete_user_data();
 
 insert into public.exercises (id, owner_id, name, primary_muscle, equipment) values
   ('df00b70c-0d32-5048-8e57-2e8af0f85e22', null, 'Back Squat', 'quads', 'barbell'),
@@ -513,7 +447,71 @@ begin
   ]
   loop
     execute format('alter table public.%I enable row level security', tbl);
-    execute format('revoke all on table public.%I from public, anon, authenticated, service_role', tbl);
+    execute format('revoke all on table public.%I from public', tbl);
   end loop;
 end
 $$;
+
+-- Planned workouts on the calendar. One row is one workout on one local day.
+-- Whether it was done is derived from sessions on that day, so nothing here
+-- changes when a session starts or finishes.
+
+create table public.scheduled_workouts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  workout_id uuid not null references public.workouts (id),
+  scheduled_on date not null,
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  constraint scheduled_workouts_notes_len check (char_length(notes) <= 500)
+);
+
+create index scheduled_workouts_user_day_idx
+  on public.scheduled_workouts (user_id, scheduled_on)
+  where deleted_at is null;
+create index scheduled_workouts_workout_idx
+  on public.scheduled_workouts (workout_id);
+
+create trigger scheduled_workouts_set_updated_at before insert or update on public.scheduled_workouts
+  for each row execute function app_private.set_updated_at();
+create trigger scheduled_workouts_record_sync after insert or update or delete on public.scheduled_workouts
+  for each row execute function app_private.record_sync();
+
+alter table public.scheduled_workouts enable row level security;
+revoke all on table public.scheduled_workouts from public;
+
+-- Accounts that were closed. Holds no personal data, only the id, so a token issued
+-- before the deletion (valid up to 15 minutes) cannot quietly recreate the profile.
+create table public.deleted_accounts (
+  user_id uuid primary key,
+  deleted_at timestamptz not null default now()
+);
+alter table public.deleted_accounts enable row level security;
+revoke all on table public.deleted_accounts from public;
+
+-- Removes every row a user owns. Called by the API when an account is closed.
+create function app_private.delete_user_data(uid uuid)
+returns void
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+  delete from public.set_media where user_id = uid;
+  delete from public.session_sets where user_id = uid;
+  delete from public.session_exercises where user_id = uid;
+  delete from public.sessions where user_id = uid;
+  delete from public.scheduled_workouts where user_id = uid;
+  delete from public.workout_sets where user_id = uid;
+  delete from public.workout_exercises where user_id = uid;
+  delete from public.workouts where user_id = uid;
+  delete from public.exercise_references where user_id = uid;
+  delete from public.exercises where owner_id = uid;
+  delete from public.profiles where id = uid;
+  delete from public.sync_changes where user_id = uid;
+  delete from public.applied_mutations where user_id = uid;
+end;
+$$;
+
+revoke all on function app_private.delete_user_data(uuid) from public;

@@ -10,7 +10,7 @@ services:
     ports:
       - "54329:5432"
     volumes:
-      - ./supabase/test-db-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./apps/api/tests/test-db-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 2s
