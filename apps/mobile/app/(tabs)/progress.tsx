@@ -2,6 +2,7 @@ import { buildOverview, deviceTimeZone, fromKilograms, localDay } from "@swollte
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { View } from "react-native";
+import { AnalyzeCard } from "../../src/components/Analyze";
 import { BarChart, Heatmap, SplitBars } from "../../src/components/charts";
 import { Card, Empty, Row, Screen, Stat, T } from "../../src/components/ui";
 import { shortDate, volume, weight } from "../../src/format";
@@ -20,13 +21,10 @@ export default function Progress() {
   const { data, unit } = useNotebook();
   const { state } = useSyncState();
   const zone = deviceTimeZone();
-  const overview = useMemo(() => {
-    if (!data) return null;
-    const { sessions, sets } = statLog(data);
-    return buildOverview(sessions, sets, new Date(), zone);
-  }, [data, zone]);
+  const log = useMemo(() => (data ? statLog(data) : null), [data]);
+  const overview = useMemo(() => (log ? buildOverview(log.sessions, log.sets, new Date(), zone) : null), [log, zone]);
 
-  if (!overview) return <Screen>{null}</Screen>;
+  if (!overview || !log) return <Screen>{null}</Screen>;
   const { totals } = overview;
 
   if (totals.sessions === 0) {
@@ -51,6 +49,8 @@ export default function Progress() {
           {totals.sessions} sessions and {volume(totals.volumeKg, unit)} lifted in total.
         </T>
       </Card>
+
+      <AnalyzeCard sessions={log.sessions} sets={log.sets} unit={unit} timeZone={zone} />
 
       <Card>
         <T variant="heading">Weekly volume</T>

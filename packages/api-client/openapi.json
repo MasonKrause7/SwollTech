@@ -1660,6 +1660,29 @@
     }
    }
   },
+  "/v1/stats/log": {
+   "get": {
+    "summary": "Get Stats Log",
+    "operationId": "get_stats_log_v1_stats_log_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StatsLogOut"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
   "/v1/sessions/{session_id}/exercises": {
    "post": {
     "summary": "Post Session Exercise",
@@ -2520,6 +2543,66 @@
     },
     "type": "object",
     "title": "HTTPValidationError"
+   },
+   "LogSessionOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "started_at"
+    ],
+    "title": "LogSessionOut"
+   },
+   "LogSetOut": {
+    "properties": {
+     "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Session Id"
+     },
+     "exercise_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Exercise Id"
+     },
+     "exercise_name": {
+      "type": "string",
+      "title": "Exercise Name"
+     },
+     "muscle": {
+      "type": "string",
+      "title": "Muscle"
+     },
+     "weight_kg": {
+      "type": "number",
+      "title": "Weight Kg"
+     },
+     "reps": {
+      "type": "integer",
+      "title": "Reps"
+     }
+    },
+    "type": "object",
+    "required": [
+     "session_id",
+     "exercise_id",
+     "exercise_name",
+     "muscle",
+     "weight_kg",
+     "reps"
+    ],
+    "title": "LogSetOut"
    },
    "MediaConfirmIn": {
     "properties": {
@@ -4250,6 +4333,31 @@
      "working"
     ],
     "title": "SetKind"
+   },
+   "StatsLogOut": {
+    "properties": {
+     "sessions": {
+      "items": {
+       "$ref": "#/components/schemas/LogSessionOut"
+      },
+      "type": "array",
+      "title": "Sessions"
+     },
+     "sets": {
+      "items": {
+       "$ref": "#/components/schemas/LogSetOut"
+      },
+      "type": "array",
+      "title": "Sets"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sessions",
+     "sets"
+    ],
+    "title": "StatsLogOut",
+    "description": "Every completed session and counted working set, for charts the client builds itself."
    },
    "StatsTotals": {
     "properties": {

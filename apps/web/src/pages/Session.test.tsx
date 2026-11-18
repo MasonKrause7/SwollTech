@@ -178,10 +178,42 @@ describe("guided session", () => {
     const { api } = setup();
     await screen.findByTestId("focus-exercise");
     await user.click(screen.getByTestId("finish-session"));
-    expect(screen.getByText("3 sets still open. They will not count toward your stats.")).toBeInTheDocument();
+    expect(await screen.findByText("3 sets still open. They will not count toward your stats.")).toBeInTheDocument();
     await user.click(screen.getByTestId("confirm"));
     await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/sessions/s1/summary"));
     expect(api.updateSession).toHaveBeenCalledWith("s1", { status: "completed" });
+  });
+
+  it("waits for the last set to save before finishing, so it counts and no prompt appears", async () => {
+    const user = userEvent.setup();
+    const single = benchSession();
+    single.exercises = [{ ...single.exercises[0], sets: [single.exercises[0].sets[1]] }];
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const order: string[] = [];
+    const saved = { ...single.exercises[0].sets[0], actual_weight: 185, actual_unit: "lb" as const, actual_reps: 5, completed_at: "2026-10-25T12:10:00Z" };
+    const done = { ...single, exercises: [{ ...single.exercises[0], sets: [saved] }] };
+    const { api } = setup(single, {
+      session: vi.fn(async () => (order.includes("set saved") ? done : single)),
+      updateSessionSet: vi.fn(async () => {
+        await gate;
+        order.push("set saved");
+        return saved;
+      }),
+      updateSession: vi.fn(async () => {
+        order.push("finished");
+        return { ...done, status: "completed" };
+      }),
+    });
+    await screen.findByTestId("focus-exercise");
+    await user.click(screen.getByTestId("done-0"));
+    await user.click(screen.getByTestId("finish-session"));
+    expect(screen.getByTestId("finish-session")).toBeDisabled();
+    expect(api.updateSession).not.toHaveBeenCalled();
+    release();
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/sessions/s1/summary"));
+    expect(order).toEqual(["set saved", "finished"]);
+    expect(screen.queryByText(/still open/)).not.toBeInTheDocument();
   });
 
   it("shows a finished session read-only", async () => {

@@ -443,6 +443,27 @@ class ExerciseStat(BaseModel):
     last_performed_at: datetime
 
 
+class LogSessionOut(BaseModel):
+    id: UUID
+    started_at: datetime
+
+
+class LogSetOut(BaseModel):
+    session_id: UUID
+    exercise_id: UUID
+    exercise_name: str
+    muscle: str
+    weight_kg: float
+    reps: int
+
+
+class StatsLogOut(BaseModel):
+    """Every completed session and counted working set, for charts the client builds itself."""
+
+    sessions: list[LogSessionOut]
+    sets: list[LogSetOut]
+
+
 class OverviewOut(BaseModel):
     totals: StatsTotals
     weekly: list[WeeklyStat]

@@ -35,6 +35,7 @@ jobs:
           TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/swolltech_test
         run: |
           uv sync
+          MIGRATION_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/swolltech_test uv run python -m scripts.migrate
           uv run pytest --cov --cov-report=term --cov-fail-under=80
 
   js:
@@ -51,10 +52,62 @@ jobs:
       - run: npm run test:js
       - run: npm run build -w @swolltech/web
 
+  release:
+    name: Release checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: API contract matches the routes
+        working-directory: apps/api
+        run: |
+          uv sync
+          uv run python -c "import json; from swolltech.main import app; json.dump(app.openapi(), open('/tmp/openapi.json','w'))"
+          python3 -c "import json,sys; a=json.load(open('/tmp/openapi.json')); b=json.load(open('../../packages/api-client/openapi.json')); sys.exit(0 if a==b else 'openapi.json is stale: regenerate it (see README)')"
+      - name: API refuses an unsafe config on Vercel
+        working-directory: apps/api
+        env:
+          VERCEL: "1"
+          VERCEL_ENV: production
+          DATABASE_URL: postgresql://x:y@ep-ci-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require
+          NEON_AUTH_BASE_URL: https://ep-ci.neonauth.us-west-2.aws.neon.tech/neondb/auth
+          CORS_ORIGINS: https://swolltech.com
+          DEV_TOKEN_ENABLED: "true"
+          DEV_JWT_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+        run: |
+          uv run python - <<'PY'
+          import asyncio
+          from swolltech.main import app, lifespan
+          async def main():
+              try:
+                  async with lifespan(app):
+                      raise SystemExit("API started with DEV_TOKEN_ENABLED on Vercel")
+              except RuntimeError as exc:
+                  assert "Refusing to start" in str(exc), exc
+                  print("ok:", exc)
+          asyncio.run(main())
+          PY
+      - name: Phone release bundle builds
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.test
+          EXPO_PUBLIC_NEON_AUTH_URL: https://ep-ci.neonauth.us-west-2.aws.neon.tech/neondb/auth
+        run: npx expo export --platform ios --output-dir /tmp/expo-export
+      - name: No high-severity vulnerabilities in shipped JS dependencies
+        run: node scripts/audit.mjs
+      - name: No known vulnerabilities in API dependencies
+        working-directory: apps/api
+        run: uv export --no-dev --no-emit-project --format requirements-txt --no-hashes > /tmp/requirements.txt && uvx pip-audit -r /tmp/requirements.txt
+
   e2e:
     name: End-to-end (web)
     runs-on: ubuntu-latest
-    needs: [api, js]
+    needs: [api, js, release]
     services:
       postgres:
         image: postgres:16

@@ -3,20 +3,22 @@ from pathlib import Path
 
 import psycopg
 
-ROOT = Path(__file__).resolve().parents[3]
-MIGRATIONS = ROOT / "supabase" / "migrations"
+MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
+# A stand-in for the part of Neon Auth's neon_auth schema the API touches, so account
+# deletion is exercised end to end. On Neon the real schema is managed by Neon Auth.
 PRELUDE = """
-create schema if not exists auth;
-create table if not exists auth.users (
+create schema if not exists neon_auth;
+create table if not exists neon_auth."user" (
   id uuid primary key,
-  email text,
-  raw_user_meta_data jsonb not null default '{}'::jsonb
+  name text not null default '',
+  email text not null
 );
-create table if not exists auth.sessions (
+create table if not exists neon_auth.session (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users (id) on delete cascade
+  "userId" uuid not null references neon_auth."user" (id) on delete cascade
 );
 """
+HOSTED_MARKERS = ("supabase.co", "pooler.supabase.com", "neon.tech")
 
 
 def split_sql(script: str) -> list[str]:
@@ -77,12 +79,12 @@ def split_sql(script: str) -> list[str]:
 
 
 def apply_schema(dsn: str) -> None:
-    if "supabase.co" in dsn or "pooler.supabase.com" in dsn:
-        raise RuntimeError("Refusing to rebuild a Supabase database.")
+    if any(marker in dsn for marker in HOSTED_MARKERS):
+        raise RuntimeError("Refusing to rebuild a hosted database.")
     migration = "\n".join(path.read_text() for path in sorted(MIGRATIONS.glob("*.sql")))
     with psycopg.connect(dsn, autocommit=True) as conn:
         conn.execute("drop schema if exists public cascade")
-        conn.execute("drop schema if exists auth cascade")
+        conn.execute("drop schema if exists neon_auth cascade")
         conn.execute("drop schema if exists app_private cascade")
         conn.execute("create schema public")
         conn.execute("grant all on schema public to public")

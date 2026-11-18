@@ -1,18 +1,24 @@
-import { createClient as createSupabase, type SupabaseClient } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createClient, type ApiClient } from "@swolltech/api-client";
+import { createClient, NeonAuth, type ApiClient } from "@swolltech/api-client";
 
 const DEV_TOKEN_KEY = "swolltech.dev-token";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const supabase: SupabaseClient | null =
-  supabaseUrl && supabaseKey
-    ? createSupabase(supabaseUrl, supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
-    : null;
-export const devLoginEnabled = import.meta.env.VITE_DEV_LOGIN === "true";
+/**
+ * Neon Auth (Better Auth) is reached through this site's own origin at /api/auth
+ * (a proxy function, apps/web/api/neon-auth.ts, on Vercel; a Vite proxy in dev), so its session cookie is
+ * first-party and survives Safari's third-party cookie blocking.
+ */
+const authBase = import.meta.env.VITE_AUTH_BASE || "/api/auth";
+export const neonAuth: NeonAuth | null = import.meta.env.VITE_NEON_AUTH_URL || import.meta.env.VITE_AUTH_BASE ? new NeonAuth(authBase) : null;
+// Dev sign-in never ships: a production bundle ignores the flag even if it was set.
+export const devLoginEnabled = import.meta.env.VITE_DEV_LOGIN === "true" && !import.meta.env.PROD;
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+function resetTokenFromUrl(): string | null {
+  if (typeof window === "undefined" || window.location.pathname !== "/update-password") return null;
+  return new URLSearchParams(window.location.search).get("token");
+}
 
 export interface AuthValue {
   signedIn: boolean;
@@ -53,33 +59,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const devToken = useRef<string | null>(devLoginEnabled ? readDevToken() : null);
   const [signedIn, setSignedIn] = useState(Boolean(devToken.current));
   const [email, setEmail] = useState<string | null>(null);
-  const [ready, setReady] = useState(!supabase);
-  const [recovering, setRecovering] = useState(false);
+  const [ready, setReady] = useState(!neonAuth || Boolean(devToken.current));
+  const resetToken = useRef<string | null>(resetTokenFromUrl());
+  const [recovering, setRecovering] = useState(Boolean(resetToken.current));
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!neonAuth || devToken.current) return;
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      if (data.session) {
-        setSignedIn(true);
-        setEmail(data.session.user.email ?? null);
-      }
-      setReady(true);
-    });
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") setRecovering(true);
-      if (session) {
-        setSignedIn(true);
-        setEmail(session.user.email ?? null);
-      } else if (!devToken.current) {
-        setSignedIn(false);
-        setEmail(null);
-      }
-    });
+    neonAuth
+      .getSession()
+      .then((session) => {
+        if (!active) return;
+        if (session) {
+          setSignedIn(true);
+          setEmail(session.user.email ?? null);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setReady(true);
+      });
     return () => {
       active = false;
-      data.subscription.unsubscribe();
     };
   }, []);
 
@@ -90,7 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signingOut.current = (async () => {
       devToken.current = null;
       writeDevToken(null);
-      if (supabase) await supabase.auth.signOut({ scope }).catch(() => undefined);
+      // "local" (after a 401) only forgets this browser's token; "global" ends the session.
+      if (neonAuth) await (scope === "global" ? neonAuth.signOut() : Promise.resolve(neonAuth.forget())).catch(() => undefined);
       setSignedIn(false);
       setEmail(null);
       setRecovering(false);
@@ -110,9 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         baseUrl: apiUrl,
         getToken: async () => {
           if (devToken.current) return devToken.current;
-          if (!supabase) return null;
-          const { data } = await supabase.auth.getSession();
-          return data.session?.access_token ?? null;
+          if (!neonAuth) return null;
+          return neonAuth.getToken();
         },
         onUnauthorized: () => {
           // The API rejected the token: drop this browser's session only.
@@ -131,30 +132,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api,
       signOut,
       async signInWithPassword(address, password) {
-        if (!supabase) return "Sign-in is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.";
-        const { error } = await supabase.auth.signInWithPassword({ email: address, password });
-        return error ? error.message : null;
+        if (!neonAuth) return "Sign-in is not configured. Set VITE_NEON_AUTH_URL.";
+        const result = await neonAuth.signIn(address, password);
+        if (result.error) return result.error;
+        setEmail(result.email);
+        setSignedIn(true);
+        return null;
       },
       async signUp(address, password, displayName) {
-        if (!supabase) return { error: "Sign-up is not configured.", needsConfirmation: false };
-        const { data, error } = await supabase.auth.signUp({
-          email: address,
-          password,
-          options: { data: { display_name: displayName }, emailRedirectTo: `${window.location.origin}/` },
-        });
-        if (error) return { error: error.message, needsConfirmation: false };
-        return { error: null, needsConfirmation: !data.session };
+        if (!neonAuth) return { error: "Sign-up is not configured.", needsConfirmation: false };
+        const result = await neonAuth.signUp(address, password, displayName);
+        if (result.error) return { error: result.error, needsConfirmation: false };
+        if (result.signedIn) {
+          setEmail(result.email);
+          setSignedIn(true);
+        }
+        return { error: null, needsConfirmation: !result.signedIn };
       },
       async requestReset(address) {
-        if (!supabase) return "Password reset is not configured.";
-        const { error } = await supabase.auth.resetPasswordForEmail(address, { redirectTo: `${window.location.origin}/update-password` });
-        return error ? error.message : null;
+        if (!neonAuth) return "Password reset is not configured.";
+        return neonAuth.requestPasswordReset(address, `${window.location.origin}/update-password`);
       },
       async updatePassword(password) {
-        if (!supabase) return "Password reset is not configured.";
-        const { error } = await supabase.auth.updateUser({ password });
-        if (!error) setRecovering(false);
-        return error ? error.message : null;
+        if (!neonAuth) return "Password reset is not configured.";
+        if (!resetToken.current) return "This reset link is missing its code. Request a new one.";
+        const failure = await neonAuth.resetPassword(resetToken.current, password);
+        if (!failure) {
+          resetToken.current = null;
+          setRecovering(false);
+        }
+        return failure;
       },
       async devSignIn(address) {
         const result = await api.devToken(address, address.split("@")[0]);

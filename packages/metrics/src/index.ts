@@ -57,3 +57,4 @@ export * from "./stats";
 export * from "./plates";
 export * from "./guide";
 export * from "./schedule";
+export * from "./analytics";

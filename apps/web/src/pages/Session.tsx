@@ -55,6 +55,29 @@ export function SessionPage() {
   const [notice, setNotice] = useState("");
   const [editing, setEditing] = useState(false);
   const placed = useRef(false);
+  /** Set saves still in flight. Finishing waits for them so the last set always counts. */
+  const saving = useRef(new Set<Promise<unknown>>());
+  const [settling, setSettling] = useState(false);
+
+  function track<T>(work: Promise<T>): Promise<T> {
+    saving.current.add(work);
+    const done = () => saving.current.delete(work);
+    work.then(done, done);
+    return work;
+  }
+
+  async function requestFinish() {
+    setSettling(true);
+    try {
+      while (saving.current.size) await Promise.allSettled([...saving.current]);
+    } finally {
+      setSettling(false);
+    }
+    const latest = queryClient.getQueryData<Session>(keys.session(sessionId));
+    const counts = latest ? progress(latest.exercises) : null;
+    if (counts && counts.done < counts.total) setConfirming("finish");
+    else finish.mutate();
+  }
 
   useEffect(() => {
     if (!notice) return;
@@ -150,12 +173,12 @@ export function SessionPage() {
       return;
     }
     try {
-      const updated = await api.updateSessionSet(
+      const updated = await track(api.updateSessionSet(
         currentSet.id,
         skip
           ? { skipped: true }
           : { actual_weight: weight, actual_unit: values.unit, actual_reps: reps, rpe: values.rpe, skipped: false, completed: true },
-      );
+      ));
       const next = patchSet(updated);
       const more = next ? nextAfter(next.exercises, position) != null : false;
       if (!skip && !currentSet.completed_at && currentSet.rest_seconds > 0 && more) setRestUntil(Date.now() + currentSet.rest_seconds * 1000);
@@ -169,7 +192,7 @@ export function SessionPage() {
 
   async function undo(set: SessionSet) {
     try {
-      const updated = await api.updateSessionSet(set.id, set.skipped ? { skipped: false } : { completed: false });
+      const updated = await track(api.updateSessionSet(set.id, set.skipped ? { skipped: false } : { completed: false }));
       patchSet(updated);
     } catch (err) {
       setError(errorMessage(err));
@@ -231,8 +254,8 @@ export function SessionPage() {
               <button
                 className={tally.done >= tally.total ? "btn primary" : "btn"}
                 data-testid="finish-session"
-                onClick={() => (tally.done < tally.total ? setConfirming("finish") : finish.mutate())}
-                disabled={finish.isPending}
+                onClick={() => void requestFinish()}
+                disabled={finish.isPending || settling}
               >
                 <Check size={18} aria-hidden="true" />
                 Finish workout
@@ -300,7 +323,7 @@ export function SessionPage() {
               <h2>Every set is logged</h2>
               <p className="muted">Add another set or exercise, or finish to see how it went.</p>
               <div>
-                <button className="btn primary" onClick={() => finish.mutate()} disabled={finish.isPending}>
+                <button className="btn primary" onClick={() => void requestFinish()} disabled={finish.isPending || settling}>
                   Finish workout
                 </button>
               </div>

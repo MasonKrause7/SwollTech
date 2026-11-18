@@ -573,11 +573,25 @@ async def pull(db: AsyncSession, user_id: UUID, cursor: int) -> tuple[int, list[
         ),
         {"uid": user_id, "cursor": cursor},
     )
+    entries = list(result)
+    # One query per entity instead of one per row: a fresh install pulls the whole history.
+    wanted: dict[str, list[UUID]] = {}
+    for _change_id, entity, entity_id, op in entries:
+        if op == "upsert" and entity in SPECS:
+            wanted.setdefault(entity, []).append(entity_id)
+    loaded: dict[tuple[str, UUID], dict] = {}
+    for entity, entity_ids in wanted.items():
+        model, fields, owner_attr = SPECS[entity]
+        for start in range(0, len(entity_ids), 1000):
+            rows = await db.scalars(select(model).where(model.id.in_(entity_ids[start : start + 1000])))
+            for row in rows:
+                if getattr(row, owner_attr) == user_id and row.deleted_at is None:
+                    loaded[(entity, row.id)] = row_dict(row, fields)
     changes = []
-    for change_id, entity, entity_id, op in result:
+    for change_id, entity, entity_id, op in entries:
         row = None
         if op == "upsert" and entity in SPECS:
-            row = await load_row(db, user_id, entity, entity_id)
+            row = loaded.get((entity, entity_id))
             if row is None:
                 op = "delete"
         changes.append({"id": change_id, "entity": entity, "entity_id": entity_id, "op": op, "row": row})

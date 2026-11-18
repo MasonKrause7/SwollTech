@@ -1,0 +1,8 @@
+[
+  {
+    "id": "GHSA-fc5q-39xc-vjpf",
+    "package": "picomatch",
+    "reason": "Reached only through Expo/React Native build tooling (Metro file map, expo CLI, tinyglobby); it does not run in the shipped app or the API. No patched release exists as of 2026-11-18.",
+    "revisitBy": "2027-01-15"
+  }
+]

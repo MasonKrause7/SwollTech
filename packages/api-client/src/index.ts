@@ -198,6 +198,11 @@ export interface Overview {
   exercises: ExerciseStat[];
 }
 
+export interface StatsLog {
+  sessions: { id: string; started_at: string }[];
+  sets: { session_id: string; exercise_id: string; exercise_name: string; muscle: string; weight_kg: number; reps: number }[];
+}
+
 export interface SessionReport {
   session_id: string;
   name: string;
@@ -310,6 +315,7 @@ export function createClient(options: ClientOptions) {
       request<Reference>(`/v1/exercises/${exerciseId}/reference`, { method: "PUT", body: JSON.stringify(body) }),
     deleteReference: (exerciseId: string) => request<void>(`/v1/exercises/${exerciseId}/reference`, { method: "DELETE" }),
     overview: (tz?: string) => request<Overview>(`/v1/stats/overview${query({ tz })}`),
+    statsLog: () => request<StatsLog>("/v1/stats/log"),
     workouts: () => request<WorkoutSummary[]>("/v1/workouts"),
     workout: (id: string) => request<Workout>(`/v1/workouts/${id}`),
     createWorkout: (body: { name: string; notes?: string }) =>
@@ -371,3 +377,5 @@ export function createClient(options: ClientOptions) {
 }
 
 export type ApiClient = ReturnType<typeof createClient>;
+
+export { NeonAuth, SESSION_COOKIE, sessionCookieFrom, type NeonAuthOptions, type NeonSession, type NeonUser, type SessionStore } from "./neonAuth";

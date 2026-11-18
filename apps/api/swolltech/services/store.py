@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
@@ -1152,7 +1153,7 @@ async def request_upload(db, user_id, set_id, content_type, byte_size, duration,
     await owned_set(db, user_id, set_id)
     existing = await live_media(db, set_id)
     if existing is not None and existing.storage_key:
-        storage.delete_key(existing.storage_key)
+        await asyncio.to_thread(storage.delete_key, existing.storage_key)
     key = f"users/{user_id}/sets/{set_id}/{uuid.uuid4()}"
     if existing is None:
         existing = SetMedia(
@@ -1169,7 +1170,8 @@ async def request_upload(db, user_id, set_id, content_type, byte_size, duration,
     existing.status = MediaStatus.uploading
     await db.flush()
     await db.refresh(existing)
-    return existing, storage.presign_put(key, content_type)
+    # The URL is signed for this exact size, so the client cannot upload more than it declared.
+    return existing, storage.presign_put(key, content_type, byte_size)
 
 
 async def confirm_upload(db, user_id, set_id, duration, storage, settings):
@@ -1177,9 +1179,11 @@ async def confirm_upload(db, user_id, set_id, duration, storage, settings):
     media = await live_media(db, set_id)
     if media is None or media.user_id != user_id or not media.storage_key:
         raise DomainError(404, "Not found")
-    head = storage.head(media.storage_key)
+    head = await asyncio.to_thread(storage.head, media.storage_key)
     if head is None or head.content_type not in ALLOWED_VIDEO_TYPES or head.size != media.byte_size or head.size > settings.media_max_bytes:
         media.status = MediaStatus.failed
+        if head is not None:
+            await asyncio.to_thread(storage.delete_key, media.storage_key)
         await db.flush()
         raise DomainError(400, "Upload did not match the declared video")
     media.status = MediaStatus.ready
@@ -1191,18 +1195,20 @@ async def confirm_upload(db, user_id, set_id, duration, storage, settings):
 
 
 async def delete_account(db: AsyncSession, user_id: UUID, storage, settings) -> None:
-    storage.delete_prefix(f"users/{user_id}/")
-    if settings.supabase_url and settings.service_role_key:
-        import httpx
+    """Close an account for good (App Store 5.1.1(v)): every training row, the Neon Auth
+    login (user, sessions and password via its cascades) and all set videos.
 
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                f"{settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
-                headers={"Authorization": f"Bearer {settings.service_role_key}", "apikey": settings.service_role_key},
-                timeout=20,
-            )
-        if response.status_code not in (200, 204, 404):
-            raise DomainError(502, "Could not delete the auth user")
-        return
-    await db.execute(text("delete from auth.sessions where user_id = :id"), {"id": user_id})
-    await db.execute(text("delete from auth.users where id = :id"), {"id": user_id})
+    The database part is one transaction: either the login and all data go, or nothing
+    does. Videos are removed after that; a failure there is retried by calling again
+    (the tombstone keeps the account closed in the meantime)."""
+    await db.execute(text("select app_private.delete_user_data(:id)"), {"id": user_id})
+    await db.execute(
+        text("insert into public.deleted_accounts (user_id) values (:id) on conflict (user_id) do nothing"),
+        {"id": user_id},
+    )
+    # Neon Auth keeps its users in this same database. Deleting the row removes the
+    # login, its sessions and linked accounts (ON DELETE CASCADE), so no refresh is possible.
+    if await db.scalar(text("select to_regclass('neon_auth.\"user\"') is not null")):
+        await db.execute(text('delete from neon_auth."user" where id = :id'), {"id": user_id})
+    await db.flush()
+    await asyncio.to_thread(storage.delete_prefix, f"users/{user_id}/")

@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const dbUrl = process.env.E2E_DATABASE_URL ?? "postgresql+asyncpg://postgres:postgres@localhost:54329/swolltech_e2e";
 const apiPort = 8765;
-const webPort = 5174;
+const webPort = Number(process.env.E2E_WEB_PORT ?? 5174);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -30,9 +30,8 @@ export default defineConfig({
       timeout: 120_000,
       env: {
         DATABASE_URL: dbUrl,
-        SUPABASE_JWT_SECRET: "e2e-secret-e2e-secret-e2e-secret-1234",
-        SUPABASE_URL: "",
-        SUPABASE_JWKS_URL: "",
+        DEV_JWT_SECRET: "e2e-secret-e2e-secret-e2e-secret-1234",
+        NEON_AUTH_BASE_URL: "",
         DEV_TOKEN_ENABLED: "true",
         CORS_ORIGINS: `http://localhost:${webPort}`,
         S3_BUCKET: "",
@@ -46,8 +45,7 @@ export default defineConfig({
       env: {
         VITE_API_URL: `http://localhost:${apiPort}`,
         VITE_DEV_LOGIN: "true",
-        VITE_SUPABASE_URL: "",
-        VITE_SUPABASE_ANON_KEY: "",
+        VITE_NEON_AUTH_URL: "",
       },
     },
   ],

@@ -1,0 +1,28 @@
+name: migrate
+
+# Applies apps/api/migrations to a Neon database. Run by hand from the Actions tab
+# (production needs the "production" environment's approval if you add reviewers).
+# Secrets: MIGRATION_DATABASE_URL per environment = Neon's DATABASE_URL_UNPOOLED.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub environment whose MIGRATION_DATABASE_URL to use
+        type: choice
+        options: [production, preview]
+        default: production
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Apply migrations
+        working-directory: apps/api
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: |
+          uv sync --no-dev
+          uv run python -m scripts.migrate

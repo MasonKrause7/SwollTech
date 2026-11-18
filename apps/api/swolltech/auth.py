@@ -1,76 +1,108 @@
+"""Who is calling. Production tokens are Neon Auth (Better Auth) JWTs: EdDSA (Ed25519),
+15-minute lifetime, issuer and audience equal to the origin of NEON_AUTH_BASE_URL,
+subject = neon_auth.user.id (a uuid). Keys come from <base>/.well-known/jwks.json and
+are cached. Locally and in tests, HS256 tokens signed with DEV_JWT_SECRET are accepted.
+"""
+
 import logging
 import time
+import uuid
 from uuid import UUID
 
 import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from swolltech.config import Settings, get_settings
+from swolltech.db import get_db
 from swolltech.errors import DomainError
 
 logger = logging.getLogger("swolltech.auth")
 bearer = HTTPBearer(auto_error=False)
 _jwks_clients: dict[str, PyJWKClient] = {}
-DECODE_OPTIONS = {"require": ["exp", "sub"]}
+DECODE_OPTIONS = {"require": ["exp", "sub", "iat"]}
 DEV_TOKEN_SECONDS = 12 * 3600
+DEV_AUDIENCE = "swolltech-dev"
+# Dev sign-in derives a stable id from the email, so no local users table is needed.
+DEV_NAMESPACE = uuid.UUID("5b0e7a52-6f0c-4c1e-9d55-2c0a7f3f9b11")
+JWKS_CACHE_SECONDS = 3600
+
+
+def _jwks_client(url: str) -> PyJWKClient:
+    client = _jwks_clients.get(url)
+    if client is None:
+        # Keys are cached in memory for an hour; an unknown kid triggers one refetch.
+        client = PyJWKClient(url, cache_keys=True, lifespan=JWKS_CACHE_SECONDS, timeout=5)
+        _jwks_clients[url] = client
+    return client
 
 
 def decode_token(token: str, settings: Settings) -> dict:
     header = jwt.get_unverified_header(token)
     algorithm = header.get("alg")
     if algorithm == "HS256":
-        if not settings.supabase_jwt_secret:
-            logger.warning("Rejected HS256 token: SUPABASE_JWT_SECRET is not set (kid=%s)", header.get("kid"))
+        # Only for local development and tests. Startup refuses DEV_JWT_SECRET on a deployed host.
+        if not settings.dev_jwt_secret or settings.is_deployed:
+            logger.warning("Rejected HS256 token: dev tokens are not enabled here")
             raise DomainError(401, "Invalid token")
         return jwt.decode(
             token,
-            settings.supabase_jwt_secret,
+            settings.dev_jwt_secret,
             algorithms=["HS256"],
-            audience="authenticated",
-            options=DECODE_OPTIONS,
+            audience=DEV_AUDIENCE,
+            options={"require": ["exp", "sub"]},
             leeway=30,
         )
-    jwks_url = settings.supabase_jwks_url or (
-        f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json" if settings.supabase_url else ""
-    )
-    if not jwks_url:
-        logger.warning("Rejected %s token: no JWKS URL configured", algorithm)
+    if not settings.jwks_url or not settings.token_issuer:
+        logger.warning("Rejected %s token: NEON_AUTH_BASE_URL is not configured", algorithm)
         raise DomainError(401, "Invalid token")
-    client = _jwks_clients.get(jwks_url)
-    if client is None:
-        client = PyJWKClient(jwks_url)
-        _jwks_clients[jwks_url] = client
-    key = client.get_signing_key_from_jwt(token)
+    key = _jwks_client(settings.jwks_url).get_signing_key_from_jwt(token)
     return jwt.decode(
         token,
         key.key,
-        algorithms=["ES256", "RS256"],
-        audience="authenticated",
+        algorithms=["EdDSA"],
+        audience=settings.token_issuer,
+        issuer=settings.token_issuer,
         options=DECODE_OPTIONS,
         leeway=30,
     )
 
 
-def mint_dev_token(user_id: UUID, settings: Settings) -> str:
-    if not settings.supabase_jwt_secret:
-        raise DomainError(500, "Dev tokens require SUPABASE_JWT_SECRET")
+def dev_user_id(email: str) -> UUID:
+    return uuid.uuid5(DEV_NAMESPACE, email.strip().lower())
+
+
+def mint_dev_token(user_id: UUID, settings: Settings, *, email: str = "", name: str = "") -> str:
+    if not settings.dev_jwt_secret:
+        raise DomainError(500, "Dev tokens require DEV_JWT_SECRET")
+    now = int(time.time())
     return jwt.encode(
-        {
-            "sub": str(user_id),
-            "aud": "authenticated",
-            "role": "authenticated",
-            "exp": int(time.time()) + DEV_TOKEN_SECONDS,
-        },
-        settings.supabase_jwt_secret,
+        {"sub": str(user_id), "aud": DEV_AUDIENCE, "iat": now, "exp": now + DEV_TOKEN_SECONDS, "email": email, "name": name},
+        settings.dev_jwt_secret,
         algorithm="HS256",
     )
+
+
+async def _ensure_profile(db: AsyncSession, user_id: UUID, payload: dict) -> bool:
+    """Create the profile on a user's first request. Returns False if the account was closed."""
+    if await db.scalar(text("select 1 from public.deleted_accounts where user_id = :id"), {"id": user_id}):
+        return False
+    email = str(payload.get("email") or "")
+    display_name = str(payload.get("name") or "").strip() or email.split("@")[0]
+    await db.execute(
+        text("insert into public.profiles (id, display_name) values (:id, :name) on conflict (id) do nothing"),
+        {"id": user_id, "name": display_name[:80]},
+    )
+    return True
 
 
 async def current_user_id(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer),
     settings: Settings = Depends(get_settings),
+    db: AsyncSession = Depends(get_db),
 ) -> UUID:
     if creds is None:
         raise DomainError(401, "Missing token")
@@ -78,7 +110,7 @@ async def current_user_id(
         payload = decode_token(creds.credentials, settings)
     except DomainError:
         raise
-    except jwt.PyJWTError as exc:
+    except (jwt.PyJWTError, jwt.PyJWKClientError) as exc:
         alg = kid = None
         try:
             header = jwt.get_unverified_header(creds.credentials)
@@ -88,10 +120,20 @@ async def current_user_id(
         # Never log the token itself, only why it failed.
         logger.warning("Rejected token: %s: %s (alg=%s kid=%s)", type(exc).__name__, exc, alg, kid)
         raise DomainError(401, "Invalid token") from exc
-    subject = payload.get("sub")
-    if not subject:
-        raise DomainError(401, "Invalid token")
+    if payload.get("banned"):
+        raise DomainError(401, "Account disabled")
     try:
-        return UUID(subject)
+        user_id = UUID(str(payload.get("sub") or ""))
     except ValueError as exc:
         raise DomainError(401, "Invalid token") from exc
+    # Tokens stay valid until they expire, so a closed account's token must be refused on
+    # every route, not just on /me.
+    state = await db.scalar(
+        text("select deleted_at is null from public.profiles where id = :id"),
+        {"id": user_id},
+    )
+    if state is False:
+        raise DomainError(401, "Account not found")
+    if state is None and not await _ensure_profile(db, user_id, payload):
+        raise DomainError(401, "Account not found")
+    return user_id

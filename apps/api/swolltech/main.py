@@ -1,9 +1,11 @@
 import logging
+import os
 import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from swolltech.config import get_settings
@@ -20,21 +22,32 @@ logger = logging.getLogger("swolltech")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    if settings.dev_token_enabled and ("supabase.co" in settings.database_url or "pooler.supabase.com" in settings.database_url):
-        logger.warning("DEV_TOKEN_ENABLED is on against a hosted database. Turn it off before going live.")
-    if settings.sentry_dsn:
-        import sentry_sdk
-
-        sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05)
+    problems = settings.problems()
+    if problems:
+        # Fail the deploy instead of serving traffic with an unsafe or broken config.
+        raise RuntimeError("Refusing to start: " + "; ".join(problems))
+    for warning in settings.warnings():
+        logger.warning(warning)
+    if settings.dev_token_enabled:
+        logger.warning("DEV_TOKEN_ENABLED is on. Anyone can sign in as any email. Local use only.")
     yield
     await dispose_engine()
 
 
-app = FastAPI(title="SwollTech", version="0.1.0", lifespan=lifespan)
 settings = get_settings()
+if settings.sentry_dsn:
+    import sentry_sdk
+
+    # Before the app is built so the FastAPI integration hooks in. No request bodies or IPs.
+    sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05, send_default_pii=False, release=os.environ.get("VERCEL_GIT_COMMIT_SHA"), environment=os.environ.get("VERCEL_ENV", "local"))
+
+app = FastAPI(title="SwollTech", version="0.1.0", lifespan=lifespan)
+# The analytics log is large and repetitive JSON; gzip cuts it by roughly 90%.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

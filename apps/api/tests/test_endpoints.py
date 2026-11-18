@@ -3,6 +3,9 @@ import uuid
 import jwt
 import pytest
 
+from sqlalchemy import text
+
+from swolltech.db import get_engine
 from swolltech.rate_limit import limiter
 from tests.conftest import SECRET, headers, make_user, token_for
 
@@ -53,12 +56,12 @@ async def test_requests_without_a_token_are_rejected(client):
     "token",
     [
         "not-a-jwt",
-        jwt.encode({"sub": str(uuid.uuid4()), "aud": "authenticated"}, SECRET, algorithm="HS256"),
-        jwt.encode({"sub": str(uuid.uuid4()), "aud": "authenticated", "exp": 1}, SECRET, algorithm="HS256"),
+        jwt.encode({"sub": str(uuid.uuid4()), "aud": "swolltech-dev"}, SECRET, algorithm="HS256"),
+        jwt.encode({"sub": str(uuid.uuid4()), "aud": "swolltech-dev", "exp": 1}, SECRET, algorithm="HS256"),
         jwt.encode({"sub": str(uuid.uuid4()), "aud": "anon", "exp": 9999999999}, SECRET, algorithm="HS256"),
-        jwt.encode({"sub": str(uuid.uuid4()), "aud": "authenticated", "exp": 9999999999}, "wrong-secret-wrong-secret-wrong-12", algorithm="HS256"),
-        jwt.encode({"sub": "not-a-uuid", "aud": "authenticated", "exp": 9999999999}, SECRET, algorithm="HS256"),
-        jwt.encode({"aud": "authenticated", "exp": 9999999999}, SECRET, algorithm="HS256"),
+        jwt.encode({"sub": str(uuid.uuid4()), "aud": "swolltech-dev", "exp": 9999999999}, "wrong-secret-wrong-secret-wrong-12", algorithm="HS256"),
+        jwt.encode({"sub": "not-a-uuid", "aud": "swolltech-dev", "exp": 9999999999}, SECRET, algorithm="HS256"),
+        jwt.encode({"aud": "swolltech-dev", "exp": 9999999999}, SECRET, algorithm="HS256"),
     ],
     ids=["garbage", "no-exp", "expired", "wrong-audience", "wrong-secret", "bad-subject", "no-subject"],
 )
@@ -68,9 +71,15 @@ async def test_bad_tokens_are_rejected(client, token):
 
 
 @pytest.mark.asyncio
-async def test_token_for_unknown_user_has_no_profile(client):
-    response = await client.get("/v1/me", headers=headers(token_for(uuid.uuid4())))
-    assert response.status_code == 401
+async def test_first_request_creates_the_profile_but_never_for_a_closed_account(client):
+    fresh = uuid.uuid4()
+    response = await client.get("/v1/me", headers=headers(token_for(fresh, email="lifter@swolltech.test")))
+    assert response.status_code == 200
+    assert response.json()["display_name"] == "lifter"
+    closed = uuid.uuid4()
+    async with get_engine().begin() as conn:
+        await conn.execute(text("insert into public.deleted_accounts (user_id) values (:id)"), {"id": closed})
+    assert (await client.get("/v1/me", headers=headers(token_for(closed)))).status_code == 401
 
 
 @pytest.mark.asyncio
@@ -305,6 +314,26 @@ async def test_stats_are_private(client):
     assert (await client.get(f"/v1/sessions/{session_id}/summary", headers=headers(token_b))).status_code == 404
     other = (await client.get("/v1/stats/overview", headers=headers(token_b))).json()
     assert other["totals"]["sessions"] == 0
+    other_log = (await client.get("/v1/stats/log", headers=headers(token_b))).json()
+    assert other_log == {"sessions": [], "sets": []}
+
+
+@pytest.mark.asyncio
+async def test_stats_log_lists_counted_sets_of_completed_sessions(client):
+    _user, token = await make_user()
+    auth = headers(token)
+    workout_id, _item = await plan_workout(client, auth, sets=((5, 100), (5, 100)))
+    first = await log_session(client, auth, workout_id, [(5, 100), (5, 100)])
+    second = await log_session(client, auth, workout_id, [(5, 105), (4, 105)])
+    await client.post("/v1/sessions", json={"workout_id": workout_id}, headers=auth)
+
+    response = await client.get("/v1/stats/log", headers=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert [row["id"] for row in data["sessions"]] == [first, second]
+    assert len(data["sets"]) == 4
+    assert {row["exercise_name"] for row in data["sets"]} == {"Bench Press"}
+    assert sorted((row["weight_kg"], row["reps"]) for row in data["sets"] if row["session_id"] == second) == [(105.0, 4), (105.0, 5)]
 
 
 # ---------- account ----------
@@ -322,14 +351,24 @@ async def test_delete_account_removes_everything(client, _clean):
     # The old token stops working because the profile is gone.
     assert (await client.get("/v1/me", headers=auth)).status_code == 401
     assert list(_clean.objects) == ["users/someone-else/sets/x/clip"]
+    # The Neon Auth login and its sessions are gone too, and nothing the user owned is left.
+    engine = get_engine()
+    async with engine.connect() as conn:
+        assert (await conn.execute(text('select count(*) from neon_auth."user" where id = :id'), {"id": user_id})).scalar() == 0
+        assert (await conn.execute(text('select count(*) from neon_auth.session where "userId" = :id'), {"id": user_id})).scalar() == 0
+        for table in ("profiles", "workouts", "sessions", "session_sets", "sync_changes", "applied_mutations"):
+            column = "id" if table == "profiles" else "user_id"
+            left = (await conn.execute(text(f"select count(*) from public.{table} where {column} = :id"), {"id": user_id})).scalar()
+            assert left == 0, table
 
 
-def test_rate_limiter_blocks_after_the_limit():
+@pytest.mark.asyncio
+async def test_rate_limiter_blocks_after_the_limit():
     key = f"test:{uuid.uuid4()}"
     for _ in range(3):
-        limiter.hit(key, 3, 60)
+        await limiter.hit(key, 3, 60)
     with pytest.raises(Exception) as caught:
-        limiter.hit(key, 3, 60)
+        await limiter.hit(key, 3, 60)
     assert getattr(caught.value, "status", None) == 429
 
 
@@ -341,3 +380,32 @@ async def test_exercise_search_treats_wildcards_literally(client):
     assert everything.json() == []
     underscore = await client.get("/v1/exercises", params={"q": "_"}, headers=headers(token))
     assert underscore.json() == []
+
+
+@pytest.mark.asyncio
+async def test_upstash_limiter_counts_in_redis_and_fails_open():
+    import httpx
+
+    from swolltech.rate_limit import Limiter, UpstashBackend
+
+    counts: dict[str, int] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer token"
+        incr, expire = __import__("json").loads(request.content)
+        assert incr[0] == "INCR" and expire[0] == "EXPIRE"
+        counts[incr[1]] = counts.get(incr[1], 0) + 1
+        return httpx.Response(200, json=[{"result": counts[incr[1]]}, {"result": 1}])
+
+    backend = UpstashBackend("https://example.upstash.io", "token")
+    backend.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    limiter_ = Limiter()
+    limiter_.backend = backend
+    for _ in range(2):
+        await limiter_.hit("k", 2, 60)
+    with pytest.raises(Exception) as caught:
+        await limiter_.hit("k", 2, 60)
+    assert getattr(caught.value, "status", None) == 429
+
+    backend.client = httpx.AsyncClient(transport=httpx.MockTransport(lambda _r: httpx.Response(503)))
+    await limiter_.hit("k", 2, 60)  # Redis down: allowed, not a 500

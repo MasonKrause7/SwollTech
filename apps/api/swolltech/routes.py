@@ -1,5 +1,4 @@
-import json
-import uuid
+import asyncio
 from datetime import date
 from uuid import UUID
 
@@ -7,7 +6,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from swolltech.auth import current_user_id, mint_dev_token
+from swolltech.auth import current_user_id, dev_user_id, mint_dev_token
 from swolltech.config import Settings, get_settings
 from swolltech.db import get_db
 from swolltech.errors import DomainError
@@ -44,6 +43,7 @@ from swolltech.schemas import (
     SessionSetPatch,
     SessionSummary,
     SessionSummaryOut,
+    StatsLogOut,
     SyncIn,
     SyncOut,
     WorkoutExerciseIn,
@@ -92,32 +92,24 @@ async def delete_me(
     settings: Settings = Depends(get_settings),
     storage=Depends(get_storage),
 ):
-    limiter.hit(f"delete:{user_id}", 5, 3600)
+    await limiter.hit(f"delete:{user_id}", 5, 3600)
     await store.delete_account(db, user_id, storage, settings)
     return Response(status_code=204)
 
 
 @router.post("/dev/token", response_model=DevTokenOut)
 async def dev_token(body: DevTokenIn, db: AsyncSession = Depends(get_db), settings: Settings = Depends(get_settings)):
-    if not settings.dev_token_enabled:
+    if not settings.dev_tokens_allowed:
         raise DomainError(404, "Not found")
-    limiter.hit(f"dev:{body.email}", 20, 60)
-    existing = await db.scalar(text("select id from auth.users where lower(email) = lower(:email)"), {"email": body.email})
-    if existing:
-        user_id = existing
-    else:
-        user_id = uuid.uuid4()
-        await db.execute(
-            text(
-                """
-                insert into auth.users (id, email, raw_user_meta_data)
-                values (:id, :email, cast(:meta as jsonb))
-                """
-            ),
-            {"id": user_id, "email": body.email, "meta": json.dumps({"display_name": body.display_name})},
-        )
-        await db.flush()
-    return DevTokenOut(access_token=mint_dev_token(user_id, settings), user_id=user_id, email=body.email)
+    await limiter.hit(f"dev:{body.email}", 20, 60)
+    user_id = dev_user_id(body.email)
+    if await db.scalar(text("select 1 from public.deleted_accounts where user_id = :id"), {"id": user_id}):
+        raise DomainError(401, "Account not found")
+    await db.execute(
+        text("insert into public.profiles (id, display_name) values (:id, :name) on conflict (id) do nothing"),
+        {"id": user_id, "name": (body.display_name or body.email.split("@")[0])[:80]},
+    )
+    return DevTokenOut(access_token=mint_dev_token(user_id, settings, email=body.email, name=body.display_name or ""), user_id=user_id, email=body.email)
 
 
 @router.get("/catalog", response_model=CatalogOut)
@@ -290,6 +282,11 @@ async def get_overview(tz: str | None = None, user_id: UUID = Depends(current_us
     return await insights.get_overview(db, user_id, tz)
 
 
+@router.get("/stats/log", response_model=StatsLogOut)
+async def get_stats_log(user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
+    return await insights.get_log(db, user_id)
+
+
 @router.patch("/sessions/{session_id}", response_model=SessionOut)
 async def patch_session(session_id: UUID, body: SessionPatch, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
     row = await store.update_session(db, user_id, session_id, body)
@@ -345,7 +342,7 @@ async def upload_url(
     settings: Settings = Depends(get_settings),
     storage=Depends(get_storage),
 ):
-    limiter.hit(f"presign:{user_id}", 30, 60)
+    await limiter.hit(f"presign:{user_id}", 30, 60)
     media, url = await store.request_upload(db, user_id, set_id, body.content_type, body.byte_size, body.duration_seconds, storage, settings)
     return MediaUploadOut(media_id=media.id, upload_url=url, storage_key=media.storage_key, headers={"Content-Type": body.content_type})
 
@@ -383,11 +380,11 @@ async def remove_media(set_id: UUID, user_id: UUID = Depends(current_user_id), d
     if media is None:
         raise DomainError(404, "Not found")
     if media.storage_key:
-        storage.delete_key(media.storage_key)
+        await asyncio.to_thread(storage.delete_key, media.storage_key)
     return Response(status_code=204)
 
 
 @router.post("/sync", response_model=SyncOut)
 async def post_sync(body: SyncIn, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
-    limiter.hit(f"sync:{user_id}", 60, 60)
+    await limiter.hit(f"sync:{user_id}", 60, 60)
     return await syncing.sync(db, user_id, body.cursor, body.mutations)
