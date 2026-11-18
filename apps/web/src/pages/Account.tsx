@@ -94,7 +94,7 @@ export function AccountPage() {
         }}
       >
         <h2>Delete account</h2>
-        <p className="muted">This permanently deletes your login, workouts, sessions, records and videos. It cannot be undone.</p>
+        <p className="muted">This permanently deletes your login, workouts, sessions and records. It cannot be undone.</p>
         <label className="field" style={{ maxWidth: 320 }}>
           <span>Type DELETE to confirm</span>
           <input data-testid="delete-confirm" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="off" />
