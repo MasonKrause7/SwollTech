@@ -1,12 +1,12 @@
-import { fromKilograms, toKilograms } from "@swolltech/metrics";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { E1RM_MAX_REPS, exerciseHistory, fromKilograms, liftRecords, RECORD_LABELS, repMaxes, toKilograms } from "@swolltech/metrics";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { View } from "react-native";
-import { BarChart, LineChart } from "../../src/components/charts";
+import { Pressable, View } from "react-native";
+import { BarChart, LineChart, RecordBadge } from "../../src/components/charts";
 import { Button, Card, Field, Row, Screen, Stat, T } from "../../src/components/ui";
 import { deleteRow, newId, saveRow } from "../../src/db";
 import { shortDate, trim, volume, weight } from "../../src/format";
-import { exerciseProgress } from "../../src/logic/localStats";
+import { exerciseProgress, statLog } from "../../src/logic/localStats";
 import { live } from "../../src/logic/rows";
 import { exerciseName } from "../../src/logic/session";
 import { useNotebook } from "../../src/notebook";
@@ -17,7 +17,13 @@ export default function ExerciseDetail() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { db, data, unit } = useNotebook();
+  const router = useRouter();
   const points = useMemo(() => (data && id ? exerciseProgress(data, id) : []), [data, id]);
+  const log = useMemo(() => (data ? statLog(data) : null), [data]);
+  const history = useMemo(() => (log && id ? exerciseHistory(log.sessions, log.sets, id) : []), [log, id]);
+  const maxes = useMemo(() => (log && id ? repMaxes(log.sessions, log.sets, id) : []), [log, id]);
+  const timeline = useMemo(() => (log && id ? liftRecords(log.sessions, log.sets).filter((row) => row.exerciseId === id).reverse() : []), [log, id]);
+  const [showAll, setShowAll] = useState(false);
   const reference = useMemo(() => live(data?.references ?? []).find((row) => row.exercise_id === id) ?? null, [data, id]);
   const [maxText, setMaxText] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -72,12 +78,86 @@ export default function ExerciseDetail() {
             />
           </Card>
           <Card>
+            <T variant="heading">Rep maxes</T>
+            <T variant="small">Heaviest weight you have done for at least that many reps.</T>
+            {maxes.map((row) => (
+              <Row key={row.reps} style={{ justifyContent: "space-between", minHeight: 40 }}>
+                <T variant="label" style={{ width: 64 }}>
+                  {row.reps} rep{row.reps === 1 ? "" : "s"}
+                </T>
+                <View style={{ flex: 1, alignItems: "flex-end" }}>
+                  <T variant="number" style={{ fontSize: 20 }}>
+                    {row.weightKg != null ? weight(row.weightKg, unit) : "\u2013"}
+                  </T>
+                  {row.weightKg != null && row.achievedAt ? (
+                    <T variant="small">
+                      {row.actualReps !== row.reps ? `${row.actualReps} reps, ` : ""}
+                      {shortDate(row.achievedAt)}
+                    </T>
+                  ) : null}
+                </View>
+              </Row>
+            ))}
+          </Card>
+          <Card>
             <T variant="heading">Top sets</T>
-            {[...points].reverse().slice(0, 8).map((row) => (
+            <T variant="small">Best set each session: highest estimated max, sets of {E1RM_MAX_REPS} reps or fewer first.</T>
+            {history.slice(0, 8).map((row) => (
               <Row key={row.sessionId} style={{ justifyContent: "space-between", minHeight: 36 }}>
                 <T variant="muted">{shortDate(row.startedAt)}</T>
-                <T>{weight(row.topSetWeightKg, unit)}</T>
+                <Row gap={6}>
+                  {row.records.length ? <T variant="small" style={{ color: theme.highlight }}>PR</T> : null}
+                  <T>
+                    {weight(row.best.weightKg, unit)} × {row.best.reps}
+                  </T>
+                </Row>
               </Row>
+            ))}
+          </Card>
+          <Card>
+            <T variant="heading">Personal records</T>
+            {timeline.length === 0 ? (
+              <T variant="muted">Your first session is the baseline. Beat it on weight, reps or estimated max and it shows up here.</T>
+            ) : (
+              (showAll ? timeline : timeline.slice(0, 8)).map((record) => (
+                <View key={`${record.sessionId}-${record.type}`} style={{ gap: 2, paddingVertical: 4 }}>
+                  <Row style={{ justifyContent: "space-between" }}>
+                    <RecordBadge type={record.type} />
+                    <T variant="small">{shortDate(record.achievedAt)}</T>
+                  </Row>
+                  <T>
+                    {weight(record.weightKg, unit)} × {record.reps}
+                    {record.type === "e1rm" ? `, estimated ${weight(record.e1rmKg, unit)}` : ""}
+                  </T>
+                  <T variant="small">
+                    {record.type === "reps"
+                      ? `Beat ${record.previous} reps at this weight or heavier.`
+                      : `${RECORD_LABELS[record.type]} was ${weight(record.previous, unit)}.`}
+                  </T>
+                </View>
+              ))
+            )}
+            {timeline.length > 8 ? <Button label={showAll ? "Show fewer" : `Show all ${timeline.length}`} kind="ghost" compact onPress={() => setShowAll(!showAll)} /> : null}
+          </Card>
+          <Card>
+            <T variant="heading">Recent sessions</T>
+            {history.slice(0, 10).map((row) => (
+              <Pressable
+                key={row.sessionId}
+                accessibilityRole="button"
+                accessibilityHint="Opens this session"
+                onPress={() => router.push({ pathname: "/history/[id]", params: { id: row.sessionId } })}
+                style={({ pressed }) => ({ gap: 4, paddingVertical: 6, borderTopWidth: 1, borderTopColor: theme.line, opacity: pressed ? 0.6 : 1 })}
+              >
+                <Row style={{ justifyContent: "space-between" }}>
+                  <T variant="label" style={{ flex: 1 }} numberOfLines={1}>
+                    {shortDate(row.startedAt)}
+                    {row.name ? `  ${row.name}` : ""}
+                  </T>
+                  <T variant="small">{volume(row.volumeKg, unit)}</T>
+                </Row>
+                <T>{row.sets.map((set) => `${trim(fromKilograms(set.weightKg, unit), 1)} × ${set.reps}`).join(",  ")}</T>
+              </Pressable>
             ))}
           </Card>
         </>

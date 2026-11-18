@@ -29,7 +29,7 @@ export interface MeasureInfo {
 }
 
 export const MEASURES: MeasureInfo[] = [
-  { id: "e1rm", label: "Estimated max", kind: "weight", rollup: "max", needsLift: true, description: "Best Epley estimate from any working set" },
+  { id: "e1rm", label: "Estimated max", kind: "weight", rollup: "max", needsLift: true, description: "Best Epley estimate from working sets of 12 reps or fewer" },
   { id: "topSet", label: "Top weight", kind: "weight", rollup: "max", needsLift: true, description: "Heaviest working set" },
   { id: "volume", label: "Volume", kind: "weight", rollup: "sum", needsLift: false, description: "Weight times reps, working sets only" },
   { id: "sets", label: "Sets", kind: "count", rollup: "sum", needsLift: false, description: "Working sets completed" },

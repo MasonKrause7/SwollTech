@@ -162,20 +162,20 @@ async def test_workout_crud_and_validation(client):
 async def test_custom_exercises_are_private(client):
     _a, token_a = await make_user()
     _b, token_b = await make_user()
-    created = await client.post("/v1/exercises", json={"name": "Zercher Squat", "primary_muscle": "quads"}, headers=headers(token_a))
+    created = await client.post("/v1/exercises", json={"name": "Anderson Squat", "primary_muscle": "quads"}, headers=headers(token_a))
     assert created.status_code == 201
     clash = await client.post("/v1/exercises", json={"name": "bench press"}, headers=headers(token_a))
     assert clash.status_code == 409
     names_a = [item["name"] for item in (await client.get("/v1/exercises", headers=headers(token_a))).json()]
     names_b = [item["name"] for item in (await client.get("/v1/exercises", headers=headers(token_b))).json()]
-    assert "Zercher Squat" in names_a
-    assert "Zercher Squat" not in names_b
+    assert "Anderson Squat" in names_a
+    assert "Anderson Squat" not in names_b
     forbidden = await client.patch(f"/v1/exercises/{created.json()['id']}", json={"name": "Mine"}, headers=headers(token_b))
     assert forbidden.status_code == 404
     catalog = await client.patch(f"/v1/exercises/{BENCH}", json={"name": "Mine"}, headers=headers(token_a))
     assert catalog.status_code in (403, 404)
-    searched = (await client.get("/v1/exercises", params={"q": "zerch"}, headers=headers(token_a))).json()
-    assert [item["name"] for item in searched] == ["Zercher Squat"]
+    searched = (await client.get("/v1/exercises", params={"q": "anders"}, headers=headers(token_a))).json()
+    assert [item["name"] for item in searched] == ["Anderson Squat"]
 
 
 # ---------- sessions ----------

@@ -5,6 +5,7 @@ import { Alert, View } from "react-native";
 import { startQuick, startWorkout } from "../../src/actions";
 import { art } from "../../src/art";
 import { Mark, MascotPoster } from "../../src/components/brand";
+import { ProgramPicker } from "../../src/components/ProgramPicker";
 import { Button, Card, Row, Screen, Stat, SyncPill, T } from "../../src/components/ui";
 import { dayTitle, greeting, shortDate, volume, weight } from "../../src/format";
 import { live } from "../../src/logic/rows";
@@ -20,6 +21,7 @@ export default function Today() {
   const { db, data, profile, unit } = useNotebook();
   const { state } = useSyncState();
   const [starting, setStarting] = useState<string | null>(null);
+  const [programs, setPrograms] = useState(false);
 
   const overview = useMemo(() => {
     if (!data) return null;
@@ -142,8 +144,13 @@ export default function Today() {
         <MascotPoster
           source={art.deadlift}
           title="No workouts yet"
-          body="Write down a workout the way you would in your notebook. Then start it here and the app walks you through every set."
-          action={<Button label="Write a workout" onDark onPress={() => router.push({ pathname: "/workout/[id]", params: { id: "new" } })} />}
+          body="Pick a proven program in one tap, or write down a workout the way you would in your notebook. Then start it here and the app walks you through every set."
+          action={
+            <View style={{ gap: space.sm }}>
+              <Button label="Start from a program" onDark onPress={() => setPrograms(true)} testID="start-from-program" />
+              <Button label="Write my own workout" kind="secondary" onPress={() => router.push({ pathname: "/workout/[id]", params: { id: "new" } })} />
+            </View>
+          }
         />
       ) : (
         workouts.map((workout) => {
@@ -162,6 +169,7 @@ export default function Today() {
         })
       )}
       <Button label="Quick start without a plan" kind="secondary" onPress={() => void quick()} />
+      <ProgramPicker visible={programs} onClose={() => setPrograms(false)} />
     </Screen>
   );
 }

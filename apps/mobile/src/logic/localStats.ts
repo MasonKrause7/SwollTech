@@ -23,7 +23,7 @@ export function statLog(data: LocalData, includeSessionId?: string): { sessions:
     });
   }
   return {
-    sessions: sessions.map((row) => ({ id: row.id, startedAt: row.started_at, endedAt: row.ended_at, name: row.name })),
+    sessions: sessions.map((row) => ({ id: row.id, startedAt: row.started_at, endedAt: row.ended_at, name: row.name, workoutId: row.workout_id })),
     sets,
   };
 }
