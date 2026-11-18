@@ -305,6 +305,26 @@ async def test_stats_are_private(client):
     assert (await client.get(f"/v1/sessions/{session_id}/summary", headers=headers(token_b))).status_code == 404
     other = (await client.get("/v1/stats/overview", headers=headers(token_b))).json()
     assert other["totals"]["sessions"] == 0
+    other_log = (await client.get("/v1/stats/log", headers=headers(token_b))).json()
+    assert other_log == {"sessions": [], "sets": []}
+
+
+@pytest.mark.asyncio
+async def test_stats_log_lists_counted_sets_of_completed_sessions(client):
+    _user, token = await make_user()
+    auth = headers(token)
+    workout_id, _item = await plan_workout(client, auth, sets=((5, 100), (5, 100)))
+    first = await log_session(client, auth, workout_id, [(5, 100), (5, 100)])
+    second = await log_session(client, auth, workout_id, [(5, 105), (4, 105)])
+    await client.post("/v1/sessions", json={"workout_id": workout_id}, headers=auth)
+
+    response = await client.get("/v1/stats/log", headers=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert [row["id"] for row in data["sessions"]] == [first, second]
+    assert len(data["sets"]) == 4
+    assert {row["exercise_name"] for row in data["sets"]} == {"Bench Press"}
+    assert sorted((row["weight_kg"], row["reps"]) for row in data["sets"] if row["session_id"] == second) == [(105.0, 4), (105.0, 5)]
 
 
 # ---------- account ----------

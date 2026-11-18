@@ -6,8 +6,11 @@ import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from swolltech.config import Settings, get_settings
+from swolltech.db import get_db
 from swolltech.errors import DomainError
 
 logger = logging.getLogger("swolltech.auth")
@@ -71,6 +74,7 @@ def mint_dev_token(user_id: UUID, settings: Settings) -> str:
 async def current_user_id(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer),
     settings: Settings = Depends(get_settings),
+    db: AsyncSession = Depends(get_db),
 ) -> UUID:
     if creds is None:
         raise DomainError(401, "Missing token")
@@ -92,6 +96,16 @@ async def current_user_id(
     if not subject:
         raise DomainError(401, "Invalid token")
     try:
-        return UUID(subject)
+        user_id = UUID(subject)
     except ValueError as exc:
         raise DomainError(401, "Invalid token") from exc
+    # Tokens stay valid until they expire, so a closed account's token must be refused here,
+    # not just on /me. Every auth user gets a profile from a trigger, so a missing or deleted
+    # profile means the account is gone.
+    live = await db.scalar(
+        text("select 1 from public.profiles where id = :id and deleted_at is null"),
+        {"id": user_id},
+    )
+    if live is None:
+        raise DomainError(401, "Account not found")
+    return user_id

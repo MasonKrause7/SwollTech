@@ -13,7 +13,12 @@
       "expo-sqlite",
       "expo-secure-store",
       "expo-font",
-      ["expo-notifications", { "color": "#F2C230" }],
+      [
+        "expo-notifications",
+        {
+          "color": "#F2C230"
+        }
+      ],
       [
         "expo-image-picker",
         {
@@ -33,7 +38,8 @@
         "NSCameraUsageDescription": "SwollTech uses the camera so you can film a set and check your form.",
         "NSMicrophoneUsageDescription": "SwollTech records audio with set videos.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.swolltech.app",
@@ -41,10 +47,18 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#0F1011"
       },
-      "permissions": ["CAMERA", "RECORD_AUDIO", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS"
+      ],
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/images/icon.png"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

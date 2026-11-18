@@ -206,3 +206,134 @@ export function ProgressBar({ fraction }: { fraction: number }) {
     </View>
   );
 }
+
+export interface AnalyticsDatum {
+  label: string;
+  value: number | null;
+  trend: number | null;
+}
+
+/**
+ * The Analyze chart: one measure as a line, bars or a filled area, with an optional dashed
+ * moving-average trend. Touch and drag across it to read a point, like hovering on the web.
+ */
+export function AnalyticsChart({
+  data,
+  type,
+  showTrend,
+  zeroBased,
+  format = compact,
+  accessibilityLabel,
+  height = 200,
+}: {
+  data: AnalyticsDatum[];
+  type: "line" | "bar" | "area";
+  showTrend: boolean;
+  zeroBased: boolean;
+  format?: (value: number) => string;
+  accessibilityLabel: string;
+  height?: number;
+}) {
+  const theme = useTheme();
+  const color = theme.highlight;
+  const { width, onLayout } = useWidth();
+  const [active, setActive] = useState<number | null>(null);
+  const values = data.flatMap((item) => [item.value, showTrend ? item.trend : null]).filter((value): value is number => value != null);
+  if (!values.length) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const pad = (max - min) * 0.12 || max * 0.1 || 1;
+  const low = zeroBased || type === "bar" ? 0 : Math.max(0, min - pad);
+  const high = zeroBased || type === "bar" ? niceMax(max) : max + pad;
+  const axis = 40;
+  const bottom = 20;
+  const top = 8;
+  const plot = height - bottom - top;
+  const inner = width - axis - 8;
+  const slot = inner / Math.max(1, data.length);
+  const xFor = (index: number) => (type === "bar" ? axis + slot * index + slot / 2 : axis + 4 + ((inner - 8) * index) / Math.max(1, data.length - 1));
+  const yFor = (value: number) => top + plot * (1 - (value - low) / (high - low || 1));
+  const dense = data.length > 30;
+
+  const pathFor = (pick: (item: AnalyticsDatum) => number | null) => {
+    let path = "";
+    data.forEach((item, index) => {
+      const value = pick(item);
+      if (value == null) return;
+      path += `${path ? "L" : "M"}${xFor(index).toFixed(1)},${yFor(value).toFixed(1)} `;
+    });
+    return path;
+  };
+  const line = pathFor((item) => item.value);
+  const present = data.map((item, index) => (item.value == null ? null : index)).filter((index): index is number => index != null);
+  const area = present.length
+    ? `${line}L${xFor(present[present.length - 1]).toFixed(1)},${yFor(low).toFixed(1)} L${xFor(present[0]).toFixed(1)},${yFor(low).toFixed(1)} Z`
+    : "";
+  const barWidth = Math.max(2, Math.min(24, slot * 0.7));
+
+  const pick = (x: number) => {
+    const index = type === "bar" ? Math.floor((x - axis) / slot) : Math.round(((x - axis - 4) / Math.max(1, inner - 8)) * (data.length - 1));
+    setActive(Math.min(data.length - 1, Math.max(0, index)));
+  };
+  const shown = active != null ? data[active] : null;
+  const labels = [0, Math.floor((data.length - 1) / 2), data.length - 1].filter((value, index, list) => list.indexOf(value) === index);
+
+  return (
+    <View style={{ gap: space.xs }}>
+      <View style={{ minHeight: 20 }}>
+        {shown ? (
+          <T variant="small">
+            {shown.label}: {shown.value == null ? "Nothing logged" : format(shown.value)}
+            {showTrend && shown.trend != null ? `, average ${format(shown.trend)}` : ""}
+          </T>
+        ) : (
+          <T variant="small">Touch the chart to read a point.</T>
+        )}
+      </View>
+      <View
+        onLayout={onLayout}
+        accessible
+        accessibilityLabel={accessibilityLabel}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(event) => pick(event.nativeEvent.locationX)}
+        onResponderMove={(event) => pick(event.nativeEvent.locationX)}
+        onResponderTerminationRequest={() => false}
+      >
+        <Svg width={width} height={height}>
+          {[0, 0.5, 1].map((fraction) => {
+            const value = low + (high - low) * fraction;
+            const y = yFor(value);
+            return [
+              <Line key={`g${fraction}`} x1={axis} x2={width} y1={y} y2={y} stroke={theme.line} strokeWidth={1} />,
+              <SvgText key={`l${fraction}`} x={axis - 6} y={y + 4} fontSize={11} fill={theme.muted} textAnchor="end" fontFamily={fonts.displaySemi}>
+                {compact(value)}
+              </SvgText>,
+            ];
+          })}
+          {type === "bar" &&
+            data.map((item, index) => {
+              if (item.value == null) return null;
+              const h = Math.max(item.value > 0 ? 2 : 0, yFor(low) - yFor(item.value));
+              return <Rect key={`b${index}`} x={xFor(index) - barWidth / 2} y={yFor(low) - h} width={barWidth} height={h} rx={Math.min(3, barWidth / 2)} fill={color} opacity={active == null || active === index ? 1 : 0.55} />;
+            })}
+          {type === "area" && area ? <Path d={area} fill={color} opacity={0.18} /> : null}
+          {type !== "bar" ? <Path d={line} stroke={color} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" /> : null}
+          {type !== "bar" && !dense
+            ? data.map((item, index) =>
+                item.value == null ? null : <Circle key={`d${index}`} cx={xFor(index)} cy={yFor(item.value)} r={4} fill={color} stroke={theme.raised} strokeWidth={2} />,
+              )
+            : null}
+          {showTrend ? <Path d={pathFor((item) => item.trend)} stroke={theme.text} strokeWidth={2} strokeDasharray="6 4" fill="none" strokeLinejoin="round" /> : null}
+          {active != null ? <Line x1={xFor(active)} x2={xFor(active)} y1={top} y2={top + plot} stroke={theme.muted} strokeWidth={1} /> : null}
+          {active != null && shown?.value != null && type !== "bar" ? <Circle cx={xFor(active)} cy={yFor(shown.value)} r={6} fill={color} stroke={theme.raised} strokeWidth={2} /> : null}
+          {labels.map((index) => (
+            <SvgText key={`x${index}`} x={xFor(index)} y={height - 4} fontSize={10} fill={theme.muted} textAnchor={index === 0 ? "start" : index === data.length - 1 ? "end" : "middle"} fontFamily={fonts.displaySemi}>
+              {data[index]?.label}
+            </SvgText>
+          ))}
+        </Svg>
+      </View>
+    </View>
+  );
+}

@@ -1,7 +1,12 @@
 import { createClient, type ApiClient } from "@swolltech/api-client";
 import { getDevToken, supabase } from "./supabase";
 
-export const devLoginEnabled = process.env.EXPO_PUBLIC_DEV_LOGIN === "true";
+// Dev sign-in never ships: a release build ignores the flag even if it was set.
+export const devLoginEnabled = process.env.EXPO_PUBLIC_DEV_LOGIN === "true" && __DEV__;
+if (!__DEV__ && !process.env.EXPO_PUBLIC_API_URL) {
+  // Fail loudly in TestFlight / internal testing instead of silently talking to localhost.
+  throw new Error("EXPO_PUBLIC_API_URL is not set for this release build");
+}
 export const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 /** The current access token: the Supabase session, or the local dev token. */

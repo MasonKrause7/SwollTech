@@ -49,7 +49,7 @@ npm run db:up                                      # Postgres on port 54329
 cd apps/api
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:54329/swolltech_dev uv run python -m scripts.reset_local_db
 # start the API against that database with DEV_TOKEN_ENABLED=true, then:
-npm run seed:demo -- --email demo@example.com      # ten weeks of believable history
+npm run seed:demo -- --email demo@example.com --fresh   # 18 months of believable history
 ```
 
 ## Tests
@@ -84,8 +84,15 @@ CI (`.github/workflows/ci.yml`) runs the API suite with an 80% coverage floor, e
 
 1. **Database:** apply `supabase/migrations` to the Supabase project (`supabase db push` or the SQL editor).
 2. **Supabase Auth:** under Authentication, URL configuration, set the site URL to the web app's address and add `https://<your-web-domain>/update-password` and `swolltech://` to the redirect URLs. Turn on email confirmation.
-3. **API:** deploy `apps/api` (a `Dockerfile` and `fly.toml` are included). Set `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWKS_URL`, `SUPABASE_JWT_SECRET` (only for projects still on the legacy HS256 secret), `SERVICE_ROLE_KEY` (needed so account deletion also removes the auth user), `CORS_ORIGINS` (your web domain), the `S3_*` values if you want set videos, and `SENTRY_DSN`. Keep `DEV_TOKEN_ENABLED` unset. `/health` is liveness, `/health/ready` also checks the database.
-4. **Web:** `npm run build -w @swolltech/web` and host `apps/web/dist` on any static host with SPA fallback to `index.html`. Set the `VITE_` values at build time.
-5. **Phone:** build with EAS (`eas build`) after setting the `EXPO_PUBLIC_` values. Bundle IDs are `com.swolltech.app`.
+3. **API:** deploy `apps/api` (a `Dockerfile` and `fly.toml` are included). Set `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWKS_URL`, `SUPABASE_JWT_SECRET` (only for projects still on the legacy HS256 secret), `SERVICE_ROLE_KEY` (needed so account deletion also removes the auth user), `CORS_ORIGINS` (your web domain), the `S3_*` values if you want set videos, and `SENTRY_DSN`.
+   - Download Supabase's root certificate (Dashboard, Database, SSL configuration), ship it with the image, and set `DATABASE_SSL_ROOT_CERT` to its path so the database connection is verified, not just encrypted.
+   - The API refuses to start if `DATABASE_URL` is missing, nothing can verify tokens, `CORS_ORIGINS` only lists localhost on a deployed host, or `DEV_TOKEN_ENABLED` is on anywhere but a local machine with a local database. A bad deploy fails its health check instead of serving traffic.
+   - Connections use a small pool (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, default 5 + 5 per instance) with a 15 second query timeout.
+   - Run one machine (`fly scale count 1`) until the rate limiter moves to Redis.
+   - `/health` is liveness. `/health/ready` also checks the database, and Fly's check uses it.
+4. **Web:** `npm run build -w @swolltech/web` and host `apps/web/dist` on any static host with SPA fallback to `index.html`. Set the `VITE_` values at build time. On Vercel production builds, the build fails if the API or Supabase values are missing, point at localhost, or dev login is on. `vercel.json` sets a Content-Security-Policy and HSTS.
+5. **Phone:** run `eas init` once (links the project to your Expo account), set the `EXPO_PUBLIC_` values in EAS, then `eas build --profile production`. `eas.json` auto-increments build numbers. A release build without `EXPO_PUBLIC_API_URL` stops at launch rather than talking to localhost, and dev sign-in is ignored outside dev builds. Bundle IDs are `com.swolltech.app`.
+
+CI also runs release checks: the API contract matches the routes, the API image builds and refuses an unsafe config, the phone bundle builds, and no high-severity vulnerabilities in shipped dependencies.
 
 Known limits worth planning for: the rate limiter is in memory, so it is per API instance. Run one instance or move it to Redis before scaling out.

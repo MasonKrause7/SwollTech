@@ -51,10 +51,43 @@ jobs:
       - run: npm run test:js
       - run: npm run build -w @swolltech/web
 
+  release:
+    name: Release checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: API contract matches the routes
+        working-directory: apps/api
+        run: |
+          uv sync
+          uv run python -c "import json; from swolltech.main import app; json.dump(app.openapi(), open('/tmp/openapi.json','w'))"
+          python3 -c "import json,sys; a=json.load(open('/tmp/openapi.json')); b=json.load(open('../../packages/api-client/openapi.json')); sys.exit(0 if a==b else 'openapi.json is stale: regenerate it (see README)')"
+      - name: API image builds
+        run: docker build -t swolltech-api:ci apps/api
+      - name: API image refuses an unsafe config
+        run: |
+          if docker run --rm -e DATABASE_URL=postgresql://x@db.example.supabase.co/postgres -e SUPABASE_URL=https://ref.supabase.co -e DEV_TOKEN_ENABLED=true -e FLY_APP_NAME=ci swolltech-api:ci 2>&1 | tee /tmp/run.log | grep -q "Refusing to start"; then echo ok; else cat /tmp/run.log; exit 1; fi
+      - name: Phone release bundle builds
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.test
+        run: npx expo export --platform ios --output-dir /tmp/expo-export
+      - name: No high-severity vulnerabilities in shipped JS dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: No known vulnerabilities in API dependencies
+        working-directory: apps/api
+        run: uv export --no-dev --no-emit-project --format requirements-txt --no-hashes > /tmp/requirements.txt && uvx pip-audit -r /tmp/requirements.txt
+
   e2e:
     name: End-to-end (web)
     runs-on: ubuntu-latest
-    needs: [api, js]
+    needs: [api, js, release]
     services:
       postgres:
         image: postgres:16

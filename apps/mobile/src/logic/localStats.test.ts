@@ -1,4 +1,4 @@
-import { buildOverview } from "@swolltech/metrics";
+import { ALL_LIFTS, buildAnalytics, buildOverview, liftChoices } from "@swolltech/metrics";
 import { describe, expect, it } from "vitest";
 import { BENCH, SQUAT, emptyData } from "./fixtures";
 import { exerciseProgress, historyByWeek, statLog, weekLabel } from "./localStats";
@@ -30,6 +30,23 @@ describe("statLog", () => {
       ["Back Squat", 140, 5, "quads"],
     ]);
     expect(statLog(data, "b").sessions).toHaveLength(2);
+  });
+
+  it("feeds the Analyze chart offline, ignoring warmups and unfinished sessions", () => {
+    const data = emptyData();
+    log(data, "a", "2026-10-13T12:00:00Z", "completed", [[BENCH, 100, 5], [BENCH, 60, 10, "warmup"], [SQUAT, 140, 5]]);
+    log(data, "b", "2026-10-20T12:00:00Z", "completed", [[BENCH, 105, 5]]);
+    log(data, "c", "2026-10-21T12:00:00Z", "in_progress", [[BENCH, 200, 5]]);
+    const { sessions, sets } = statLog(data);
+    expect(liftChoices(sets).map((row) => row.exerciseName)).toEqual(["All lifts", "Bench Press", "Back Squat"]);
+    const now = new Date("2026-10-22T12:00:00Z");
+    const top = buildAnalytics(sessions, sets, { exerciseId: BENCH, measure: "topSet", period: "session", range: "all" }, now, "UTC");
+    expect(top.points.map((point) => point.value)).toEqual([100, 105]);
+    const frequency = buildAnalytics(sessions, sets, { exerciseId: ALL_LIFTS, measure: "sessions", period: "week", range: "all" }, now, "UTC");
+    expect(frequency.points.map((point) => [point.day, point.value])).toEqual([
+      ["2026-10-12", 1],
+      ["2026-10-19", 1],
+    ]);
   });
 
   it("feeds buildOverview so records show up offline", () => {

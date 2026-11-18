@@ -68,6 +68,24 @@ async def get_overview(db: AsyncSession, user_id: UUID, tz_name: str | None, now
     return overview(sessions, sets, now or datetime.now(timezone.utc), zone)
 
 
+async def get_log(db: AsyncSession, user_id: UUID) -> dict:
+    sessions, sets = await load_log(db, user_id)
+    return {
+        "sessions": sorted(({"id": item.id, "started_at": item.started_at} for item in sessions), key=lambda row: (row["started_at"], str(row["id"]))),
+        "sets": [
+            {
+                "session_id": item.session_id,
+                "exercise_id": item.exercise_id,
+                "exercise_name": item.exercise_name,
+                "muscle": item.muscle,
+                "weight_kg": item.weight_kg,
+                "reps": item.reps,
+            }
+            for item in sets
+        ],
+    }
+
+
 async def get_session_summary(db: AsyncSession, user_id: UUID, session_id: UUID) -> dict:
     sessions, sets = await load_log(db, user_id, include=session_id)
     target = next((item for item in sessions if item.id == session_id), None)

@@ -106,6 +106,41 @@ describe("Progress", () => {
     expect(screen.getByText("9 sets")).toBeInTheDocument();
     expect(screen.getByText("Recent records")).toBeInTheDocument();
   });
+
+  it("analyzes any lift by measure, grouping and chart type", async () => {
+    const user = userEvent.setup();
+    const overview = emptyOverview();
+    overview.totals = { ...overview.totals, sessions: 2 };
+    const day = (offset: number) => new Date(Date.now() - offset * 86_400_000).toISOString();
+    const statsLog = vi.fn(async () => ({
+      sessions: [
+        { id: "s1", started_at: day(10) },
+        { id: "s2", started_at: day(3) },
+      ],
+      sets: [
+        { session_id: "s1", exercise_id: "b", exercise_name: "Bench Press", muscle: "chest", weight_kg: 100, reps: 5 },
+        { session_id: "s2", exercise_id: "b", exercise_name: "Bench Press", muscle: "chest", weight_kg: 110, reps: 5 },
+        { session_id: "s2", exercise_id: "q", exercise_name: "Back Squat", muscle: "quads", weight_kg: 140, reps: 5 },
+      ],
+    }));
+    renderPage(<ProgressPage />, { api: fakeApi({ overview: vi.fn(async () => overview), statsLog }) });
+    const lift = (await screen.findByRole("combobox", { name: "Lift" })) as HTMLSelectElement;
+    expect(lift.value).toBe("b");
+    expect(screen.getByRole("button", { name: "Estimated max" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Session" }));
+    expect(screen.getByText("+10%")).toBeInTheDocument();
+
+    await user.selectOptions(lift, "all");
+    // A max of every lift together means nothing, so it is disabled and volume shows instead.
+    expect(screen.getByRole("button", { name: "Estimated max" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Volume" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "Frequency" }));
+    await user.click(screen.getByRole("button", { name: "Bar" }));
+    expect(screen.getByRole("button", { name: "Bar" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("img", { name: /Frequency of All lifts by session/ })).toBeInTheDocument();
+    expect(screen.getByText("total").previousSibling).toHaveTextContent("2");
+  });
 });
 
 describe("Workout editor", () => {

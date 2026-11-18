@@ -19,3 +19,9 @@ playwright-report/
 coverage/
 .coverage
 htmlcov/
+
+# Backups of env files hold secrets
+*.bak
+.env.bak
+.env.*.local
+.vercel

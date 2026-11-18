@@ -1,3 +1,4 @@
+import asyncio
 import json
 import uuid
 from datetime import date
@@ -44,6 +45,7 @@ from swolltech.schemas import (
     SessionSetPatch,
     SessionSummary,
     SessionSummaryOut,
+    StatsLogOut,
     SyncIn,
     SyncOut,
     WorkoutExerciseIn,
@@ -99,7 +101,7 @@ async def delete_me(
 
 @router.post("/dev/token", response_model=DevTokenOut)
 async def dev_token(body: DevTokenIn, db: AsyncSession = Depends(get_db), settings: Settings = Depends(get_settings)):
-    if not settings.dev_token_enabled:
+    if not settings.dev_tokens_allowed:
         raise DomainError(404, "Not found")
     limiter.hit(f"dev:{body.email}", 20, 60)
     existing = await db.scalar(text("select id from auth.users where lower(email) = lower(:email)"), {"email": body.email})
@@ -290,6 +292,11 @@ async def get_overview(tz: str | None = None, user_id: UUID = Depends(current_us
     return await insights.get_overview(db, user_id, tz)
 
 
+@router.get("/stats/log", response_model=StatsLogOut)
+async def get_stats_log(user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
+    return await insights.get_log(db, user_id)
+
+
 @router.patch("/sessions/{session_id}", response_model=SessionOut)
 async def patch_session(session_id: UUID, body: SessionPatch, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
     row = await store.update_session(db, user_id, session_id, body)
@@ -383,7 +390,7 @@ async def remove_media(set_id: UUID, user_id: UUID = Depends(current_user_id), d
     if media is None:
         raise DomainError(404, "Not found")
     if media.storage_key:
-        storage.delete_key(media.storage_key)
+        await asyncio.to_thread(storage.delete_key, media.storage_key)
     return Response(status_code=204)
 
 

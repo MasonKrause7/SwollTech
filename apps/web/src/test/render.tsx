@@ -11,6 +11,7 @@ export function fakeApi(overrides: Partial<Record<keyof ApiClient, unknown>> = {
   const base: Partial<Record<keyof ApiClient, unknown>> = {
     me: vi.fn(async () => profile),
     overview: vi.fn(async () => emptyOverview()),
+    statsLog: vi.fn(async () => ({ sessions: [], sets: [] })),
     workouts: vi.fn(async () => []),
     sessions: vi.fn(async () => []),
     schedule: vi.fn(async () => []),

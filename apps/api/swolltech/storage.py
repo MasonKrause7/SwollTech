@@ -19,8 +19,8 @@ class MemoryStorage:
         self.objects: dict[str, tuple[bytes, str]] = {}
         self.expires = 300
 
-    def presign_put(self, key: str, content_type: str) -> str:
-        return f"memory://put/{key}?type={content_type}"
+    def presign_put(self, key: str, content_type: str, byte_size: int | None = None) -> str:
+        return f"memory://put/{key}?type={content_type}&size={byte_size}"
 
     def presign_get(self, key: str) -> str:
         return f"memory://get/{key}"
@@ -47,7 +47,7 @@ class MemoryStorage:
 class NullStorage:
     configured = False
 
-    def presign_put(self, key: str, content_type: str) -> str:
+    def presign_put(self, key: str, content_type: str, byte_size: int | None = None) -> str:
         raise DomainError(503, "Object storage is not configured")
 
     def presign_get(self, key: str) -> str:
@@ -79,10 +79,14 @@ class S3Storage:
             endpoint_url=settings.s3_endpoint_url or None,
         )
 
-    def presign_put(self, key: str, content_type: str) -> str:
+    def presign_put(self, key: str, content_type: str, byte_size: int | None = None) -> str:
+        params = {"Bucket": self.bucket, "Key": key, "ContentType": content_type}
+        if byte_size is not None:
+            # Signed into the URL: S3 rejects an upload whose Content-Length differs.
+            params["ContentLength"] = byte_size
         return self.client.generate_presigned_url(
             "put_object",
-            Params={"Bucket": self.bucket, "Key": key, "ContentType": content_type},
+            Params=params,
             ExpiresIn=self.expires,
         )
 

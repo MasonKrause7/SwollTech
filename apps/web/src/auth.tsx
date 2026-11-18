@@ -11,7 +11,8 @@ export const supabase: SupabaseClient | null =
   supabaseUrl && supabaseKey
     ? createSupabase(supabaseUrl, supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
     : null;
-export const devLoginEnabled = import.meta.env.VITE_DEV_LOGIN === "true";
+// Dev sign-in never ships: a production bundle ignores the flag even if it was set.
+export const devLoginEnabled = import.meta.env.VITE_DEV_LOGIN === "true" && !import.meta.env.PROD;
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export interface AuthValue {

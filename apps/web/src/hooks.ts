@@ -5,6 +5,8 @@ import { timeZone, type WeightUnit } from "./format";
 export const keys = {
   me: ["me"] as const,
   overview: ["overview"] as const,
+  /** Under "overview" so finishing a session refreshes both. */
+  statsLog: ["overview", "log"] as const,
   workouts: ["workouts"] as const,
   workout: (id: string) => ["workout", id] as const,
   exercises: ["exercises"] as const,

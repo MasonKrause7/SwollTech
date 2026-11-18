@@ -186,15 +186,17 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
   );
 }
 
-export function Chip({ label, selected, onPress, testID }: { label: string; selected?: boolean; onPress: () => void; testID?: string }) {
+export function Chip({ label, selected, onPress, testID, disabled, small }: { label: string; selected?: boolean; onPress: () => void; testID?: string; disabled?: boolean; small?: boolean }) {
   const theme = useTheme();
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityState={{ selected: Boolean(selected) }}
+      accessibilityState={{ selected: Boolean(selected), disabled: Boolean(disabled) }}
+      disabled={disabled}
       onPress={onPress}
       style={{
+        opacity: disabled ? 0.4 : 1,
         minHeight: 44,
         minWidth: 44,
         paddingHorizontal: space.md,
@@ -206,7 +208,7 @@ export function Chip({ label, selected, onPress, testID }: { label: string; sele
         justifyContent: "center",
       }}
     >
-      <Text style={{ color: selected ? theme.accentInk : theme.text, fontFamily: fonts.displaySemi, fontSize: 18 }}>{label}</Text>
+      <Text style={{ color: selected ? theme.accentInk : theme.text, fontFamily: fonts.displaySemi, fontSize: small ? 15 : 18 }}>{label}</Text>
     </Pressable>
   );
 }

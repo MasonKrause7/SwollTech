@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
@@ -1152,7 +1153,7 @@ async def request_upload(db, user_id, set_id, content_type, byte_size, duration,
     await owned_set(db, user_id, set_id)
     existing = await live_media(db, set_id)
     if existing is not None and existing.storage_key:
-        storage.delete_key(existing.storage_key)
+        await asyncio.to_thread(storage.delete_key, existing.storage_key)
     key = f"users/{user_id}/sets/{set_id}/{uuid.uuid4()}"
     if existing is None:
         existing = SetMedia(
@@ -1169,7 +1170,8 @@ async def request_upload(db, user_id, set_id, content_type, byte_size, duration,
     existing.status = MediaStatus.uploading
     await db.flush()
     await db.refresh(existing)
-    return existing, storage.presign_put(key, content_type)
+    # The URL is signed for this exact size, so the client cannot upload more than it declared.
+    return existing, storage.presign_put(key, content_type, byte_size)
 
 
 async def confirm_upload(db, user_id, set_id, duration, storage, settings):
@@ -1177,9 +1179,11 @@ async def confirm_upload(db, user_id, set_id, duration, storage, settings):
     media = await live_media(db, set_id)
     if media is None or media.user_id != user_id or not media.storage_key:
         raise DomainError(404, "Not found")
-    head = storage.head(media.storage_key)
+    head = await asyncio.to_thread(storage.head, media.storage_key)
     if head is None or head.content_type not in ALLOWED_VIDEO_TYPES or head.size != media.byte_size or head.size > settings.media_max_bytes:
         media.status = MediaStatus.failed
+        if head is not None:
+            await asyncio.to_thread(storage.delete_key, media.storage_key)
         await db.flush()
         raise DomainError(400, "Upload did not match the declared video")
     media.status = MediaStatus.ready
@@ -1191,7 +1195,8 @@ async def confirm_upload(db, user_id, set_id, duration, storage, settings):
 
 
 async def delete_account(db: AsyncSession, user_id: UUID, storage, settings) -> None:
-    storage.delete_prefix(f"users/{user_id}/")
+    # The login goes first. If that fails the user still has an account and all their videos;
+    # deleting media first would leave a live account with its videos gone.
     if settings.supabase_url and settings.service_role_key:
         import httpx
 
@@ -1203,6 +1208,7 @@ async def delete_account(db: AsyncSession, user_id: UUID, storage, settings) -> 
             )
         if response.status_code not in (200, 204, 404):
             raise DomainError(502, "Could not delete the auth user")
-        return
-    await db.execute(text("delete from auth.sessions where user_id = :id"), {"id": user_id})
-    await db.execute(text("delete from auth.users where id = :id"), {"id": user_id})
+    else:
+        await db.execute(text("delete from auth.sessions where user_id = :id"), {"id": user_id})
+        await db.execute(text("delete from auth.users where id = :id"), {"id": user_id})
+    await asyncio.to_thread(storage.delete_prefix, f"users/{user_id}/")

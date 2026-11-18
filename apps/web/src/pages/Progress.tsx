@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { ApiError } from "@swolltech/api-client";
 import { localDay, parseAmount } from "@swolltech/metrics";
 import { useApi } from "../auth";
+import { AnalyzePanel } from "../components/Analyze";
 import { BarSeries, LineSeries } from "../components/Charts";
 import { BrandEmpty, LoadError, Loading } from "../components/Feedback";
 import { Heatmap } from "../components/Heatmap";
@@ -75,6 +76,8 @@ export function ProgressPage() {
           <span className="label">personal records</span>
         </div>
       </section>
+
+      <AnalyzePanel unit={unit} />
 
       <div className="grid-2">
         <section className="panel stack">
