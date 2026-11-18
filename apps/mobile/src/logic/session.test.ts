@@ -197,7 +197,7 @@ describe("logging", () => {
     expect(validateSet(100, 0)).toMatch(/reps/);
     expect(validateSet(100, 2.5)).toMatch(/reps/);
     expect(validateSet(null, 5)).toMatch(/weight/);
-    expect(validateSet(5000, 5)).toMatch(/off/);
+    expect(validateSet(5000, 5)).toMatch(/2000/);
     expect(validateSet(0, 10)).toBeNull();
   });
 

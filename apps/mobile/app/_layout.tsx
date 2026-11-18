@@ -5,10 +5,10 @@ import { Barlow_600SemiBold } from "@expo-google-fonts/barlow/600SemiBold";
 import { BarlowCondensed_600SemiBold } from "@expo-google-fonts/barlow-condensed/600SemiBold";
 import { BarlowCondensed_700Bold } from "@expo-google-fonts/barlow-condensed/700Bold";
 import { useFonts } from "expo-font";
-import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
+import { SplashScreen, Stack, useRouter, useSegments, type ErrorBoundaryProps } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { AppState, Image, useColorScheme, View } from "react-native";
+import { AppState, Image, Pressable, Text, useColorScheme, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { art } from "../src/art";
 import { AuthProvider, useAuth } from "../src/auth";
@@ -73,6 +73,33 @@ function Guard() {
         <Stack.Screen name="exercise/[id]" options={{ title: "Exercise" }} />
       </Stack>
     </>
+  );
+}
+
+/**
+ * Last line of defence for a render error anywhere in the app. Without it a release build
+ * closes on the spot. Nothing here depends on the providers above, which may be what broke.
+ * Logged sets are already in SQLite, so retrying loses nothing.
+ */
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    void SplashScreen.hideAsync();
+  }, []);
+  return (
+    <View style={{ flex: 1, backgroundColor: "#0F1011", padding: 24, justifyContent: "center", gap: 16 }}>
+      <Image source={art.mark} accessible={false} style={{ width: 64, height: 64, borderRadius: 16 }} />
+      <Text style={{ color: "#F4F4F2", fontSize: 28, fontWeight: "700" }}>Something went wrong</Text>
+      <Text style={{ color: "#8E9196", fontSize: 16, lineHeight: 22 }}>
+        Your logged sets are saved on this phone. Try again, and if it keeps happening, email support@everydaytechllc.com.
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => void retry()}
+        style={{ backgroundColor: "#F4F4F2", borderRadius: 12, paddingVertical: 16, alignItems: "center" }}
+      >
+        <Text style={{ color: "#0F1011", fontSize: 17, fontWeight: "600" }}>Try again</Text>
+      </Pressable>
+    </View>
   );
 }
 

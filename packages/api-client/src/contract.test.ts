@@ -73,4 +73,51 @@ describe("api client contract", () => {
     const client = createClient({ baseUrl: "http://api.test", getToken: () => "t", fetch: fakeFetch as unknown as typeof fetch });
     await expect(client.deleteWorkout("w")).resolves.toBeUndefined();
   });
+
+  it("retries a refused token once with a fresh one before reporting a 401", async () => {
+    const onUnauthorized = vi.fn();
+    const seen: string[] = [];
+    const fakeFetch = vi.fn(async (_url: string, init?: RequestInit) => {
+      const header = new Headers(init?.headers).get("Authorization") ?? "";
+      seen.push(header);
+      return header === "Bearer fresh"
+        ? new Response(JSON.stringify({ id: "u1" }), { status: 200 })
+        : new Response(JSON.stringify({ detail: "Invalid token" }), { status: 401 });
+    });
+    const client = createClient({
+      baseUrl: "http://api.test",
+      getToken: () => "stale",
+      refreshToken: () => "fresh",
+      onUnauthorized,
+      fetch: fakeFetch as unknown as typeof fetch,
+    });
+    await expect(client.me()).resolves.toEqual({ id: "u1" });
+    expect(seen).toEqual(["Bearer stale", "Bearer fresh"]);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
+  it("reports a 401 only when the fresh token is refused too", async () => {
+    const onUnauthorized = vi.fn();
+    const fakeFetch = vi.fn(async () => new Response(JSON.stringify({ detail: "Account not found" }), { status: 401 }));
+    const client = createClient({ baseUrl: "http://api.test", getToken: () => "a", refreshToken: () => "b", onUnauthorized, fetch: fakeFetch as unknown as typeof fetch });
+    await expect(client.me()).rejects.toMatchObject({ status: 401 });
+    expect(fakeFetch).toHaveBeenCalledTimes(2);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it("says so when no token can be had at all", async () => {
+    const onNoToken = vi.fn();
+    const onUnauthorized = vi.fn();
+    const fakeFetch = vi.fn(async () => new Response(JSON.stringify({ detail: "Missing token" }), { status: 401 }));
+    const client = createClient({ baseUrl: "http://api.test", getToken: () => null, onNoToken, onUnauthorized, fetch: fakeFetch as unknown as typeof fetch });
+    await expect(client.me()).rejects.toMatchObject({ status: 401 });
+    expect(onNoToken).toHaveBeenCalledTimes(1);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+
+    // The session vanished between the request and the refresh.
+    const later = vi.fn();
+    const refreshed = createClient({ baseUrl: "http://api.test", getToken: () => "old", refreshToken: () => null, onNoToken: later, fetch: fakeFetch as unknown as typeof fetch });
+    await expect(refreshed.me()).rejects.toMatchObject({ status: 401 });
+    expect(later).toHaveBeenCalledTimes(1);
+  });
 });

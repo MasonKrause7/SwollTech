@@ -3,8 +3,9 @@
  *
  * The server checks base_updated_at on every update of an existing row, so the
  * phone must send at most one pending change per row and keep the base it was
- * built on. Edits made while a flush is in flight become a new mutation, so the
- * acknowledgement of the old one does not drop them.
+ * built on. Edits made after a change was sent (even if the answer never came back)
+ * become a new mutation: the server may already have the old one under its id and would
+ * answer "duplicate", dropping the new payload.
  */
 export interface PendingItem {
   clientMutationId: string;
@@ -29,6 +30,7 @@ export interface WriteInput {
   /** updated_at of the row as the server last sent it, if it was ever synced. */
   serverUpdatedAt: string | null;
   pending: PendingItem | null;
+  /** The pending change has been sent at least once (or is being sent now). */
   inFlight: boolean;
   newMutationId: () => string;
 }
@@ -84,4 +86,30 @@ export function planRemote(
   if (change.op === "delete" || !change.row) return { kind: "drop-local", clientMutationId: pending.clientMutationId };
   const stamp = change.row.updated_at;
   return { kind: "rebase", clientMutationId: pending.clientMutationId, baseUpdatedAt: typeof stamp === "string" ? stamp : null };
+}
+
+/**
+ * The changes to send in one request: outbox order, at most one per row. A second change
+ * to the same row is built on the first one's result (its base_updated_at changes when
+ * the first applies), so it waits for the next round.
+ */
+export function pickBatch<T extends { entity: string; entityId: string }>(items: T[], max = 200): T[] {
+  const seen = new Set<string>();
+  const batch: T[] = [];
+  for (const item of items) {
+    const key = `${item.entity}:${item.entityId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    batch.push(item);
+    if (batch.length >= max) break;
+  }
+  return batch;
+}
+
+/** Entities whose rows point at an exercise by exercise_id. */
+export const EXERCISE_REFERENCING = ["exercise_references", "workout_exercises", "session_exercises"] as const;
+
+/** Point a payload at another exercise, if it pointed at `fromId`. Returns null when unchanged. */
+export function repointExercise(payload: Record<string, unknown>, fromId: string, toId: string): Record<string, unknown> | null {
+  return payload.exercise_id === fromId ? { ...payload, exercise_id: toId } : null;
 }

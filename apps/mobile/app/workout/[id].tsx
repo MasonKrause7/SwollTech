@@ -6,7 +6,7 @@ import { ExercisePicker } from "../../src/components/ExercisePicker";
 import { Button, Card, Chip, Divider, Field, Row, Screen, Sheet, T } from "../../src/components/ui";
 import { deleteRow, newId, saveRow, saveRows } from "../../src/db";
 import { byPosition, live, type SetKind, type Unit, type WorkoutRow } from "../../src/logic/rows";
-import { exerciseName } from "../../src/logic/session";
+import { REST_CHOICES, exerciseName, restFromText, restLabel } from "../../src/logic/session";
 import {
   describePlannedSet,
   moveRow,
@@ -239,7 +239,7 @@ function PlanSetSheet({
       weight: parseAmount(weight),
       percent: parseAmount(percent),
       unit: setUnit,
-      restSeconds: parseAmount(rest) ?? 0,
+      restSeconds: restFromText(rest) ?? Number.NaN,
     };
     const problem = validateSetCount(sets) ?? validatePlannedSet(input);
     if (problem) return setError(problem);
@@ -277,10 +277,15 @@ function PlanSetSheet({
             <Field label="Reps" value={reps} onChangeText={setReps} keyboardType="number-pad" />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="Rest (seconds)" value={rest} onChangeText={setRest} keyboardType="number-pad" placeholder="Optional" />
+            <Field label="Rest (seconds)" value={rest} onChangeText={setRest} keyboardType="number-pad" placeholder="120" />
           </View>
         </Row>
-        <T variant="small">Leave rest blank to skip the rest timer between these sets.</T>
+        <Row gap={6} style={{ flexWrap: "wrap" }}>
+          {REST_CHOICES.map((seconds) => (
+            <Chip key={seconds} small label={restLabel(seconds)} selected={restFromText(rest) === seconds} onPress={() => setRest(String(seconds))} />
+          ))}
+        </Row>
+        <T variant="small">Rest between these sets. Blank means 2 minutes; choose Off for no rest timer.</T>
         <Row gap={space.md}>
           <View style={{ flex: 1 }}>
             <Field label={`Weight (${setUnit})`} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="Optional" />

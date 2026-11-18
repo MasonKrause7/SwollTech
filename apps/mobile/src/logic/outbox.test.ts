@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planRemote, planWrite, type PendingItem } from "./outbox";
+import { pickBatch, planRemote, planWrite, repointExercise, type PendingItem } from "./outbox";
 import { ids } from "./fixtures";
 
 const pending: PendingItem = {
@@ -60,5 +60,39 @@ describe("planRemote", () => {
 
   it("drops a local edit when the row was deleted elsewhere", () => {
     expect(planRemote({ op: "delete", row: null }, pending, new Set())).toEqual({ kind: "drop-local", clientMutationId: "m1" });
+  });
+});
+
+describe("pickBatch", () => {
+  const item = (id: string, entityId: string, entity = "session_sets") => ({ clientMutationId: id, entity, entityId });
+
+  it("sends at most one change per row and keeps outbox order", () => {
+    const batch = pickBatch([item("a1", "A"), item("b1", "B"), item("a2", "A"), item("c1", "C"), item("x", "A", "sessions")]);
+    expect(batch.map((entry) => entry.clientMutationId)).toEqual(["a1", "b1", "c1", "x"]);
+  });
+
+  it("caps the batch", () => {
+    expect(pickBatch([item("1", "A"), item("2", "B"), item("3", "C")], 2)).toHaveLength(2);
+  });
+});
+
+describe("a change that was sent but never acknowledged", () => {
+  it("is never folded into: the next edit gets its own mutation id", () => {
+    // The response to m1 was lost. The server has m1, so folding the new weight into m1
+    // would make the server answer "duplicate" and drop it.
+    const action = planWrite({ entity: "session_sets", entityId: "s1", op: "upsert", payload: { id: "s1", actual_weight: 102.5 }, serverUpdatedAt: null, pending, inFlight: true, newMutationId: ids("n") });
+    expect(action).toMatchObject({ kind: "insert", item: { clientMutationId: "n-1", payload: { actual_weight: 102.5 } } });
+  });
+
+  it("is not forgotten by a delete either", () => {
+    const action = planWrite({ entity: "sessions", entityId: "s1", op: "delete", payload: {}, serverUpdatedAt: null, pending, inFlight: true, newMutationId: ids("d") });
+    expect(action).toMatchObject({ kind: "insert", item: { clientMutationId: "d-1", op: "delete" } });
+  });
+});
+
+describe("repointExercise", () => {
+  it("rewrites only payloads that used the merged exercise", () => {
+    expect(repointExercise({ id: "i", exercise_id: "new" }, "new", "old")).toEqual({ id: "i", exercise_id: "old" });
+    expect(repointExercise({ id: "i", exercise_id: "other" }, "new", "old")).toBeNull();
   });
 });

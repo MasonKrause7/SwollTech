@@ -1,9 +1,34 @@
 from datetime import date, datetime
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from swolltech.models import MediaStatus, SessionStatus, SetKind, WeightUnit
+
+# Upper bounds on everything a client can write. Without them a typo (or a fuzzer) can
+# overflow a numeric column, and on /v1/sync that one bad change used to fail the whole
+# request on every retry. 2000 is far past any real lift in either unit and still fits
+# numeric(12, 6) after converting pounds to kilograms.
+MAX_WEIGHT = 2000
+MAX_REPS = 1000
+MAX_REST_SECONDS = 3600
+MAX_POSITION = 100_000
+MAX_NOTES = 2000
+MAX_NAME = 80
+MAX_LABEL = 40
+
+Weight = Annotated[float, Field(ge=0, le=MAX_WEIGHT)]
+PositiveWeight = Annotated[float, Field(gt=0, le=MAX_WEIGHT)]
+Reps = Annotated[int, Field(ge=1, le=MAX_REPS)]
+# Steps of 0.5 are checked by check_rpe, which gives a clearer message.
+Rpe = Annotated[float, Field(ge=1, le=10)]
+Percent = Annotated[float, Field(ge=1, le=120)]
+Rest = Annotated[int, Field(ge=0, le=MAX_REST_SECONDS)]
+Position = Annotated[int, Field(ge=0, le=MAX_POSITION)]
+Notes = Annotated[str, Field(max_length=MAX_NOTES)]
+Name = Annotated[str, Field(max_length=MAX_NAME)]
+Label = Annotated[str, Field(max_length=MAX_LABEL)]
 
 
 class ORMModel(BaseModel):
@@ -53,7 +78,7 @@ class CatalogOut(BaseModel):
 
 class ReferenceIn(BaseModel):
     id: UUID | None = None
-    weight: float = Field(gt=0)
+    weight: PositiveWeight
     unit: WeightUnit
     noted_on: date
     base_updated_at: datetime | None = None
@@ -85,22 +110,22 @@ class WorkoutSetOut(ORMModel):
 class WorkoutSetIn(BaseModel):
     id: UUID | None = None
     kind: SetKind = SetKind.working
-    target_reps: int | None = Field(default=None, ge=1)
-    target_weight: float | None = Field(default=None, ge=0)
+    target_reps: Reps | None = None
+    target_weight: Weight | None = None
     target_unit: WeightUnit | None = None
-    target_percent: float | None = Field(default=None, ge=1, le=120)
-    target_rpe: float | None = None
-    rest_seconds: int = Field(default=120, ge=0)
+    target_percent: Percent | None = None
+    target_rpe: Rpe | None = None
+    rest_seconds: Rest = 120
 
 
 class WorkoutSetPatch(BaseModel):
     kind: SetKind | None = None
-    target_reps: int | None = Field(default=None, ge=1)
-    target_weight: float | None = Field(default=None, ge=0)
+    target_reps: Reps | None = None
+    target_weight: Weight | None = None
     target_unit: WeightUnit | None = None
-    target_percent: float | None = Field(default=None, ge=1, le=120)
-    target_rpe: float | None = None
-    rest_seconds: int | None = Field(default=None, ge=0)
+    target_percent: Percent | None = None
+    target_rpe: Rpe | None = None
+    rest_seconds: Rest | None = None
     clear_weight: bool = False
     clear_percent: bool = False
     base_updated_at: datetime | None = None
@@ -119,12 +144,12 @@ class WorkoutExerciseOut(ORMModel):
 class WorkoutExerciseIn(BaseModel):
     id: UUID | None = None
     exercise_id: UUID
-    notes: str = ""
-    position: int | None = Field(default=None, ge=0)
+    notes: Notes = ""
+    position: Position | None = None
 
 
 class WorkoutExercisePatch(BaseModel):
-    notes: str | None = None
+    notes: Notes | None = None
     base_updated_at: datetime | None = None
 
 
@@ -148,18 +173,18 @@ class WorkoutSummary(ORMModel):
 class WorkoutIn(BaseModel):
     id: UUID | None = None
     name: str = Field(min_length=1, max_length=80)
-    notes: str = ""
+    notes: Notes = ""
 
 
 class WorkoutPatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
-    notes: str | None = None
+    notes: Notes | None = None
     archived: bool | None = None
     base_updated_at: datetime | None = None
 
 
 class ReorderIn(BaseModel):
-    ids: list[UUID]
+    ids: list[UUID] = Field(max_length=1000)
 
 
 class ScheduledWorkoutOut(BaseModel):
@@ -245,14 +270,14 @@ class SessionSummary(ORMModel):
 class SessionIn(BaseModel):
     id: UUID | None = None
     workout_id: UUID | None = None
-    name: str = ""
+    name: Name = ""
     started_at: datetime | None = None
-    notes: str = ""
+    notes: Notes = ""
 
 
 class SessionPatch(BaseModel):
-    name: str | None = None
-    notes: str | None = None
+    name: Name | None = None
+    notes: Notes | None = None
     status: SessionStatus | None = None
     ended_at: datetime | None = None
     base_updated_at: datetime | None = None
@@ -261,43 +286,43 @@ class SessionPatch(BaseModel):
 class SessionExerciseIn(BaseModel):
     id: UUID | None = None
     exercise_id: UUID
-    notes: str = ""
-    position: int | None = Field(default=None, ge=0)
+    notes: Notes = ""
+    position: Position | None = None
 
 
 class SessionExercisePatch(BaseModel):
-    notes: str | None = None
+    notes: Notes | None = None
     base_updated_at: datetime | None = None
 
 
 class SessionSetIn(BaseModel):
     id: UUID | None = None
     kind: SetKind = SetKind.working
-    target_reps: int | None = Field(default=None, ge=1)
-    target_weight: float | None = Field(default=None, ge=0)
+    target_reps: Reps | None = None
+    target_weight: Weight | None = None
     target_unit: WeightUnit | None = None
-    target_percent: float | None = Field(default=None, ge=1, le=120)
-    target_rpe: float | None = None
-    rest_seconds: int = Field(default=120, ge=0)
-    actual_reps: int | None = Field(default=None, ge=1)
-    actual_weight: float | None = Field(default=None, ge=0)
+    target_percent: Percent | None = None
+    target_rpe: Rpe | None = None
+    rest_seconds: Rest = 120
+    actual_reps: Reps | None = None
+    actual_weight: Weight | None = None
     actual_unit: WeightUnit | None = None
-    rpe: float | None = None
-    notes: str = ""
+    rpe: Rpe | None = None
+    notes: Notes = ""
     skipped: bool = False
     completed: bool = False
 
 
 class SessionSetPatch(BaseModel):
     kind: SetKind | None = None
-    actual_reps: int | None = Field(default=None, ge=1)
-    actual_weight: float | None = Field(default=None, ge=0)
+    actual_reps: Reps | None = None
+    actual_weight: Weight | None = None
     actual_unit: WeightUnit | None = None
-    rpe: float | None = None
-    notes: str | None = None
+    rpe: Rpe | None = None
+    notes: Notes | None = None
     skipped: bool | None = None
     completed: bool | None = None
-    rest_seconds: int | None = Field(default=None, ge=0)
+    rest_seconds: Rest | None = None
     clear_actuals: bool = False
     base_updated_at: datetime | None = None
 
@@ -319,13 +344,13 @@ class ProgressOut(BaseModel):
 
 
 class MediaUploadIn(BaseModel):
-    content_type: str
-    byte_size: int = Field(gt=0)
-    duration_seconds: float | None = Field(default=None, ge=0)
+    content_type: str = Field(max_length=100)
+    byte_size: int = Field(gt=0, le=10 * 1024**3)
+    duration_seconds: float | None = Field(default=None, ge=0, le=86_400)
 
 
 class MediaConfirmIn(BaseModel):
-    duration_seconds: float | None = Field(default=None, ge=0)
+    duration_seconds: float | None = Field(default=None, ge=0, le=86_400)
 
 
 class MediaOut(ORMModel):
@@ -348,7 +373,7 @@ class MediaUploadOut(BaseModel):
 
 class DevTokenIn(BaseModel):
     email: str = Field(min_length=3, max_length=200)
-    display_name: str = ""
+    display_name: Name = ""
 
 
 class DevTokenOut(BaseModel):
@@ -360,16 +385,25 @@ class DevTokenOut(BaseModel):
 
 class MutationIn(BaseModel):
     client_mutation_id: UUID
-    entity: str
-    op: str
+    entity: str = Field(max_length=40)
+    op: str = Field(max_length=10)
     entity_id: UUID
     base_updated_at: datetime | None = None
     payload: dict = Field(default_factory=dict)
 
 
+MAX_PULL_LIMIT = 5000
+
+
 class SyncIn(BaseModel):
-    cursor: int = Field(default=0, ge=0)
+    cursor: int = Field(default=0, ge=0, le=2**63 - 1)
     mutations: list[MutationIn] = Field(default_factory=list, max_length=200)
+    limit: int | None = Field(
+        default=None,
+        ge=1,
+        le=MAX_PULL_LIMIT,
+        description="Most changes to return (default 2000). When more are waiting, has_more is true and the client syncs again from the new cursor.",
+    )
 
 
 class MutationResult(BaseModel):
@@ -391,6 +425,7 @@ class SyncOut(BaseModel):
     cursor: int
     applied: list[MutationResult]
     changes: list[ChangeOut]
+    has_more: bool = False
 
 
 class StatsTotals(BaseModel):

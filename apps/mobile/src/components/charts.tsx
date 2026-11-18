@@ -1,6 +1,6 @@
-import { addDays, weekStart } from "@swolltech/metrics";
+import { addDays, RECORD_LABELS, weekStart, type RecordType } from "@swolltech/metrics";
 import { useState } from "react";
-import { View, type LayoutChangeEvent } from "react-native";
+import { Text, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from "react-native-svg";
 import { fonts, radius, space, useTheme } from "../theme";
 import { T } from "./ui";
@@ -172,9 +172,55 @@ export function Heatmap({ days, today, weeks = 16 }: { days: { day: string; sess
   );
 }
 
-/** Horizontal bars for sets per muscle group. */
-export function SplitBars({ rows, colors }: { rows: { label: string; value: number; detail: string }[]; colors: string[] }) {
+/**
+ * One stable colour per muscle so chest is the same colour every week. Each palette is checked
+ * for at least 3:1 contrast against its card and the bar track, so no bar disappears (the old
+ * shared palette drew chest near-white on the light theme).
+ */
+const MUSCLE_COLORS: Record<"light" | "dark", Record<string, string>> = {
+  light: {
+    chest: "#E4480E",
+    back: "#2F5F8A",
+    shoulders: "#8A6A2F",
+    quads: "#3F7A5C",
+    hamstrings: "#7A4E8A",
+    glutes: "#B0436A",
+    biceps: "#1F7A80",
+    triceps: "#4A4D52",
+    calves: "#8A5A3C",
+    core: "#0F1011",
+    other: "#6E7176",
+  },
+  dark: {
+    chest: "#FF5A1F",
+    back: "#7F9FBF",
+    shoulders: "#C9B08A",
+    quads: "#7FBF9A",
+    hamstrings: "#B39BC8",
+    glutes: "#E08AA8",
+    biceps: "#6FC2C8",
+    triceps: "#B5B8BD",
+    calves: "#C79A7A",
+    core: "#F4F4F2",
+    other: "#8E9196",
+  },
+};
+
+export function muscleColor(muscle: string, mode: "light" | "dark") {
+  const palette = MUSCLE_COLORS[mode];
+  const key = muscle.trim().toLowerCase();
+  if (palette[key]) return palette[key];
+  // A custom muscle word: pick a stable colour from the palette.
+  const values = Object.values(palette);
+  let hash = 0;
+  for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return values[hash % values.length];
+}
+
+/** Horizontal bars for sets per muscle group. Bars are coloured by muscle unless colours are given. */
+export function SplitBars({ rows, colors }: { rows: { label: string; value: number; detail: string }[]; colors?: string[] }) {
   const theme = useTheme();
+  const mode = theme.bg === "#0F1011" ? "dark" : "light";
   const top = Math.max(1, ...rows.map((row) => row.value));
   return (
     <View style={{ gap: space.sm }}>
@@ -185,10 +231,27 @@ export function SplitBars({ rows, colors }: { rows: { label: string; value: numb
             <T variant="small">{row.detail}</T>
           </View>
           <View style={{ height: 10, borderRadius: radius.pill, backgroundColor: theme.track, overflow: "hidden" }}>
-            <View style={{ width: `${(row.value / top) * 100}%`, height: "100%", borderRadius: radius.pill, backgroundColor: colors[index % colors.length] }} />
+            <View
+              style={{
+                width: `${(row.value / top) * 100}%`,
+                height: "100%",
+                borderRadius: radius.pill,
+                backgroundColor: colors ? colors[index % colors.length] : muscleColor(row.label, mode),
+              }}
+            />
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+/** A small pill naming a record type: "Estimated max", "Heaviest weight", "Rep record". */
+export function RecordBadge({ type }: { type: RecordType }) {
+  const theme = useTheme();
+  return (
+    <View style={{ backgroundColor: theme.highlight, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2, alignSelf: "flex-start" }}>
+      <Text style={{ fontFamily: fonts.bodySemi, fontSize: 12, lineHeight: 16, color: theme.highlightInk }}>{RECORD_LABELS[type]}</Text>
     </View>
   );
 }

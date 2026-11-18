@@ -387,4 +387,4 @@ async def remove_media(set_id: UUID, user_id: UUID = Depends(current_user_id), d
 @router.post("/sync", response_model=SyncOut)
 async def post_sync(body: SyncIn, user_id: UUID = Depends(current_user_id), db: AsyncSession = Depends(get_db)):
     await limiter.hit(f"sync:{user_id}", 60, 60)
-    return await syncing.sync(db, user_id, body.cursor, body.mutations)
+    return await syncing.sync(db, user_id, body.cursor, body.mutations, body.limit)

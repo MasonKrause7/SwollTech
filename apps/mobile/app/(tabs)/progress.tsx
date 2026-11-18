@@ -9,7 +9,7 @@ import { shortDate, volume, weight } from "../../src/format";
 import { statLog } from "../../src/logic/localStats";
 import { useNotebook } from "../../src/notebook";
 import { syncNow, useSyncState } from "../../src/sync";
-import { dataColors, space, useTheme } from "../../src/theme";
+import { space, useTheme } from "../../src/theme";
 
 function weekTick(day: string) {
   return `${Number(day.slice(5, 7))}/${Number(day.slice(8, 10))}`;
@@ -82,7 +82,6 @@ export default function Progress() {
         <Card>
           <T variant="heading">Last 4 weeks by muscle</T>
           <SplitBars
-            colors={dataColors}
             rows={overview.muscleSplit.map((row) => ({ label: row.muscle, value: row.sets, detail: `${row.sets} sets, ${volume(row.volumeKg, unit)}` }))}
           />
         </Card>

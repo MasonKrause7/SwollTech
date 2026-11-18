@@ -138,8 +138,13 @@ export class NeonAuth {
     return { error: null, email: body?.user?.email ?? email, ...(body?.user?.id ? { userId: body.user.id } : {}) };
   }
 
+  /**
+   * The signed-in user, or null when there is no session. Throws when Neon Auth itself is
+   * failing (5xx), so a server outage is not mistaken for being signed out.
+   */
   async getSession(): Promise<NeonSession | null> {
     const response = await this.call("/get-session");
+    if (response.status >= 500) throw new Error(`Neon Auth is unavailable (${response.status})`);
     if (!response.ok) return null;
     const jwt = response.headers.get("set-auth-jwt");
     if (jwt) this.token = { jwt, expiresAt: jwtExpiry(jwt) };
@@ -147,7 +152,11 @@ export class NeonAuth {
     return body && body.user ? body : null;
   }
 
-  /** A JWT for the SwollTech API, refreshed a minute before it expires. Null when signed out. */
+  /**
+   * A JWT for the SwollTech API, refreshed a minute before it expires. Null only when Neon
+   * Auth says there is no session (401/403). Network failures and Neon Auth outages throw,
+   * so callers can tell "offline" from "signed out".
+   */
   async getToken(): Promise<string | null> {
     if (this.token && this.token.expiresAt - REFRESH_MARGIN_MS > Date.now()) return this.token.jwt;
     if (!this.pending) {
@@ -155,7 +164,8 @@ export class NeonAuth {
         const response = await this.call("/token");
         if (!response.ok) {
           this.token = null;
-          return null;
+          if (response.status === 401 || response.status === 403) return null;
+          throw new Error(`Neon Auth is unavailable (${response.status})`);
         }
         const body = (await this.json(response)) as { token?: string } | null;
         if (!body?.token) return null;
@@ -178,6 +188,15 @@ export class NeonAuth {
     const response = await this.call("/reset-password", { body: { token, newPassword } });
     if (response.ok) return null;
     return messageFrom(await this.json(response), "That reset link has expired. Request a new one.");
+  }
+
+  /**
+   * Drop the cached JWT but keep the session, so the next getToken() fetches a fresh one.
+   * Used when the API refuses a token this client still thought was valid (clock skew,
+   * a key rotation), before deciding the session is really gone.
+   */
+  dropToken(): void {
+    this.token = null;
   }
 
   /** Forget the local session without telling the server (used after the API says 401). */
