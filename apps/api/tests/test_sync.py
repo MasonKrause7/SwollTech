@@ -49,7 +49,7 @@ async def test_a_phone_can_build_a_whole_plan_offline(client):
         token,
         [
             upsert("profiles", {"id": str(user_id), "display_name": "Phone", "unit_preference": "kg"}, base=None),
-            upsert("exercises", {"id": exercise, "name": "Landmine Press", "primary_muscle": "shoulders", "equipment": "barbell"}),
+            upsert("exercises", {"id": exercise, "name": "Viking Press", "primary_muscle": "shoulders", "equipment": "barbell"}),
             upsert("exercise_references", {"id": reference, "exercise_id": BENCH, "weight": 120, "unit": "kg", "noted_on": "2026-10-01"}),
             upsert("workouts", {"id": workout, "name": "Phone plan", "notes": ""}),
             upsert("workout_exercises", {"id": item, "workout_id": workout, "exercise_id": BENCH, "position": 0}),
@@ -177,14 +177,14 @@ async def test_custom_exercise_and_reference_lifecycle(client):
         client,
         token,
         [
-            upsert("exercises", {"id": exercise, "name": "Belt Squat", "primary_muscle": "quads"}),
+            upsert("exercises", {"id": exercise, "name": "Hatfield Squat", "primary_muscle": "quads"}),
             upsert("exercise_references", {"id": reference, "exercise_id": exercise, "weight": 300, "unit": "lb", "noted_on": "2026-10-01"}),
         ],
     )
     rows = {entry["server_row"]["id"]: entry["server_row"] for entry in made["applied"]}
     assert rows[reference]["weight_kg"] == 136.077711
-    renamed = await sync(client, token, [upsert("exercises", {"id": exercise, "name": "Belt Squat Machine", "primary_muscle": "quads"}, base=rows[exercise]["updated_at"])])
-    assert renamed["applied"][0]["server_row"]["name"] == "Belt Squat Machine"
+    renamed = await sync(client, token, [upsert("exercises", {"id": exercise, "name": "Hatfield Squat Machine", "primary_muscle": "quads"}, base=rows[exercise]["updated_at"])])
+    assert renamed["applied"][0]["server_row"]["name"] == "Hatfield Squat Machine"
     gone = await sync(
         client,
         token,
@@ -195,4 +195,4 @@ async def test_custom_exercise_and_reference_lifecycle(client):
     )
     assert [entry["status"] for entry in gone["applied"]] == ["applied", "applied"]
     names = [item["name"] for item in (await client.get("/v1/exercises", headers=headers(token))).json()]
-    assert "Belt Squat Machine" not in names
+    assert "Hatfield Squat Machine" not in names
