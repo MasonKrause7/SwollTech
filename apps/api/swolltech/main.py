@@ -39,7 +39,7 @@ if settings.sentry_dsn:
     import sentry_sdk
 
     # Before the app is built so the FastAPI integration hooks in. No request bodies or IPs.
-    sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05, send_default_pii=False, release=os.environ.get("VERCEL_GIT_COMMIT_SHA"), environment=os.environ.get("VERCEL_ENV", "local"))
+    sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05, send_default_pii=False, max_request_body_size="never", release=os.environ.get("VERCEL_GIT_COMMIT_SHA"), environment=os.environ.get("VERCEL_ENV", "local"))
 
 # The interactive docs and schema are for local development. On a deployed host they only
 # map the API for strangers. app.openapi() still works, so CI's contract check is unaffected.
