@@ -377,3 +377,5 @@ export function createClient(options: ClientOptions) {
 }
 
 export type ApiClient = ReturnType<typeof createClient>;
+
+export { NeonAuth, SESSION_COOKIE, sessionCookieFrom, type NeonAuthOptions, type NeonSession, type NeonUser, type SessionStore } from "./neonAuth";

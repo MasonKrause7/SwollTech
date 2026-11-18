@@ -13,7 +13,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.0",
     "@swolltech/api-client": "*",
     "@swolltech/metrics": "*",
     "@tanstack/react-query": "^5.101.2",

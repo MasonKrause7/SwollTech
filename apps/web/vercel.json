@@ -2,11 +2,24 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/((?!assets/|art/).*)",
+      "source": "/api/auth/:path*",
+      "destination": "https://ep-broad-math-bf1uc14x.neonauth.c-5.us-west-2.aws.neon.tech/neondb/auth/:path*"
+    },
+    {
+      "source": "/((?!assets/|art/|api/).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/api/auth/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
     {
       "source": "/assets/(.*)",
       "headers": [

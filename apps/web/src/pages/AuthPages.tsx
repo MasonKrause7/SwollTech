@@ -2,6 +2,7 @@ import { FormEvent, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { devLoginEnabled, useAuth } from "../auth";
 import { errorMessage } from "../format";
+import { LegalLinks } from "./Legal";
 
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -34,6 +35,7 @@ export function SignInPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const from = (location.state as { from?: string } | null)?.from ?? "/";
+  const notice = (location.state as { notice?: string } | null)?.notice;
   if (signedIn) return <Navigate to={from} replace />;
 
   async function onSubmit(event: FormEvent) {
@@ -66,6 +68,7 @@ export function SignInPage() {
           <h2 style={{ fontSize: "2rem" }}>Sign in</h2>
           <p className="muted">Pick up where your last session left off.</p>
         </div>
+        {notice && <p role="status">{notice}</p>}
         <label className="field">
           <span>Email</span>
           <input data-testid="email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required={!devLoginEnabled} />
@@ -91,6 +94,7 @@ export function SignInPage() {
           <Link to="/signup">Create an account</Link>
           <Link to="/reset">Forgot password?</Link>
         </div>
+        <LegalLinks />
       </form>
     </AuthLayout>
   );
@@ -160,6 +164,9 @@ export function SignUpPage() {
             {busy ? "Creating account…" : "Create account"}
           </button>
           <Link to="/signin">I already have an account</Link>
+          <p className="muted small">
+            By creating an account you agree to the <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.
+          </p>
         </form>
       )}
     </AuthLayout>
@@ -207,7 +214,7 @@ export function ResetPage() {
 }
 
 export function UpdatePasswordPage() {
-  const { updatePassword, signedIn } = useAuth();
+  const { updatePassword, recovering } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -220,7 +227,7 @@ export function UpdatePasswordPage() {
     }
     const failure = await updatePassword(password);
     if (failure) setError(failure);
-    else navigate("/", { replace: true });
+    else navigate("/signin", { replace: true, state: { notice: "Password changed. Sign in with your new password." } });
   }
 
   return (
@@ -228,7 +235,7 @@ export function UpdatePasswordPage() {
       <form className="stack-lg" onSubmit={onSubmit}>
         <div className="stack">
           <h2 style={{ fontSize: "2rem" }}>Choose a new password</h2>
-          {!signedIn && <p className="muted">Open the link from your reset email to get here.</p>}
+          {!recovering && <p className="muted">Open the link from your reset email to get here.</p>}
         </div>
         <label className="field">
           <span>New password</span>
@@ -239,7 +246,7 @@ export function UpdatePasswordPage() {
             {error}
           </p>
         )}
-        <button className="btn primary big block" type="submit" disabled={!signedIn}>
+        <button className="btn primary big block" type="submit" disabled={!recovering}>
           Save password
         </button>
       </form>
