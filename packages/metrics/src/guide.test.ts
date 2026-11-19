@@ -92,6 +92,53 @@ describe("prefill", () => {
     expect(matchingPrevious(exercise, 1)?.actual_weight).toBe(275);
   });
 
+  it("carries the weight from the set just logged when the plan only sets reps", () => {
+    // A starter program: reps planned, weights blank, nothing logged before.
+    const exercise: GuideExercise = {
+      id: "a",
+      exercise_name: "Bench",
+      sets: [done({ target_reps: 6, actual_weight: 225, actual_unit: "lb", actual_reps: 6 }), set({ target_reps: 6 }), set({ target_reps: 6 })],
+    };
+    expect(prefill(exercise, 1, "lb")).toMatchObject({ weight: 225, reps: 6, unit: "lb", source: "plan" });
+    exercise.sets[1] = done({ target_reps: 6, actual_weight: 230, actual_unit: "lb", actual_reps: 6 });
+    expect(prefill(exercise, 2, "lb")).toMatchObject({ weight: 230, reps: 6 });
+  });
+
+  it("prefers today's last set over last session's matching set", () => {
+    const exercise: GuideExercise = {
+      id: "a",
+      exercise_name: "Bench",
+      sets: [done({ target_reps: 5, actual_weight: 225, actual_unit: "lb", actual_reps: 5 }), set({ target_reps: 5 })],
+      previous_sets: [done({ actual_weight: 215, actual_unit: "lb", actual_reps: 5 }), done({ actual_weight: 215, actual_unit: "lb", actual_reps: 5 })],
+    };
+    expect(prefill(exercise, 1, "lb")).toMatchObject({ weight: 225 });
+    // Without a plan either.
+    const open: GuideExercise = { ...exercise, sets: [done({ actual_weight: 225, actual_unit: "lb", actual_reps: 5 }), set()] };
+    expect(prefill(open, 1, "lb")).toMatchObject({ weight: 225, reps: 5, source: "previous-set" });
+  });
+
+  it("keeps a planned weight, and never carries a warm-up into a working set", () => {
+    const planned: GuideExercise = {
+      id: "a",
+      exercise_name: "Squat",
+      sets: [done({ target_weight: 275, target_unit: "lb", actual_weight: 265, actual_unit: "lb", actual_reps: 5 }), set({ target_weight: 285, target_unit: "lb", target_reps: 3 })],
+    };
+    expect(prefill(planned, 1, "lb")).toMatchObject({ weight: 285, reps: 3, source: "plan" });
+    const warmup: GuideExercise = {
+      id: "b",
+      exercise_name: "Squat",
+      sets: [done({ kind: "warmup", actual_weight: 135, actual_unit: "lb", actual_reps: 8 }), set({ target_reps: 5 })],
+    };
+    expect(prefill(warmup, 1, "lb").weight).toBeNull();
+    const skipped: GuideExercise = { id: "c", exercise_name: "Row", sets: [done({ actual_weight: 155, actual_unit: "lb", actual_reps: 8 }), set({ skipped: true, completed_at: "2026-10-20T12:00:00Z" }), set()] };
+    expect(prefill(skipped, 2, "lb")).toMatchObject({ weight: 155 });
+  });
+
+  it("carries the unit of the set it borrows the weight from", () => {
+    const exercise: GuideExercise = { id: "a", exercise_name: "Press", sets: [done({ target_reps: 5, actual_weight: 60, actual_unit: "kg", actual_reps: 5 }), set({ target_reps: 5 })] };
+    expect(prefill(exercise, 1, "lb")).toMatchObject({ weight: 60, unit: "kg" });
+  });
+
   it("falls back to the set just done, then to empty", () => {
     const exercise: GuideExercise = { id: "a", exercise_name: "Curl", sets: [done({ actual_weight: 30, actual_unit: "lb", actual_reps: 12 }), set()] };
     expect(prefill(exercise, 1, "lb")).toMatchObject({ weight: 30, reps: 12, source: "previous-set" });

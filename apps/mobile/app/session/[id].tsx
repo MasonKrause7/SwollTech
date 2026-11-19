@@ -135,6 +135,14 @@ export default function SessionScreen() {
   const [sessionNote, setSessionNote] = useState("");
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const pendingAdvance = useRef<Pending | null>(null);
+  // The set just logged, until its saved row reloads. The screen moves to the next set
+  // before that, and the next set's weight should carry over from it.
+  const justLogged = useRef<{ id: string; actual_weight: number; actual_reps: number; actual_unit: Unit; completed_at: string } | null>(null);
+  const withJustLogged = <T extends { sets: { id: string; completed_at: string | null }[] }>(item: T): T => {
+    const logged = justLogged.current;
+    if (!logged || !item.sets.some((row) => row.id === logged.id && row.completed_at == null)) return item;
+    return { ...item, sets: item.sets.map((row) => (row.id === logged.id ? { ...row, ...logged } : row)) };
+  };
 
   // Pick the first open set when the session loads.
   useEffect(() => {
@@ -184,7 +192,7 @@ export default function SessionScreen() {
   // Fill the inputs whenever the lifter lands on a different set.
   useEffect(() => {
     if (!exercise || !position) return;
-    const values = prefill(exercise, position.setIndex, unit);
+    const values = prefill(withJustLogged(exercise), position.setIndex, unit);
     // A barbell lift you have never done starts at the empty bar.
     const start = current && current.completed_at == null ? startingWeight(values.weight, exercise.equipment, values.unit) : values.weight;
     setWeightText(start != null ? trim(start, 2) : "");
@@ -320,6 +328,7 @@ export default function SessionScreen() {
     } finally {
       setSaving(false);
     }
+    justLogged.current = { id: current.id, actual_weight: weightValue!, actual_reps: reps!, actual_unit: setUnit, completed_at: new Date().toISOString() };
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     if (best != null && exercise) {
       setRecord(`New record on ${exercise.exercise_name}: estimated 1RM ${trim(fromKilograms(best, setUnit), 1)} ${setUnit}`);
@@ -481,7 +490,7 @@ export default function SessionScreen() {
     if (!next) return null;
     const item = exercises[next.exerciseIndex];
     if (!item?.sets[next.setIndex]) return null;
-    const values = prefill(item, next.setIndex, unit);
+    const values = prefill(withJustLogged(item), next.setIndex, unit);
     const amount = values.weight != null && values.reps != null ? `, ${trim(values.weight, 2)} ${values.unit} × ${values.reps}` : "";
     return `${item.exercise_name}, ${setLabel(item, next.setIndex).toLowerCase()}${amount}`;
   })();

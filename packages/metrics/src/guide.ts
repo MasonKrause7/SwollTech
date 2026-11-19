@@ -105,11 +105,13 @@ export interface Prefill {
 }
 
 /**
- * What to put in the inputs for a set.
+ * What to put in the inputs for a set. Weight and reps are filled separately, each from
+ * the first source that has a value:
  * 1. What you already logged for it.
  * 2. The plan's target.
- * 3. The matching set from last session (same position among sets of the same kind).
- * 4. The set you just did in this exercise.
+ * 3. The set you just did in this exercise today (same kind), so a lifter working up
+ *    from 225 starts the next set at 225 and bumps it by one plate step.
+ * 4. The matching set from last session (same position among sets of the same kind).
  */
 export function prefill(exercise: GuideExercise, setIndex: number, fallbackUnit: Unit): Prefill {
   const set = exercise.sets[setIndex];
@@ -123,33 +125,37 @@ export function prefill(exercise: GuideExercise, setIndex: number, fallbackUnit:
       source: "logged",
     };
   }
+  const today = previousLogged(exercise, setIndex);
+  const last = matchingPrevious(exercise, setIndex);
   if (set.target_weight != null || set.target_reps != null) {
-    const last = matchingPrevious(exercise, setIndex);
+    // A planned weight wins; otherwise carry today's last set, then last time's.
+    const carried = set.target_weight == null ? (today?.actual_weight != null ? today : last) : null;
     return {
-      weight: set.target_weight ?? last?.actual_weight ?? null,
-      reps: set.target_reps ?? last?.actual_reps ?? null,
-      unit: set.target_unit ?? last?.actual_unit ?? fallbackUnit,
+      weight: set.target_weight ?? carried?.actual_weight ?? null,
+      reps: set.target_reps ?? today?.actual_reps ?? last?.actual_reps ?? null,
+      unit: set.target_weight != null ? (set.target_unit ?? fallbackUnit) : (carried?.actual_unit ?? set.target_unit ?? fallbackUnit),
       rpe: set.target_rpe ?? null,
       source: "plan",
     };
   }
-  const last = matchingPrevious(exercise, setIndex);
+  if (today && (today.actual_weight != null || today.actual_reps != null)) {
+    return { weight: today.actual_weight, reps: today.actual_reps, unit: today.actual_unit ?? fallbackUnit, rpe: null, source: "previous-set" };
+  }
   if (last && (last.actual_weight != null || last.actual_reps != null)) {
     return { weight: last.actual_weight, reps: last.actual_reps, unit: last.actual_unit ?? fallbackUnit, rpe: null, source: "last-time" };
   }
+  return { weight: null, reps: null, unit: fallbackUnit, rpe: null, source: "empty" };
+}
+
+/** The most recent set of the same kind logged earlier in this exercise today. */
+export function previousLogged(exercise: GuideExercise, setIndex: number): GuideSet | null {
+  const set = exercise.sets[setIndex];
+  if (!set) return null;
   for (let index = setIndex - 1; index >= 0; index -= 1) {
     const earlier = exercise.sets[index];
-    if (earlier.completed_at && earlier.kind === set.kind) {
-      return {
-        weight: earlier.actual_weight,
-        reps: earlier.actual_reps,
-        unit: earlier.actual_unit ?? fallbackUnit,
-        rpe: null,
-        source: "previous-set",
-      };
-    }
+    if (earlier.completed_at && !earlier.skipped && earlier.kind === set.kind) return earlier;
   }
-  return { weight: null, reps: null, unit: fallbackUnit, rpe: null, source: "empty" };
+  return null;
 }
 
 /** Last session's set at the same position among sets of the same kind. */
